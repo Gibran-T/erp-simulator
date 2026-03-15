@@ -177,8 +177,8 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
             <span>{t("Slides", "Slides")}</span>
           </Link>
 
-          {/* Version */}
-          <span className="text-[10px] text-white/40 font-mono hidden lg:block">{APP_VERSION}</span>
+          {/* Version — visible from md up */}
+          <span className="text-[10px] text-white/40 font-mono hidden md:block">{APP_VERSION}</span>
 
           {/* User info */}
           <div className="text-right hidden sm:block">
@@ -301,9 +301,9 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
               <p className={`text-[10px] font-mono ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
                 {APP_VERSION} — Mini-WMS ERP/WMS Simulator
               </p>
-              <p className={`text-[10px] ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+              <Link href="/" className={`text-[10px] hover:text-[#0070f2] hover:underline ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
                 {PROGRAMME_CODE} — {COURSE_NAME}
-              </p>
+              </Link>
             </div>
             <Link href="/legal" className="text-[10px] text-[#0070f2] hover:underline">
               {t("Mentions légales", "Legal notices")}

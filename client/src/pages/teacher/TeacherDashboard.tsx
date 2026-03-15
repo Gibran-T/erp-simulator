@@ -1,370 +1,319 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
-import { BookOpen, Users, BarChart2, ClipboardList, Monitor, FlaskConical, ShieldCheck, Layers, TrendingUp, CheckCircle2, FileText, MonitorPlay, Presentation } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  BookOpen, Users, BarChart2, ClipboardList, Monitor,
+  FlaskConical, ShieldCheck, Layers, TrendingUp, FileText,
+  MonitorPlay, Presentation, Plus, ArrowRight, Clock,
+  TrendingDown, Minus,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const SLIDE_COUNT_PER_MODULE = 17; // each module has 17 slides
+
+function fmtTime(dateVal: string | Date | undefined): string {
+  if (!dateVal) return "";
+  const d = new Date(dateVal as string);
+  if (isNaN(d.getTime())) return "";
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "à l'instant";
+  if (diffMin < 60) return `il y a ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `il y a ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  return `il y a ${diffD}j`;
+}
+
+function TrendBadge({ current, previous }: { current: number | null; previous?: number | null }) {
+  if (current === null || previous === null || previous === undefined) return null;
+  const delta = current - previous;
+  if (delta > 0) return <span className="text-[9px] text-[#107e3e] font-semibold flex items-center gap-0.5"><TrendingUp size={9} />+{delta}</span>;
+  if (delta < 0) return <span className="text-[9px] text-[#bb0000] font-semibold flex items-center gap-0.5"><TrendingDown size={9} />{delta}</span>;
+  return <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><Minus size={9} />0</span>;
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
 export default function TeacherDashboard() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: cohorts } = trpc.cohorts.list.useQuery();
   const { data: assignments } = trpc.assignments.all.useQuery();
   const { data: monitor } = trpc.monitor.allRuns.useQuery();
-  const { data: moduleProgress } = trpc.warehouse.allModuleProgress.useQuery();
 
-  // Separate eval runs from demo runs
-  const evalRuns = (monitor ?? []).filter((r: any) => !r.run?.isDemo);
+  // ── filter out teacher's own runs from student activity feed ──────────────
+  const evalRuns = (monitor ?? []).filter((r: any) => !r.run?.isDemo && r.run?.userId !== user?.id);
   const demoRuns = (monitor ?? []).filter((r: any) => r.run?.isDemo);
+  const allEvalForStats = (monitor ?? []).filter((r: any) => !r.run?.isDemo); // keep own for stats
 
-  // Module 1 stats (from eval runs with module 1 scenarios)
-  const m1Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 1).map((s) => s.id);
-  const m2Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 2).map((s) => s.id);
-  const m3Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 3).map((s) => s.id);
-  const m4Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 4).map((s) => s.id);
-  const m5Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 5).map((s) => s.id);
+  // ── per-module scenario id sets ───────────────────────────────────────────
+  const mScenarios = [1, 2, 3, 4, 5].map((id) =>
+    (scenarios ?? []).filter((s) => s.moduleId === id).map((s) => s.id)
+  );
 
-  const m1Runs = evalRuns.filter((r: any) => m1Scenarios.includes(r.run?.scenarioId));
-  const m2Runs = evalRuns.filter((r: any) => m2Scenarios.includes(r.run?.scenarioId));
-  const m3Runs = evalRuns.filter((r: any) => m3Scenarios.includes(r.run?.scenarioId));
-  const m4Runs = evalRuns.filter((r: any) => m4Scenarios.includes(r.run?.scenarioId));
-  const m5Runs = evalRuns.filter((r: any) => m5Scenarios.includes(r.run?.scenarioId));
+  const mRuns = mScenarios.map((ids) =>
+    allEvalForStats.filter((r: any) => ids.includes(r.run?.scenarioId))
+  );
 
-  const avgScore = (runs: any[]) => {
-    const completed = runs.filter((r: any) => r.run?.status === "completed");
-    if (completed.length === 0) return null;
-    const avg = completed.reduce((sum: number, r: any) => sum + (r.score ?? 0), 0) / completed.length;
-    return Math.round(avg);
+  // ── score helpers ─────────────────────────────────────────────────────────
+  const avgScore = (runs: any[]): number | null => {
+    const scored = runs.filter((r: any) => r.score !== null && r.score !== undefined);
+    if (scored.length === 0) return null;
+    return Math.round(scored.reduce((s: number, r: any) => s + (r.score ?? 0), 0) / scored.length);
   };
 
-  const m1Avg = avgScore(m1Runs);
-  const m2Avg = avgScore(m2Runs);
-  const m3Avg = avgScore(m3Runs);
-  const m4Avg = avgScore(m4Runs);
-  const m5Avg = avgScore(m5Runs);
+  const passedCount = (runs: any[]) =>
+    runs.filter((r: any) => r.score !== null && r.score !== undefined && r.score >= 60).length;
 
-  // Module progress from module_progress table
-  const m1Passed = (moduleProgress ?? []).filter((p: any) => p.moduleId === 1 && p.passed).length;
-  const m2Passed = (moduleProgress ?? []).filter((p: any) => p.moduleId === 2 && p.passed).length;
-  const m3Passed = (moduleProgress ?? []).filter((p: any) => p.moduleId === 3 && p.passed).length;
-  const m4Passed = (moduleProgress ?? []).filter((p: any) => p.moduleId === 4 && p.passed).length;
-  const m5Passed = (moduleProgress ?? []).filter((p: any) => p.moduleId === 5 && p.passed).length;
-  const m1Total = (moduleProgress ?? []).filter((p: any) => p.moduleId === 1).length;
-  const m2Total = (moduleProgress ?? []).filter((p: any) => p.moduleId === 2).length;
-  const m3Total = (moduleProgress ?? []).filter((p: any) => p.moduleId === 3).length;
-  const m4Total = (moduleProgress ?? []).filter((p: any) => p.moduleId === 4).length;
-  const m5Total = (moduleProgress ?? []).filter((p: any) => p.moduleId === 5).length;
+  const mAvg = mRuns.map(avgScore);
+  const mPassed = mRuns.map(passedCount);
+
+  // ── KPI cards ─────────────────────────────────────────────────────────────
+  const assignmentsCount = assignments?.length ?? 0;
+  const activeEvalCount = allEvalForStats.filter((r: any) => r.run?.status === "in_progress").length;
 
   const cards = [
-    { icon: BookOpen, label: "Scénarios", value: scenarios?.length ?? 0, href: "/teacher/scenarios", color: "text-[#0070f2]", bg: "bg-[#e8f0fe]" },
-    { icon: Users, label: "Cohortes", value: cohorts?.length ?? 0, href: "/teacher/cohorts", color: "text-[#107e3e]", bg: "bg-[#d4edda]" },
-    { icon: ClipboardList, label: "Devoirs assignés", value: assignments?.length ?? 0, href: "/teacher/assignments", color: "text-[#e9730c]", bg: "bg-[#fff3cd]" },
-    { icon: Monitor, label: "Simulations actives (éval.)", value: evalRuns.filter((r: any) => r.run?.status === "in_progress").length, href: "/teacher/monitor", color: "text-[#5b4b8a]", bg: "bg-[#ede7f6]" },
+    {
+      icon: BookOpen, label: "Scénarios", value: scenarios?.length ?? 0,
+      href: "/teacher/scenarios", color: "text-[#0070f2]", bg: "bg-[#e8f0fe]",
+      cta: null,
+    },
+    {
+      icon: Users, label: "Cohortes", value: cohorts?.length ?? 0,
+      href: "/teacher/cohorts", color: "text-[#107e3e]", bg: "bg-[#d4edda]",
+      cta: cohorts?.length === 0 ? "Créer une cohorte →" : null,
+    },
+    {
+      icon: ClipboardList, label: "Devoirs assignés", value: assignmentsCount,
+      href: "/teacher/scenarios", color: "text-[#e9730c]", bg: "bg-[#fff3cd]",
+      cta: assignmentsCount === 0 ? "Assigner un scénario →" : null,
+    },
+    {
+      icon: Monitor, label: "Simulations actives (éval.)", value: activeEvalCount,
+      href: "/teacher/monitor", color: "text-[#5b4b8a]", bg: "bg-[#ede7f6]",
+      cta: null,
+    },
   ];
 
-  const recentRuns = (monitor ?? []).slice(0, 5);
+  // ── recent activity (student-only, last 5) ────────────────────────────────
+  const recentRuns = (monitor ?? [])
+    .filter((r: any) => r.run?.userId !== user?.id)
+    .slice(0, 5);
+
+  // ── module card config ────────────────────────────────────────────────────
+  const moduleConfig = [
+    { id: 1, label: "Module 1 — Fondements ERP/WMS", color: "#0070f2", bg: "bg-[#e8f0fe]", text: "text-[#0070f2]", border: "border-[#0070f2]/20", slidesBg: "bg-[#e8f0fe]", slidesText: "text-[#0070f2]", slidesHover: "hover:bg-[#d0e4fc]", icon: BookOpen, threshold: 60 },
+    { id: 2, label: "Module 2 — Exécution d'entrepôt", color: "#2563eb", bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", slidesBg: "bg-blue-50", slidesText: "text-blue-600", slidesHover: "hover:bg-blue-100", icon: Layers, threshold: 60 },
+    { id: 3, label: "Module 3 — Contrôle des stocks", color: "#059669", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", slidesBg: "bg-emerald-50", slidesText: "text-emerald-600", slidesHover: "hover:bg-emerald-100", icon: TrendingUp, threshold: 70 },
+    { id: 4, label: "Module 4 — Indicateurs de performance", color: "#d97706", bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200", slidesBg: "bg-orange-50", slidesText: "text-orange-600", slidesHover: "hover:bg-orange-100", icon: BarChart2, threshold: 70 },
+    { id: 5, label: "Module 5 — Simulation intégrée", color: "#7b1fa2", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200", slidesBg: "bg-purple-50", slidesText: "text-purple-600", slidesHover: "hover:bg-purple-100", icon: FileText, threshold: 70 },
+  ];
 
   return (
-    <FioriShell title="Tableau de Bord — Enseignant" breadcrumbs={[{ label: "Tableau de bord" }]}>
-      {/* KPI Cards */}
+    <FioriShell title="Tableau de Bord — Enseignant" breadcrumbs={[]}>
+      {/* ── KPI Cards ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {cards.map((card) => (
-          <button key={card.label} onClick={() => navigate(card.href)}
-            className="bg-card border border-border rounded-md p-4 text-left hover:border-[#0070f2] hover:shadow-sm transition-all group">
+          <button
+            key={card.label}
+            onClick={() => navigate(card.href)}
+            className="bg-card border border-border rounded-md p-4 text-left hover:border-[#0070f2] hover:shadow-sm transition-all group"
+          >
             <div className={`w-9 h-9 ${card.bg} rounded-md flex items-center justify-center mb-3`}>
               <card.icon size={16} className={card.color} />
             </div>
             <p className="text-2xl font-bold text-foreground">{card.value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
+            {card.cta && (
+              <p className="text-[10px] text-[#0070f2] font-semibold mt-1.5 flex items-center gap-1 group-hover:underline">
+                <Plus size={9} />{card.cta}
+              </p>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Module Progress Section */}
+      {/* ── Module Progress Cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {/* Module 1 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2 px-5 pt-4">
-            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
-              <BookOpen size={13} className="text-[#0070f2]" />
-              Module 1 — Fondements ERP/WMS
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-4">
-            <Link href="/student/slides/1" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-[#e8f0fe] text-[#0070f2] text-[10px] font-semibold hover:bg-[#d0e4fc] transition-colors">
-              <Presentation size={11} /> Slides M1
-            </Link>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <p className="text-xl font-bold text-[#0070f2]">{m1Runs.length}</p>
-                <p className="text-[10px] text-muted-foreground">Simulations</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-[#107e3e]">
-                  {m1Avg !== null ? `${m1Avg}` : "—"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Score moyen</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-[#e9730c]">
-                  {m1Total > 0 ? `${m1Passed}/${m1Total}` : "—"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Réussis</p>
-              </div>
-            </div>
-            {m1Avg !== null && (
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Score moyen</span>
-                  <span className={m1Avg >= 60 ? "text-[#107e3e] font-semibold" : "text-[#bb0000] font-semibold"}>{m1Avg}/100</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${m1Avg >= 60 ? "bg-[#107e3e]" : "bg-[#e9730c]"}`} style={{ width: `${m1Avg}%` }} />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {moduleConfig.map((mod, idx) => {
+          const runs = mRuns[idx];
+          const avg = mAvg[idx];
+          const passed = mPassed[idx];
+          const Icon = mod.icon;
+          return (
+            <Card key={mod.id} className="border-border">
+              <CardHeader className="pb-2 px-4 pt-4">
+                <CardTitle className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                  <Icon size={12} className={mod.text} />
+                  <span className="truncate">{mod.label}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                {/* Slides button with count */}
+                <Link
+                  href={`/student/slides/${mod.id}`}
+                  className={`mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md ${mod.slidesBg} ${mod.slidesText} text-[10px] font-semibold ${mod.slidesHover} transition-colors`}
+                >
+                  <Presentation size={11} />
+                  Slides M{mod.id}
+                  <span className="opacity-60 font-normal">({SLIDE_COUNT_PER_MODULE})</span>
+                </Link>
 
-        {/* Module 2 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2 px-5 pt-4">
-            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
-              <Layers size={13} className="text-blue-600" />
-              Module 2 — Exécution d'entrepôt
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-4">
-            <Link href="/student/slides/2" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-blue-50 text-blue-600 text-[10px] font-semibold hover:bg-blue-100 transition-colors">
-              <Presentation size={11} /> Slides M2
-            </Link>
-            {m2Runs.length === 0 ? (
-              <div className="py-4 text-center text-[10px] text-muted-foreground">
-                Aucune simulation Module 2 enregistrée
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-blue-600">{m2Runs.length}</p>
-                    <p className="text-[10px] text-muted-foreground">Simulations</p>
+                {runs.length === 0 ? (
+                  <div className="py-3 text-center">
+                    <p className="text-[10px] text-muted-foreground mb-2">Aucune simulation enregistrée</p>
+                    <button
+                      onClick={() => navigate("/teacher/scenarios")}
+                      className={`text-[9px] font-semibold ${mod.slidesText} flex items-center gap-1 mx-auto hover:underline`}
+                    >
+                      <ArrowRight size={9} /> Assigner un scénario
+                    </button>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#107e3e]">
-                      {m2Avg !== null ? `${m2Avg}` : "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Score moyen</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#e9730c]">
-                      {m2Total > 0 ? `${m2Passed}/${m2Total}` : "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Réussis</p>
-                  </div>
-                </div>
-                {m2Avg !== null && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                      <span>Score moyen</span>
-                      <span className={m2Avg >= 60 ? "text-[#107e3e] font-semibold" : "text-[#bb0000] font-semibold"}>{m2Avg}/100</span>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <p className={`text-lg font-bold ${mod.text}`}>{runs.length}</p>
+                        <p className="text-[9px] text-muted-foreground">Simul.</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-[#107e3e]">
+                          {avg !== null ? avg : "0"}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Moy.</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-[#e9730c]">
+                          {passed}/{runs.length}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Réussis</p>
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${m2Avg >= 60 ? "bg-[#107e3e]" : "bg-[#e9730c]"}`} style={{ width: `${m2Avg}%` }} />
-                    </div>
-                  </div>
+                    {avg !== null && (
+                      <div className="mt-2.5">
+                        <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-1">
+                          <span>Score moyen</span>
+                          <span className={avg >= mod.threshold ? "text-[#107e3e] font-semibold" : "text-[#bb0000] font-semibold"}>
+                            {avg}/100
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${avg >= mod.threshold ? "bg-[#107e3e]" : "bg-[#e9730c]"}`}
+                            style={{ width: `${avg}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Module 3 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2 px-5 pt-4">
-            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
-              <TrendingUp size={13} className="text-emerald-600" />
-              Module 3 — Contrôle des stocks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-4">
-            <Link href="/student/slides/3" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-semibold hover:bg-emerald-100 transition-colors">
-              <Presentation size={11} /> Slides M3
-            </Link>
-            {m3Runs.length === 0 ? (
-              <div className="py-4 text-center text-[10px] text-muted-foreground">
-                Aucune simulation Module 3 enregistrée
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-emerald-600">{m3Runs.length}</p>
-                    <p className="text-[10px] text-muted-foreground">Simulations</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#107e3e]">
-                      {m3Avg !== null ? `${m3Avg}` : "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Score moyen</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#e9730c]">
-                      {m3Total > 0 ? `${m3Passed}/${m3Total}` : "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Réussis</p>
-                  </div>
-                </div>
-                {m3Avg !== null && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                      <span>Score moyen</span>
-                      <span className={m3Avg >= 70 ? "text-[#107e3e] font-semibold" : "text-[#bb0000] font-semibold"}>{m3Avg}/100</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${m3Avg >= 70 ? "bg-[#107e3e]" : "bg-[#e9730c]"}`} style={{ width: `${m3Avg}%` }} />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-        {/* Module 4 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2 px-5 pt-4">
-            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
-              <BarChart2 size={13} className="text-[#0070f2]" />
-              Module 4 — Indicateurs de performance logistique
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-4">
-            <Link href="/student/slides/4" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-orange-50 text-orange-600 text-[10px] font-semibold hover:bg-orange-100 transition-colors">
-              <Presentation size={11} /> Slides M4
-            </Link>
-            {m4Runs.length === 0 ? (
-              <div className="py-4 text-center text-[10px] text-muted-foreground">Aucune simulation M4</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#0070f2]">{m4Runs.length}</p>
-                    <p className="text-[10px] text-muted-foreground">Simul.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#107e3e]">{m4Avg !== null ? m4Avg : "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">Moy.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#e9730c]">{m4Total > 0 ? `${m4Passed}/${m4Total}` : "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">Réussis</p>
-                  </div>
-                </div>
-                {m4Avg !== null && (
-                  <div className="mt-3">
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${m4Avg >= 70 ? "bg-[#107e3e]" : "bg-[#e9730c]"}`} style={{ width: `${m4Avg}%` }} />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Module 5 */}
-        <Card className="border-border">
-          <CardHeader className="pb-2 px-5 pt-4">
-            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
-              <FileText size={13} className="text-[#7b1fa2]" />
-              Module 5 — Simulation opérationnelle intégrée
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-4">
-            <Link href="/student/slides/5" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-semibold hover:bg-purple-100 transition-colors">
-              <Presentation size={11} /> Slides M5
-            </Link>
-            {m5Runs.length === 0 ? (
-              <div className="py-4 text-center text-[10px] text-muted-foreground">Aucune simulation M5</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#7b1fa2]">{m5Runs.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Simul.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#107e3e]">{m5Avg !== null ? m5Avg : "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">Moy.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xl font-bold text-[#e9730c]">{m5Total > 0 ? `${m5Passed}/${m5Total}` : "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">Réussis</p>
-                  </div>
-                </div>
-                {m5Avg !== null && (
-                  <div className="mt-3">
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${m5Avg >= 70 ? "bg-[#107e3e]" : "bg-[#e9730c]"}`} style={{ width: `${m5Avg}%` }} />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-card border border-border rounded-md">
+      {/* ── Recent Student Activity ──────────────────────────────────────────── */}
+      <div className="bg-card border border-border rounded-md mb-4">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <p className="text-xs font-semibold text-foreground flex items-center gap-2">
-            <BarChart2 size={13} /> Activité récente des étudiants
-            <span className="text-[10px] font-normal text-gray-400 ml-1">
+            <BarChart2 size={13} />
+            Activité récente des étudiants
+            <span className="text-[10px] font-normal text-muted-foreground ml-1">
               ({evalRuns.length} éval. · {demoRuns.length} démo)
             </span>
           </p>
-          <button onClick={() => navigate("/teacher/monitor")} className="text-xs text-[#0070f2] hover:underline">Voir tout →</button>
+          <Link href="/teacher/monitor" className="text-xs text-[#0070f2] hover:underline flex items-center gap-1">
+            Voir tout → <span className="text-[9px] text-muted-foreground">(Monitoring)</span>
+          </Link>
         </div>
+
         <div className="divide-y divide-border">
           {recentRuns.length === 0 && (
-            <div className="py-10 text-center text-muted-foreground text-xs">Aucune simulation en cours</div>
+            <div className="py-10 text-center">
+              <p className="text-muted-foreground text-xs mb-2">Aucune activité étudiante enregistrée</p>
+              <button
+                onClick={() => navigate("/teacher/scenarios")}
+                className="text-[11px] text-[#0070f2] hover:underline flex items-center gap-1 mx-auto"
+              >
+                <ArrowRight size={11} /> Assigner un scénario aux étudiants
+              </button>
+            </div>
           )}
           {recentRuns.map((run: any) => {
             const isDemo = run.run?.isDemo;
-            const moduleId = m1Scenarios.includes(run.run?.scenarioId) ? 1 : m2Scenarios.includes(run.run?.scenarioId) ? 2 : m3Scenarios.includes(run.run?.scenarioId) ? 3 : null;
+            const scenarioId = run.run?.scenarioId;
+            const moduleId = mScenarios.findIndex((ids) => ids.includes(scenarioId)) + 1 || null;
+            const modColors: Record<number, string> = {
+              1: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+              2: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+              3: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+              4: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+              5: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+            };
             return (
-              <div key={run.run?.id ?? run.runId} className={`px-5 py-3 flex items-center justify-between ${isDemo ? "bg-muted/30" : ""}`}>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-xs font-semibold text-foreground">{run.user?.name ?? `Étudiant #${run.run?.userId}`}</p>
+              <div
+                key={run.run?.id ?? run.runId}
+                className={`px-5 py-3 flex items-center justify-between gap-3 ${isDemo ? "bg-muted/30" : ""}`}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      {run.user?.name ?? `Étudiant #${run.run?.userId}`}
+                    </p>
                     {isDemo ? (
-                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#5b4b8a] bg-[#ede7f6] px-1.5 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#5b4b8a] bg-[#ede7f6] dark:bg-purple-900/50 dark:text-purple-300 px-1.5 py-0.5 rounded-full shrink-0">
                         <FlaskConical size={8} /> Démo
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#0070f2] bg-[#e8f4fd] px-1.5 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#0070f2] bg-[#e8f4fd] dark:bg-blue-900/50 dark:text-blue-300 px-1.5 py-0.5 rounded-full shrink-0">
                         <ShieldCheck size={8} /> Éval.
                       </span>
                     )}
-                    {moduleId && (
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${moduleId === 2 ? "bg-blue-100 text-blue-700" : moduleId === 3 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                    {moduleId && moduleId > 0 && (
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${modColors[moduleId] ?? modColors[1]}`}>
                         M{moduleId}
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{run.scenario?.name} · {run.completedSteps?.length ?? 0} étapes</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {run.scenario?.name} · {run.completedSteps?.length ?? 0} étapes
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${isDemo ? "bg-[#5b4b8a]" : "bg-[#0070f2]"}`} style={{ width: `${run.progressPct}%` }} />
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Timestamp */}
+                  {run.run?.createdAt && (
+                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 hidden sm:flex">
+                      <Clock size={8} />
+                      {fmtTime(run.run.createdAt)}
+                    </span>
+                  )}
+                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${isDemo ? "bg-[#5b4b8a]" : "bg-[#0070f2]"}`}
+                      style={{ width: `${run.progressPct}%` }}
+                    />
                   </div>
-                  <span className={`text-[10px] font-semibold ${isDemo ? "text-[#5b4b8a]" : "text-[#0070f2]"}`}>{run.progressPct}%</span>
+                  <span className={`text-[10px] font-semibold w-8 text-right ${isDemo ? "text-[#5b4b8a]" : "text-[#0070f2]"}`}>
+                    {run.progressPct}%
+                  </span>
                   {!isDemo && (
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${run.compliant ? "bg-[#d4edda] text-[#107e3e]" : "bg-[#fde8e8] text-[#bb0000]"}`}>
                       {run.compliant ? "Conforme" : "Non conforme"}
                     </span>
                   )}
                   {isDemo && (
-                    <span className="text-[10px] text-[#5b4b8a] italic">Score N/A</span>
+                    <span
+                      className="text-[10px] text-[#5b4b8a] italic cursor-help"
+                      title="Les simulations en mode Démonstration ne génèrent pas de score officiel"
+                    >
+                      Non officiel
+                    </span>
                   )}
                 </div>
               </div>
@@ -373,15 +322,19 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Simulateur Demo Mode — Accès direct */}
-      <div className="mt-4 p-4 rounded-md border-2 border-[#5b4b8a] dark:border-purple-500 bg-gradient-to-r from-[#ede7f6] to-[#f3e5f5] dark:from-purple-950/40 dark:to-purple-900/30 flex items-center justify-between">
+      {/* ── Demo Mode Banner ─────────────────────────────────────────────────── */}
+      <div className="p-4 rounded-md border-2 border-[#5b4b8a] dark:border-purple-500 bg-gradient-to-r from-[#ede7f6] to-[#f3e5f5] dark:from-purple-950/40 dark:to-purple-900/30 flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-[#5b4b8a] rounded-md flex items-center justify-center shrink-0">
             <MonitorPlay size={20} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#3d1f6e] dark:text-purple-200">Mode Démonstration — Simulateur ERP/WMS</p>
-            <p className="text-xs text-[#5b4b8a] dark:text-purple-300 mt-0.5">Lancez le simulateur directement pour vos démonstrations en classe. Le score pédagogique est affiché en temps réel (non officiel).</p>
+            <p className="text-sm font-bold text-[#3d1f6e] dark:text-purple-200">
+              Mode Démonstration — Simulateur ERP/WMS
+            </p>
+            <p className="text-xs text-[#5b4b8a] dark:text-purple-300 mt-0.5">
+              Lancez le simulateur directement pour vos démonstrations en classe. Score pédagogique affiché en temps réel (non officiel).
+            </p>
           </div>
         </div>
         <button
@@ -392,48 +345,37 @@ export default function TeacherDashboard() {
         </button>
       </div>
 
-      {/* Module quick access */}
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="p-4 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Layers size={16} className="text-blue-600" />
-            <div>
-              <p className="text-xs font-semibold text-blue-900 dark:text-blue-200">Module 2 — Exécution d'entrepôt et gestion des emplacements</p>
-              <p className="text-[10px] text-blue-700 dark:text-blue-400">Rangement · Capacité d'emplacement · FIFO · Précision inventaire</p>
+      {/* ── Module Quick Access (all 5 modules) ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {[
+          { id: 1, label: "Module 1 — Fondements ERP/WMS", sub: "Flux logistiques · WMS · ERP · SAP · Intégration", border: "border-slate-200 dark:border-slate-700", bg: "bg-slate-50 dark:bg-slate-900/30", title: "text-slate-900 dark:text-slate-200", sub_c: "text-slate-600 dark:text-slate-400", btn: "text-slate-600 dark:text-slate-400", icon: BookOpen, iconC: "text-slate-600", route: "/student/module1" },
+          { id: 2, label: "Module 2 — Exécution d'entrepôt", sub: "Rangement · Capacité d'emplacement · FIFO · Précision inventaire", border: "border-blue-200 dark:border-blue-800", bg: "bg-blue-50 dark:bg-blue-950/30", title: "text-blue-900 dark:text-blue-200", sub_c: "text-blue-700 dark:text-blue-400", btn: "text-blue-600", icon: Layers, iconC: "text-blue-600", route: "/student/module2" },
+          { id: 3, label: "Module 3 — Contrôle des stocks et réapprovisionnement", sub: "Inventaire cyclique · Écarts · Ajustements · Min/Max · Stock de sécurité", border: "border-emerald-200 dark:border-emerald-800", bg: "bg-emerald-50 dark:bg-emerald-950/30", title: "text-emerald-900 dark:text-emerald-200", sub_c: "text-emerald-700 dark:text-emerald-400", btn: "text-emerald-600", icon: TrendingUp, iconC: "text-emerald-600", route: "/student/module3" },
+          { id: 4, label: "Module 4 — Indicateurs de performance logistique", sub: "Rotation · Taux de service · Taux d'erreur · Lead time · Diagnostic KPI", border: "border-orange-200 dark:border-orange-800", bg: "bg-orange-50 dark:bg-orange-950/30", title: "text-orange-900 dark:text-orange-200", sub_c: "text-orange-700 dark:text-orange-400", btn: "text-[#d97706]", icon: BarChart2, iconC: "text-[#d97706]", route: "/student/module4" },
+          { id: 5, label: "Module 5 — Simulation opérationnelle intégrée", sub: "Réception · Rangement FIFO · Inventaire · Réapprovisionnement · KPI · Décision", border: "border-purple-200 dark:border-purple-800", bg: "bg-purple-50 dark:bg-purple-950/30", title: "text-purple-900 dark:text-purple-200", sub_c: "text-purple-700 dark:text-purple-400", btn: "text-[#7b1fa2]", icon: FileText, iconC: "text-[#7b1fa2]", route: "/student/module5" },
+        ].map((mod) => {
+          const Icon = mod.icon;
+          return (
+            <div
+              key={mod.id}
+              className={`p-4 rounded-md border ${mod.border} ${mod.bg} flex items-center justify-between`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon size={16} className={mod.iconC} />
+                <div className="min-w-0">
+                  <p className={`text-xs font-semibold ${mod.title} truncate`}>{mod.label}</p>
+                  <p className={`text-[10px] ${mod.sub_c} truncate`}>{mod.sub}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(mod.route)}
+                className={`text-xs ${mod.btn} hover:underline font-medium ml-3 shrink-0`}
+              >
+                Accéder →
+              </button>
             </div>
-          </div>
-          <button onClick={() => navigate("/student/module2")} className="text-xs text-blue-600 hover:underline font-medium">Accéder →</button>
-        </div>
-        <div className="p-4 rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TrendingUp size={16} className="text-emerald-600" />
-            <div>
-              <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-200">Module 3 — Contrôle des stocks et réapprovisionnement</p>
-              <p className="text-[10px] text-emerald-700 dark:text-emerald-400">Inventaire cyclique · Écarts · Ajustements · Min/Max · Stock de sécurité</p>
-            </div>
-          </div>
-          <button onClick={() => navigate("/student/module3")} className="text-xs text-emerald-600 hover:underline font-medium">Accéder →</button>
-        </div>
-        <div className="p-4 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <BarChart2 size={16} className="text-[#0070f2]" />
-            <div>
-              <p className="text-xs font-semibold text-blue-900 dark:text-blue-200">Module 4 — Indicateurs de performance logistique</p>
-              <p className="text-[10px] text-blue-700 dark:text-blue-400">Rotation · Taux de service · Taux d'erreur · Lead time · Diagnostic KPI</p>
-            </div>
-          </div>
-          <button onClick={() => navigate("/student/module4")} className="text-xs text-[#0070f2] hover:underline font-medium">Accéder →</button>
-        </div>
-        <div className="p-4 rounded-md border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileText size={16} className="text-[#7b1fa2]" />
-            <div>
-              <p className="text-xs font-semibold text-purple-900 dark:text-purple-200">Module 5 — Simulation opérationnelle intégrée</p>
-              <p className="text-[10px] text-purple-700 dark:text-purple-400">Réception · Rangement FIFO · Inventaire · Réapprovisionnement · KPI · Décision</p>
-            </div>
-          </div>
-          <button onClick={() => navigate("/student/module5")} className="text-xs text-[#7b1fa2] hover:underline font-medium">Accéder →</button>
-        </div>
+          );
+        })}
       </div>
     </FioriShell>
   );
