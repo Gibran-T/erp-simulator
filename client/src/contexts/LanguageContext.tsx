@@ -1,43 +1,37 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type Language = "fr" | "en";
+export type Language = "FR" | "EN";
 
 interface LanguageContextType {
-  lang: Language;
-  setLang: (l: Language) => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   t: (fr: string, en: string) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType>({
-  lang: "fr",
-  setLang: () => {},
-  t: (fr) => fr,
-});
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Language>(() => {
-    try {
-      const saved = localStorage.getItem("tec-lang");
-      return saved === "en" ? "en" : "fr";
-    } catch {
-      return "fr";
-    }
+  const [language, setLanguageState] = useState<Language>(() => {
+    const stored = localStorage.getItem("wms_language");
+    return (stored as Language) || "FR";
   });
 
-  const setLang = (l: Language) => {
-    setLangState(l);
-    try { localStorage.setItem("tec-lang", l); } catch {}
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem("wms_language", lang);
   };
 
-  const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
+  const t = (fr: string, en: string) => (language === "FR" ? fr : en);
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
 }
 
-export function useLang() {
-  return useContext(LanguageContext);
+export function useLanguage() {
+  const ctx = useContext(LanguageContext);
+  if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
+  return ctx;
 }

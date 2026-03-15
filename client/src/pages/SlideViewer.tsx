@@ -7,7 +7,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useLang } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
 import {
@@ -80,37 +82,50 @@ function SlideLine({ line }: { line: string }) {
   );
 }
 
-// ── Main SlideViewer component ───────────────────────────────────────────────
+/// ── Main SlideViewer component ───────────────────────────────────────────────
 export default function SlideViewer() {
   const params = useParams<{ moduleId: string }>();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { lang, setLang, t } = useLang();
-
+  const { language: lang, setLanguage: setLang, t } = useLanguage();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const moduleId = parseInt(params.moduleId || "1", 10);
-  const mod = getModuleById(moduleId);
+
+  // ── Auth guard: redirect to login if not authenticated ──────────────────
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = getLoginUrl();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [professorMode, setProfessorMode] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [animKey, setAnimKey] = useState(0);
 
-  const slide: SlideContent | undefined = mod?.slides[slideIndex];
-  const totalSlides = mod?.slides.length ?? 0;
+  const modData = isAuthenticated ? getModuleById(moduleId) : undefined;
 
   const goTo = useCallback((idx: number) => {
-    if (!mod) return;
-    const clamped = Math.max(0, Math.min(idx, mod.slides.length - 1));
+    if (!modData) return;
+    const clamped = Math.max(0, Math.min(idx, modData.slides.length - 1));
     setSlideIndex(clamped);
     setAnimKey(k => k + 1);
     setShowNav(false);
-  }, [mod]);
-
+  }, [modData]);
   const goNext = useCallback(() => goTo(slideIndex + 1), [goTo, slideIndex]);
   const goPrev = useCallback(() => goTo(slideIndex - 1), [goTo, slideIndex]);
 
   // Keyboard navigation
   useEffect(() => {
+    if (!isAuthenticated) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
         e.preventDefault();
@@ -119,21 +134,26 @@ export default function SlideViewer() {
         e.preventDefault();
         goPrev();
       } else if (e.key === "Escape") {
-        navigate("/");
+        navigate("/student/scenarios");
       } else if (e.key === "p" || e.key === "P") {
         setProfessorMode(m => !m);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [goNext, goPrev, navigate]);
+  }, [goNext, goPrev, navigate, isAuthenticated]);
+
+  if (!isAuthenticated) return null;
+  const mod = modData;
+  const slide: SlideContent | undefined = mod?.slides[slideIndex];
+  const totalSlides = mod?.slides.length ?? 0;
 
   if (!mod || !slide) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">{t("Module introuvable", "Module not found")}</p>
-          <button onClick={() => navigate("/")} className="text-primary hover:underline text-sm">
+          <button onClick={() => navigate("/student/scenarios")} className="text-primary hover:underline text-sm">
             {t("Retour à l'accueil", "Back to home")}
           </button>
         </div>
@@ -141,12 +161,12 @@ export default function SlideViewer() {
     );
   }
 
-  const title = lang === "fr" ? slide.titleFr : slide.titleEn;
-  const subtitle = lang === "fr" ? slide.subtitleFr : slide.subtitleEn;
-  const body = lang === "fr" ? slide.bodyFr : slide.bodyEn;
-  const notes = lang === "fr" ? slide.notesFr : slide.notesEn;
-  const modTitle = lang === "fr" ? mod.titleFr : mod.titleEn;
-  const typeLabel = typeLabels[slide.type]?.[lang] ?? slide.type;
+  const title = lang === "FR" ? slide.titleFr : slide.titleEn;
+  const subtitle = lang === "FR" ? slide.subtitleFr : slide.subtitleEn;
+  const body = lang === "FR" ? slide.bodyFr : slide.bodyEn;
+  const notes = lang === "FR" ? slide.notesFr : slide.notesEn;
+  const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
+  const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
   const progress = ((slideIndex + 1) / totalSlides) * 100;
 
   return (
@@ -155,7 +175,7 @@ export default function SlideViewer() {
       <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur-sm z-30">
         <div className="flex items-center gap-2 px-3 h-12">
           {/* Back */}
-          <button onClick={() => navigate("/")}
+          <button onClick={() => navigate("/student/scenarios")}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded hover:bg-secondary">
             <Home className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t("Accueil", "Home")}</span>
@@ -208,11 +228,11 @@ export default function SlideViewer() {
 
           {/* Language toggle */}
           <button
-            onClick={() => setLang(lang === "fr" ? "en" : "fr")}
+            onClick={() => setLang(lang === "FR" ? "EN" : "FR")}
             className="flex items-center gap-1 px-2 py-1.5 rounded border border-border text-xs font-mono font-bold hover:bg-secondary transition-colors"
           >
             <Globe className="w-3 h-3" />
-            {lang === "fr" ? "FR" : "EN"}
+            {lang === "FR" ? "FR" : "EN"}
           </button>
 
           {/* Dark mode */}
@@ -249,8 +269,8 @@ export default function SlideViewer() {
               </div>
               <div className="flex-1 overflow-y-auto py-2">
                 {mod.slides.map((s, i) => {
-                  const sTitle = lang === "fr" ? s.titleFr : s.titleEn;
-                  const sType = typeLabels[s.type]?.[lang] ?? s.type;
+                  const sTitle = lang === "FR" ? s.titleFr : s.titleEn;
+                  const sType = typeLabels[s.type]?.[lang.toLowerCase() as "fr" | "en"] ?? s.type;
                   return (
                     <button
                       key={s.id}
