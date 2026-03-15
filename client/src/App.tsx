@@ -22,9 +22,11 @@ import CohortManager from "./pages/teacher/CohortManager";
 import ScenarioManager from "./pages/teacher/ScenarioManager";
 import AssignmentManager from "./pages/teacher/AssignmentManager";
 import MonitorDashboard from "./pages/teacher/MonitorDashboard";
+import TeacherSlidesHub from "./pages/teacher/TeacherSlidesHub";
 import AdminPanel from "./pages/admin/AdminPanel";
 import Legal from "./pages/Legal";
 import SlideViewer from "./pages/SlideViewer";
+import StudentSlidesHub from "./pages/student/StudentSlidesHub";
 
 function Router() {
   return (
@@ -47,6 +49,7 @@ function Router() {
       {/* Module 5 routes */}
       <Route path="/student/module5" component={Module5SimulationPage} />
       {/* Slides routes — requires authentication (handled by SlideViewer via FioriShell guard) */}
+      <Route path="/student/slides" component={StudentSlidesHub} />
       <Route path="/student/slides/:moduleId" component={SlideViewer} />
       {/* Teacher routes */}
       <Route path="/teacher" component={TeacherDashboard} />
@@ -54,6 +57,7 @@ function Router() {
       <Route path="/teacher/scenarios" component={ScenarioManager} />
       <Route path="/teacher/assignments" component={AssignmentManager} />
       <Route path="/teacher/monitor" component={MonitorDashboard} />
+      <Route path="/teacher/slides" component={TeacherSlidesHub} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />
       {/* Legal */}

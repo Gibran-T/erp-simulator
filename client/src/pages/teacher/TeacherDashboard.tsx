@@ -1,7 +1,7 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
-import { useLocation } from "wouter";
-import { BookOpen, Users, BarChart2, ClipboardList, Monitor, FlaskConical, ShieldCheck, Layers, TrendingUp, CheckCircle2, FileText, MonitorPlay } from "lucide-react";
+import { useLocation, Link } from "wouter";
+import { BookOpen, Users, BarChart2, ClipboardList, Monitor, FlaskConical, ShieldCheck, Layers, TrendingUp, CheckCircle2, FileText, MonitorPlay, Presentation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TeacherDashboard() {
@@ -90,6 +90,9 @@ export default function TeacherDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4">
+            <Link href="/student/slides/1" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-[#e8f0fe] text-[#0070f2] text-[10px] font-semibold hover:bg-[#d0e4fc] transition-colors">
+              <Presentation size={11} /> Slides M1
+            </Link>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
                 <p className="text-xl font-bold text-[#0070f2]">{m1Runs.length}</p>
@@ -131,6 +134,9 @@ export default function TeacherDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4">
+            <Link href="/student/slides/2" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-blue-50 text-blue-600 text-[10px] font-semibold hover:bg-blue-100 transition-colors">
+              <Presentation size={11} /> Slides M2
+            </Link>
             {m2Runs.length === 0 ? (
               <div className="py-4 text-center text-[10px] text-gray-400">
                 Aucune simulation Module 2 enregistrée
@@ -180,6 +186,9 @@ export default function TeacherDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4">
+            <Link href="/student/slides/3" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-semibold hover:bg-emerald-100 transition-colors">
+              <Presentation size={11} /> Slides M3
+            </Link>
             {m3Runs.length === 0 ? (
               <div className="py-4 text-center text-[10px] text-gray-400">
                 Aucune simulation Module 3 enregistrée
@@ -228,6 +237,9 @@ export default function TeacherDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4">
+            <Link href="/student/slides/4" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-orange-50 text-orange-600 text-[10px] font-semibold hover:bg-orange-100 transition-colors">
+              <Presentation size={11} /> Slides M4
+            </Link>
             {m4Runs.length === 0 ? (
               <div className="py-4 text-center text-[10px] text-gray-400">Aucune simulation M4</div>
             ) : (
@@ -267,6 +279,9 @@ export default function TeacherDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4">
+            <Link href="/student/slides/5" className="mb-3 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-semibold hover:bg-purple-100 transition-colors">
+              <Presentation size={11} /> Slides M5
+            </Link>
             {m5Runs.length === 0 ? (
               <div className="py-4 text-center text-[10px] text-gray-400">Aucune simulation M5</div>
             ) : (

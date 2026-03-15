@@ -153,3 +153,15 @@
 - [x] Fix: Banco de dados — tabela cycle_counts com colunas desatualizadas (bin, physicalQty, variance, resolved)
 - [x] Fix: Banco de dados — tabela profiles com coluna desatualizada (studentNumber)
 - [x] Fix: Banco de dados — tabela progress reestruturada (runId, stepCode, completed, completedAt)
+
+## Feature: Hub de Slides para o Professor
+- [x] Criar página /teacher/slides — hub com acesso a todos os 5 módulos de slides
+- [x] Registrar rota /teacher/slides no App.tsx
+- [x] Adicionar botões "Slides M1-M5" nos cards de módulo do TeacherDashboard
+- [x] Verificar que o link "Slides" no FioriShell aponta para /teacher/slides
+
+## Feature: Hub de Slides para Alunos
+- [x] Corrigir /teacher/slides (página em branco — problema de carregamento)
+- [x] Criar página /student/slides — hub de slides para alunos com acesso a todos os 5 módulos
+- [x] Registrar rota /student/slides no App.tsx
+- [x] Adicionar botão "Slides" na interface do aluno (FioriShell nav + ScenarioList)

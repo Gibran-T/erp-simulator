@@ -69,6 +69,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
       ]
     : [
         { href: "/student/scenarios", label: t("Mes Scénarios", "My Scenarios"), icon: BookOpen },
+        { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
       ];
 
   if (user?.role === "admin") {
@@ -168,7 +169,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
 
           {/* Slides shortcut */}
           <Link
-            href="/student/slides/1"
+            href={isTeacher ? "/teacher/slides" : "/student/slides"}
             className="hidden sm:flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors border border-white/10"
             title={t("Accéder aux slides", "Access slides")}
           >
