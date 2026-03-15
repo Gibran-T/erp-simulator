@@ -200,3 +200,12 @@
 - [ ] Frontend AdminPanel: badge colorido por role (admin=vermelho, teacher=azul, student=verde)
 - [ ] Frontend AdminPanel: confirmação antes de mudar role
 - [ ] Testar: Nadia faz login → aparece como student → admin promove para teacher
+
+## Student Scenarios Page — Redesign & Consistency (2026-03-15)
+- [x] Student Scenarios: corrigir inconsistência M1 vs M2-M5 (todos os módulos devem ter o mesmo layout)
+- [x] Student Scenarios: redesenho visual — mais agradável, pedagógico e claro para o aluno
+- [x] Student Scenarios: adicionar glossário de acrônimos (PO, GR, SO, GI, CC, COMPLIANCE)
+- [x] Student Scenarios: mostrar progresso (X/Y étapes) e barra de progresso nos cards "En cours"
+- [x] Student Scenarios: mostrar estado "Complété" com score e opção de reiniciar
+- [x] Student Scenarios: mostrar duração estimada e critério de aprovação (≥60%) por cenário
+- [x] Student Scenarios: seletor de módulo visível para navegar entre M1-M5

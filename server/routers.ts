@@ -369,6 +369,24 @@ export const appRouter = router({
 
     myRuns: protectedProcedure.query(({ ctx }) => getRunsByUser(ctx.user.id)),
 
+    /** Enriched runs for the student scenario list — includes score and completedSteps */
+    myRunsEnriched: protectedProcedure.query(async ({ ctx }) => {
+      const runs = await getRunsByUser(ctx.user.id);
+      const enriched = await Promise.all(
+        runs.map(async (r) => {
+          const state = await buildRunState(r.run.id);
+          const events = r.run.isDemo ? [] : await getScoringEventsByRun(r.run.id);
+          return {
+            ...r,
+            completedSteps: state.completedSteps as string[],
+            progressPct: calculateProgressPct(state.completedSteps),
+            score: r.run.isDemo ? null : calculateTotalScore(events),
+          };
+        })
+      );
+      return enriched;
+    }),
+
     /** Detailed report: per-step scores, errors, and recommendations */
     detailedReport: protectedProcedure
       .input(z.object({ runId: z.number() }))
