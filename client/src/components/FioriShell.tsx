@@ -6,7 +6,7 @@ import {
   LogOut, LayoutDashboard, BookOpen, Users, ClipboardList,
   BarChart2, Settings, ChevronRight, Menu, X, ChevronLeft,
   ChevronRight as ChevronRightIcon, MonitorPlay, Moon, Sun, Globe,
-  Presentation, UserCircle, ShieldCheck, GraduationCap,
+  Presentation, UserCircle, ShieldCheck, GraduationCap, TrendingUp,
 } from "lucide-react";
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -79,6 +79,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         { href: "/teacher/scenarios", label: t("Scénarios", "Scenarios"), icon: BookOpen },
         { href: "/teacher/assignments", label: t("Assignments", "Assignments"), icon: ClipboardList },
         { href: "/teacher/monitor", label: t("Monitoring", "Monitoring"), icon: BarChart2 },
+        { href: "/teacher/analytics", label: t("Analytics", "Analytics"), icon: TrendingUp },
         { href: "/student/scenarios", label: t("Simulateur", "Simulator"), icon: MonitorPlay },
       ]
     : [

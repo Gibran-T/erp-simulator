@@ -228,3 +228,51 @@
 - [ ] Fix: Module3ModeSelectionPage — pendente
 - [ ] Fix: PutawayForm — pendente
 - [ ] Fix: PutawayFormPage — pendente
+
+## Feature: Warehouse Zone Logic + PUTAWAY/PICKING Steps (2026-03-15 — Phase 1+2)
+- [ ] rulesEngine: add PUTAWAY step (REC → STOCKAGE) and PICKING step (STOCKAGE → EXPEDITION) to MODULE1_STEPS (9 steps total)
+- [ ] rulesEngine: zone validation — GR must use RECEPTION bin, PUTAWAY moves from RECEPTION to STOCKAGE, PICKING moves from STOCKAGE to EXPEDITION, GI must use EXPEDITION bin
+- [ ] rulesEngine: update canExecuteStep for new 9-step sequence
+- [ ] routers: add submitPUTAWAY procedure with zone validation and scoring
+- [ ] routers: add submitPICKING procedure with zone validation and scoring
+- [ ] routers: update scoring step breakdown to include PUTAWAY and PICKING
+- [ ] routers: add detailed per-field error tracking (which field was wrong, expected vs actual)
+- [ ] StepForm: filter bins by zone per step (GR→RECEPTION, PUTAWAY from/to, PICKING from/to, GI→EXPEDITION, CC→all)
+- [ ] StepForm: add PUTAWAY form config (fromBin RECEPTION, toBin STOCKAGE)
+- [ ] StepForm: add PICKING form config (fromBin STOCKAGE, toBin EXPEDITION)
+- [ ] MissionControl: show 9 steps in progress tracker
+- [ ] RunReport: show detailed per-field error feedback per step
+- [ ] RunReport: show zone movement diagram (REC→STOCK→EXP)
+
+## Feature: Dashboard Power BI — Analytics Avancé (2026-03-15)
+- [ ] Backend: monitor.powerAnalytics — agregação completa: KPIs, scores por etapa, heatmap de erros, ranking de alunos, dados por coorte, tendências temporais
+- [ ] Frontend: /teacher/analytics — página de dashboard Power BI com Recharts
+- [ ] Dashboard: KPI cards (total alunos, score médio, taxa de conclusão, taxa de conformidade)
+- [ ] Dashboard: Gráfico de barras — Score médio por aluno (ranking)
+- [ ] Dashboard: Gráfico de barras empilhadas — Erros por etapa (PO/GR/PUTAWAY/SO/PICKING/GI/CC)
+- [ ] Dashboard: Gráfico de linha — Evolução do score médio ao longo do tempo
+- [ ] Dashboard: Heatmap — Taxa de erro por etapa × aluno
+- [ ] Dashboard: Gráfico radar — Perfil de desempenho da turma por etapa
+- [ ] Dashboard: Tabela de ranking de alunos com score, progresso, status
+- [ ] Dashboard: Filtros dinâmicos por módulo, coorte, modo (eval/demo)
+- [ ] Dashboard: Painel de análise pedagógica inteligente com recomendações
+- [ ] Registrar rota /teacher/analytics no App.tsx
+- [ ] Adicionar link "Analytics" no FioriShell para professores
+
+## Feature: Dashboard Power BI Analytics (2026-03-15)
+- [x] Backend: tRPC `monitor.powerAnalytics` — agregação completa (KPIs, ranking, heatmap, erros, timeline)
+- [x] Frontend: página `/teacher/analytics` estilo Power BI com Recharts
+- [x] KPI cards: estudantes, score médio, taxa de aprovação, conformidade, complétion, progresso, sessões
+- [x] Gráfico: ranking de alunos (melhor score vs score médio)
+- [x] Gráfico: distribuição de scores (donut chart)
+- [x] Gráfico: taxa de complétion por etapa M1 (barras horizontais coloridas)
+- [x] Gráfico: frequência de erros pedagógicos (barras horizontais)
+- [x] Gráfico: evolução do score médio no tempo (area chart)
+- [x] Gráfico: perfil de maestria por etapa (radar chart)
+- [x] Gráfico: atividade por módulo (barras empilhadas)
+- [x] Tabela: classamento detalhado com medalhas 🥇🥈🥉
+- [x] Heatmap: complétion por aluno × etapa (matriz colorida)
+- [x] FR/EN bilíngue COMPLETO — todos os textos via t() conectados ao toggle global FR/EN
+- [x] Nav item "Analytics" adicionado ao FioriShell (sidebar do professor)
+- [x] Rota `/teacher/analytics` registrada no App.tsx
+- [x] Auto-refresh a cada 60 segundos + botão "Actualiser / Refresh"

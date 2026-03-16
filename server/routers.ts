@@ -54,6 +54,15 @@ import {
   MODULE1_STEPS,
   MODULE2_STEPS,
   validatePutaway,
+  validateGRZone,
+  validatePutawayM1Zone,
+  validatePickingM1Zone,
+  validateGIZone,
+  RECEPTION_BINS,
+  STOCKAGE_BINS,
+  PICKING_BINS,
+  EXPEDITION_BINS,
+  RESERVE_BINS,
   calculateKpis,
   scoreKpiInterpretation,
   type KpiData,
@@ -105,6 +114,7 @@ async function buildRunState(runId: number) {
       bin: t.bin,
       qty: Number(t.qty),
       posted: t.posted,
+      docRef: (t as any).docRef ?? null,
     })),
     cycleCounts: ccs.map((c) => ({
       sku: c.sku,
@@ -403,21 +413,38 @@ export const appRouter = router({
 
         // ── Step max points map ──────────────────────────────────────────────
         const STEP_MAX: Record<string, number> = {
-          PO: 10, GR: 10, STOCK: 0, SO: 10, GI: 15, CC: 10, COMPLIANCE: 5,
+          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 15, CC: 10, COMPLIANCE: 5,
         };
         const STEP_EVENT_MAP: Record<string, string> = {
-          PO: "PO_COMPLETED", GR: "GR_COMPLETED", SO: "SO_COMPLETED",
+          PO: "PO_COMPLETED", GR: "GR_COMPLETED", PUTAWAY_M1: "PUTAWAY_M1_COMPLETED",
+          SO: "SO_COMPLETED", PICKING_M1: "PICKING_M1_COMPLETED",
           GI: "GI_COMPLETED", CC: "CC_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
         };
         const STEP_LABELS: Record<string, string> = {
-          PO: "Purchase Order (ME21N)", GR: "Goods Receipt (MIGO)",
-          STOCK: "Stock Disponible", SO: "Sales Order (VA01)",
-          GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)",
+          PO: "Purchase Order (ME21N)",
+          GR: "Goods Receipt — Quai RÉCEPTION (MIGO)",
+          PUTAWAY_M1: "Rangement RÉCEPTION → STOCK (LT0A)",
+          STOCK: "Stock Disponible",
+          SO: "Sales Order (VA01)",
+          PICKING_M1: "Prélèvement STOCK → EXPÉDITION (VL01N)",
+          GI: "Goods Issue — Quai EXPÉDITION (VL02N)",
+          CC: "Cycle Count (MI01)",
           COMPLIANCE: "Conformité Système",
+        };
+        const STEP_ZONES: Record<string, { from?: string; to?: string; zone?: string }> = {
+          PO:         { zone: "ACHAT" },
+          GR:         { to: "RÉCEPTION" },
+          PUTAWAY_M1: { from: "RÉCEPTION", to: "STOCKAGE" },
+          STOCK:      { zone: "STOCKAGE" },
+          SO:         { zone: "VENTE" },
+          PICKING_M1: { from: "STOCKAGE", to: "EXPÉDITION" },
+          GI:         { from: "EXPÉDITION" },
+          CC:         { zone: "STOCKAGE" },
+          COMPLIANCE: { zone: "SYSTÈME" },
         };
 
         // ── Per-step score breakdown ─────────────────────────────────────────
-        const stepBreakdown = ["PO","GR","STOCK","SO","GI","CC","COMPLIANCE"].map(step => {
+        const stepBreakdown = ["PO","GR","PUTAWAY_M1","STOCK","SO","PICKING_M1","GI","CC","COMPLIANCE"].map(step => {
           const completed = state.completedSteps.includes(step as any);
           const completionEvent = STEP_EVENT_MAP[step];
           const completionPoints = completionEvent
@@ -425,6 +452,10 @@ export const appRouter = router({
             : 0;
           const maxPoints = STEP_MAX[step];
           const pct = maxPoints > 0 ? Math.round((completionPoints / maxPoints) * 100) : (completed ? 100 : 0);
+          // Collect zone errors for this step
+          const zoneErrors = events
+            .filter(e => e.eventType === "WRONG_ZONE" && (e.message ?? "").includes(step))
+            .map(e => e.message ?? "");
           return {
             step,
             label: STEP_LABELS[step],
@@ -432,6 +463,8 @@ export const appRouter = router({
             pointsEarned: completionPoints,
             maxPoints,
             pct: Math.max(0, Math.min(100, pct)),
+            zones: STEP_ZONES[step] ?? {},
+            zoneErrors,
           };
         });
 
@@ -459,13 +492,36 @@ export const appRouter = router({
           },
         };
 
+        const PENALTY_EXPLANATIONS_ZONE: Record<string, { title: string; detail: string; recommendation: string }> = {
+          WRONG_ZONE_GR: {
+            title: "Zone incorrecte — Réception (GR)",
+            detail: "La marchandise reçue (GR/MIGO) doit obligatoirement être déposée dans un emplacement de la zone RÉCEPTION (REC-01 ou REC-02). Elle ne peut pas aller directement en zone STOCKAGE ou EXPÉDITION.",
+            recommendation: "Lors du MIGO, sélectionnez toujours un emplacement REC-01 ou REC-02. Ensuite, utilisez LT0A pour ranger la marchandise en zone STOCKAGE.",
+          },
+          WRONG_ZONE_PUTAWAY: {
+            title: "Zone incorrecte — Rangement (PUTAWAY)",
+            detail: "Le rangement (LT0A) doit partir d'un emplacement RÉCEPTION (REC-01/REC-02) et aller vers un emplacement STOCKAGE, PICKING ou RÉSERVE. Les marchandises ne peuvent pas rester en zone RÉCEPTION.",
+            recommendation: "Source : REC-01 ou REC-02. Destination : B-01-R1-L1, B-01-R1-L2, A-01-R1-L1, etc. Évitez EXP-01/EXP-02 comme destination de rangement.",
+          },
+          WRONG_ZONE_PICKING: {
+            title: "Zone incorrecte — Prélèvement (PICKING)",
+            detail: "Le prélèvement (VL01N) doit partir d'un emplacement STOCKAGE/PICKING/RÉSERVE et aller vers un emplacement EXPÉDITION (EXP-01 ou EXP-02). Les marchandises doivent transiter par le quai d'expédition avant la GI.",
+            recommendation: "Source : B-01-R1-L1, A-01-R1-L1, etc. Destination : EXP-01 ou EXP-02. La GI ne peut être postée qu'après que les marchandises sont au quai d'expédition.",
+          },
+          WRONG_ZONE_GI: {
+            title: "Zone incorrecte — Sortie marchandises (GI)",
+            detail: "La sortie marchandises (GI/VL02N) doit être postée depuis un emplacement EXPÉDITION (EXP-01 ou EXP-02). Les marchandises doivent avoir été prélevées et déposées au quai d'expédition avant la GI.",
+            recommendation: "Complétez d'abord l'étape PICKING (VL01N) pour déplacer les marchandises vers EXP-01 ou EXP-02, puis postez la GI depuis cet emplacement.",
+          },
+        };
+
         const errors = events
           .filter(e => e.pointsDelta < 0)
           .map(e => ({
             eventType: e.eventType,
             pointsDelta: e.pointsDelta,
             message: e.message ?? "",
-            explanation: PENALTY_EXPLANATIONS[e.eventType] ?? {
+            explanation: PENALTY_EXPLANATIONS_ZONE[e.eventType] ?? PENALTY_EXPLANATIONS[e.eventType] ?? {
               title: e.message ?? e.eventType,
               detail: "Une erreur a été détectée lors de cette étape.",
               recommendation: "Revoyez les prérequis de cette étape et recommencez la simulation.",
@@ -480,20 +536,49 @@ export const appRouter = router({
         const errorTypes = new Set(errors.map(e => e.eventType));
         const recommendations: string[] = [];
         if (errorTypes.has("OUT_OF_SEQUENCE"))
-          recommendations.push("Mémorisez le flux SAP S/4HANA : ME21N → MIGO → MB52 → VA01 → VL02N → MI01 → MMPV");
+          recommendations.push("Mémorisez le flux complet : ME21N → MIGO(→REC) → LT0A(REC→STOCK) → VA01 → VL01N(STOCK→EXP) → VL02N(→EXP) → MI01");
         if (errorTypes.has("NEGATIVE_STOCK_ATTEMPT"))
-          recommendations.push("Avant chaque GI, consultez le stock avec MB52 ou la vue Inventaire en temps réel");
+          recommendations.push("Avant chaque GI, vérifiez le stock disponible en zone STOCKAGE (MB52). Si insuffisant, créez d'abord une PO et postez la GR.");
         if (errorTypes.has("UNPOSTED_TX_LEFT"))
           recommendations.push("Adoptez le réflexe \"créer + poster\" : ne quittez jamais une étape sans poster la transaction");
         if (errorTypes.has("UNRESOLVED_VARIANCE"))
           recommendations.push("Après MI01/MI04, toujours finaliser avec MI07 (validation des écarts) avant la conformité");
+        if (errorTypes.has("WRONG_ZONE_GR") || errorTypes.has("WRONG_ZONE_PUTAWAY"))
+          recommendations.push("Flux de réception : MIGO → emplacement REC-01/REC-02, puis LT0A pour ranger en zone STOCKAGE (B-01, A-01, etc.)");
+        if (errorTypes.has("WRONG_ZONE_PICKING") || errorTypes.has("WRONG_ZONE_GI"))
+          recommendations.push("Flux d'expédition : VL01N pour prélever du STOCKAGE vers EXP-01/EXP-02, puis VL02N pour poster la GI depuis le quai d'expédition");
         if (!compliance.compliant)
           recommendations.push("Relancez la simulation en Mode Démonstration pour explorer librement les étapes sans pénalité");
         if (recommendations.length === 0 && errors.length === 0)
-          recommendations.push("Excellente maîtrise du flux ! Passez au Module 2 pour approfondir la gestion des emplacements (bins)");
+          recommendations.push("Excellente maîtrise du flux complet ! Passez au Module 2 pour approfondir FIFO, gestion de lots et traçabilité.");
 
         const totalScore = calculateTotalScore(events);
         const { label: scoreLabel, color: scoreColor } = getScoreLabel(totalScore);
+
+          // ── Zone flow summary ────────────────────────────────────────────────
+        const zoneFlow = [
+          { zone: "RÉCEPTION",  bins: RECEPTION_BINS,  color: "#3b82f6", txCount: state.transactions.filter(t => RECEPTION_BINS.includes(t.bin) && t.posted).length },
+          { zone: "STOCKAGE",   bins: STOCKAGE_BINS,   color: "#10b981", txCount: state.transactions.filter(t => STOCKAGE_BINS.includes(t.bin) && t.posted).length },
+          { zone: "PICKING",    bins: PICKING_BINS,    color: "#f59e0b", txCount: state.transactions.filter(t => PICKING_BINS.includes(t.bin) && t.posted).length },
+          { zone: "EXPÉDITION", bins: EXPEDITION_BINS, color: "#8b5cf6", txCount: state.transactions.filter(t => EXPEDITION_BINS.includes(t.bin) && t.posted).length },
+          { zone: "RÉSERVE",    bins: RESERVE_BINS,    color: "#6b7280", txCount: state.transactions.filter(t => RESERVE_BINS.includes(t.bin) && t.posted).length },
+        ];
+
+        // ── Transaction timeline ─────────────────────────────────────────────
+        const transactionTimeline = state.transactions
+          .filter(t => t.posted)
+          .map(t => ({
+            docType: t.docType,
+            sku: t.sku,
+            bin: t.bin,
+            qty: t.qty,
+            zone: RECEPTION_BINS.includes(t.bin) ? "RÉCEPTION"
+              : STOCKAGE_BINS.includes(t.bin) ? "STOCKAGE"
+              : PICKING_BINS.includes(t.bin) ? "PICKING"
+              : EXPEDITION_BINS.includes(t.bin) ? "EXPÉDITION"
+              : RESERVE_BINS.includes(t.bin) ? "RÉSERVE" : "INCONNU",
+            docRef: t.docRef,
+          }));
 
         return {
           runId: input.runId,
@@ -508,6 +593,12 @@ export const appRouter = router({
           complianceIssues: compliance.issuesFr,
           completedSteps: state.completedSteps,
           progressPct: calculateProgressPct(state.completedSteps),
+          zoneFlow,
+          transactionTimeline,
+          totalTransactions: state.transactions.filter(t => t.posted).length,
+          totalErrors: errors.length,
+          stepsCompleted: state.completedSteps.length,
+          totalSteps: MODULE1_STEPS.length,
         };
       }),
 
@@ -625,12 +716,65 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: validation.reasonFr });
           }
         }
+        // Zone validation: GR must go to RECEPTION bin
+        const zoneCheck = validateGRZone(input.bin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR: ${zoneCheck.reasonFr}` });
+            throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheck.reasonFr });
+          }
+        }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GR");
-        await markStepComplete(input.runId, "STOCK");
         const ruleGR = getScoringRule("GR_COMPLETED");
         await addScoringEvent({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
-        return { success: true, demoWarning: run.isDemo && !validation.allowed ? validation.reasonFr : null };
+        const demoWarnGR = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
+          ? [!validation.allowed ? validation.reasonFr : null, !zoneCheck.allowed ? zoneCheck.reasonFr : null].filter(Boolean).join(" | ")
+          : null;
+        return { success: true, demoWarning: demoWarnGR };
+      }),
+
+    // Submit PUTAWAY_M1 (RECEPTION → STOCKAGE)
+    submitPUTAWAY_M1: protectedProcedure
+      .input(
+        z.object({
+          runId: z.number(),
+          sku: z.string(),
+          fromBin: z.string(),
+          toBin: z.string(),
+          qty: z.number().positive(),
+          docRef: z.string(),
+          comment: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        const state = await buildRunState(input.runId);
+        const validation = canExecuteStep("PUTAWAY_M1", state);
+        if (!validation.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            throw new TRPCError({ code: "BAD_REQUEST", message: validation.reasonFr });
+          }
+        }
+        // Zone validation: fromBin must be RECEPTION, toBin must be STOCKAGE/PICKING/RESERVE
+        const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY_M1: ${zoneCheck.reasonFr}` });
+            throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheck.reasonFr });
+          }
+        }
+        // Record movement: remove from fromBin (GR was posted there), add to toBin
+        await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
+        await markStepComplete(input.runId, "PUTAWAY_M1");
+        await markStepComplete(input.runId, "STOCK");
+        await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+        const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
+          ? [!validation.allowed ? validation.reasonFr : null, !zoneCheck.allowed ? zoneCheck.reasonFr : null].filter(Boolean).join(" | ")
+          : null;
+        return { success: true, demoWarning: demoWarn };
       }),
 
     // Submit SO
@@ -694,14 +838,73 @@ export const appRouter = router({
           }
           // Demo: allow negative stock with warning
         }
+        // Zone validation: GI must use EXPEDITION bin
+        const zoneCheckGI = validateGIZone(input.bin);
+        if (!zoneCheckGI.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GI", pointsDelta: -3, message: `GI: ${zoneCheckGI.reasonFr}` });
+            throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheckGI.reasonFr });
+          }
+        }
         await addTransaction({ runId: input.runId, docType: "GI", moveType: "261", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GI");
         const ruleGI = getScoringRule("GI_COMPLETED");
         await addScoringEvent({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
-        const demoWarning = run.isDemo && (!validation.allowed || !stockCheck.allowed)
-          ? [!validation.allowed ? validation.reasonFr : null, !stockCheck.allowed ? stockCheck.reasonFr : null].filter(Boolean).join(" | ")
+        const demoWarning = run.isDemo && (!validation.allowed || !stockCheck.allowed || !zoneCheckGI.allowed)
+          ? [!validation.allowed ? validation.reasonFr : null, !stockCheck.allowed ? stockCheck.reasonFr : null, !zoneCheckGI.allowed ? zoneCheckGI.reasonFr : null].filter(Boolean).join(" | ")
           : null;
         return { success: true, demoWarning };
+      }),
+
+    // Submit PICKING_M1 (STOCKAGE → EXPEDITION)
+    submitPICKING_M1: protectedProcedure
+      .input(
+        z.object({
+          runId: z.number(),
+          sku: z.string(),
+          fromBin: z.string(),
+          toBin: z.string(),
+          qty: z.number().positive(),
+          docRef: z.string(),
+          comment: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        const state = await buildRunState(input.runId);
+        const validation = canExecuteStep("PICKING_M1", state);
+        if (!validation.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            throw new TRPCError({ code: "BAD_REQUEST", message: validation.reasonFr });
+          }
+        }
+        // Zone validation: fromBin must be STOCKAGE/PICKING/RESERVE, toBin must be EXPEDITION
+        const zoneCheck = validatePickingM1Zone(input.fromBin, input.toBin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PICKING", pointsDelta: -3, message: `PICKING_M1: ${zoneCheck.reasonFr}` });
+            throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheck.reasonFr });
+          }
+        }
+        // Stock check: verify enough stock in fromBin
+        const stockCheck = canIssueStock(input.sku, input.fromBin, input.qty, state.inventory);
+        if (!stockCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: stockCheck.reasonFr ?? "" });
+            throw new TRPCError({ code: "BAD_REQUEST", message: stockCheck.reasonFr });
+          }
+        }
+        // Record movement: deduct from fromBin, add to toBin (EXPEDITION)
+        await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "VL01N", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
+        await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "VL01N", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement arrivée ${input.toBin}` });
+        await markStepComplete(input.runId, "PICKING_M1");
+        await addScoringEvent({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
+        const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed || !stockCheck.allowed)
+          ? [!validation.allowed ? validation.reasonFr : null, !zoneCheck.allowed ? zoneCheck.reasonFr : null, !stockCheck.allowed ? stockCheck.reasonFr : null].filter(Boolean).join(" | ")
+          : null;
+        return { success: true, demoWarning: demoWarn };
       }),
 
     // Submit ADJ
@@ -971,6 +1174,170 @@ export const appRouter = router({
       );
       // Separate evaluation vs demo for teacher view
       return enriched;
+    }),
+
+    // ─── Power BI-style analytics aggregation ─────────────────────────────
+    powerAnalytics: teacherProcedure.query(async () => {
+      const allRuns = await getAllRunsForMonitor();
+      const evalRuns = allRuns.filter((r) => !r.run.isDemo);
+      const demoRuns = allRuns.filter((r) => r.run.isDemo);
+
+      // ── Per-run enrichment ──────────────────────────────────────────────
+      const enriched = await Promise.all(
+        allRuns.map(async (r) => {
+          const state = await buildRunState(r.run.id);
+          const events = await getScoringEventsByRun(r.run.id);
+          const compliance = checkCompliance(state);
+          const score = r.run.isDemo ? null : calculateTotalScore(events);
+          const penalties = events.filter(e => e.pointsDelta < 0);
+          const penaltyByType: Record<string, number> = {};
+          for (const p of penalties) {
+            penaltyByType[p.eventType] = (penaltyByType[p.eventType] ?? 0) + 1;
+          }
+          // Per-step completion for heatmap
+          const stepStatus: Record<string, boolean> = {};
+          for (const s of MODULE1_STEPS) {
+            stepStatus[s.code] = state.completedSteps.includes(s.code);
+          }
+          return {
+            runId: r.run.id,
+            userId: r.run.userId,
+            userName: r.user.name ?? `User#${r.run.userId}`,
+            scenarioId: r.run.scenarioId,
+            scenarioName: r.scenario.name,
+            moduleId: r.scenario.moduleId,
+            isDemo: r.run.isDemo,
+            status: r.run.status,
+            score,
+            progressPct: calculateProgressPct(state.completedSteps),
+            completedSteps: state.completedSteps,
+            stepStatus,
+            compliant: compliance.compliant,
+            penaltyCount: penalties.length,
+            penaltyByType,
+            startedAt: r.run.startedAt,
+            completedAt: r.run.completedAt,
+          };
+        })
+      );
+
+      const evalEnriched = enriched.filter(r => !r.isDemo);
+
+      // ── Global KPIs ─────────────────────────────────────────────────────
+      const totalStudents = new Set(evalEnriched.map(r => r.userId)).size;
+      const totalRuns = evalEnriched.length;
+      const completedRuns = evalEnriched.filter(r => r.status === "completed").length;
+      const completionRate = totalRuns > 0 ? Math.round((completedRuns / totalRuns) * 100) : 0;
+      const scoresOnly = evalEnriched.filter(r => r.score !== null).map(r => r.score as number);
+      const avgScore = scoresOnly.length > 0 ? Math.round(scoresOnly.reduce((a, b) => a + b, 0) / scoresOnly.length) : 0;
+      const passRate = scoresOnly.length > 0 ? Math.round((scoresOnly.filter(s => s >= 60).length / scoresOnly.length) * 100) : 0;
+      const complianceRate = evalEnriched.length > 0 ? Math.round((evalEnriched.filter(r => r.compliant).length / evalEnriched.length) * 100) : 0;
+      const avgProgress = evalEnriched.length > 0 ? Math.round(evalEnriched.reduce((a, r) => a + r.progressPct, 0) / evalEnriched.length) : 0;
+
+      // ── Student ranking ─────────────────────────────────────────────────
+      const byStudent = new Map<number, { userId: number; userName: string; runs: typeof evalEnriched }>();
+      for (const r of evalEnriched) {
+        if (!byStudent.has(r.userId)) byStudent.set(r.userId, { userId: r.userId, userName: r.userName, runs: [] });
+        byStudent.get(r.userId)!.runs.push(r);
+      }
+      const studentRanking = Array.from(byStudent.values()).map(s => {
+        const scores = s.runs.filter(r => r.score !== null).map(r => r.score as number);
+        const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+        const avgStudentScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const totalCompleted = s.runs.filter(r => r.status === "completed").length;
+        const totalPenalties = s.runs.reduce((a, r) => a + r.penaltyCount, 0);
+        const avgProgress = s.runs.length > 0 ? Math.round(s.runs.reduce((a, r) => a + r.progressPct, 0) / s.runs.length) : 0;
+        return { userId: s.userId, userName: s.userName, bestScore, avgScore: avgStudentScore, totalRuns: s.runs.length, totalCompleted, totalPenalties, avgProgress };
+      }).sort((a, b) => b.bestScore - a.bestScore);
+
+      // ── Step completion rates (for heatmap / bar chart) ──────────────────
+      const stepCodes = MODULE1_STEPS.map(s => s.code);
+      const stepCompletionRates = stepCodes.map(code => {
+        const runsForStep = evalEnriched.filter(r => r.progressPct > 0);
+        const completedCount = runsForStep.filter(r => r.stepStatus[code]).length;
+        const rate = runsForStep.length > 0 ? Math.round((completedCount / runsForStep.length) * 100) : 0;
+        const label = MODULE1_STEPS.find(s => s.code === code)?.labelFr ?? code;
+        return { code, label, completionRate: rate, completedCount, totalRuns: runsForStep.length };
+      });
+
+      // ── Error frequency by type ──────────────────────────────────────────
+      const errorFrequency: Record<string, number> = {};
+      for (const r of evalEnriched) {
+        for (const [type, count] of Object.entries(r.penaltyByType)) {
+          errorFrequency[type] = (errorFrequency[type] ?? 0) + count;
+        }
+      }
+      const errorFrequencyArr = Object.entries(errorFrequency)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count);
+
+      // ── Score distribution buckets ───────────────────────────────────────
+      const scoreBuckets = [
+        { label: "0-20", min: 0, max: 20, count: 0 },
+        { label: "21-40", min: 21, max: 40, count: 0 },
+        { label: "41-60", min: 41, max: 60, count: 0 },
+        { label: "61-80", min: 61, max: 80, count: 0 },
+        { label: "81-100", min: 81, max: 100, count: 0 },
+      ];
+      for (const s of scoresOnly) {
+        const bucket = scoreBuckets.find(b => s >= b.min && s <= b.max);
+        if (bucket) bucket.count++;
+      }
+
+      // ── Timeline: avg score per day ──────────────────────────────────────
+      const byDay = new Map<string, number[]>();
+      for (const r of evalEnriched) {
+        if (r.score === null || !r.startedAt) continue;
+        const day = new Date(r.startedAt).toISOString().split("T")[0];
+        if (!byDay.has(day)) byDay.set(day, []);
+        byDay.get(day)!.push(r.score);
+      }
+      const scoreTimeline = Array.from(byDay.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, scores]) => ({
+          date,
+          avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+          count: scores.length,
+        }));
+
+      // ── Per-student heatmap data ─────────────────────────────────────────
+      const heatmapData = studentRanking.map(s => {
+        const studentRuns = evalEnriched.filter(r => r.userId === s.userId);
+        const stepCompletion: Record<string, number> = {};
+        for (const code of stepCodes) {
+          const completedInAnyRun = studentRuns.some(r => r.stepStatus[code]);
+          stepCompletion[code] = completedInAnyRun ? 1 : 0;
+        }
+        return { userName: s.userName, userId: s.userId, ...stepCompletion };
+      });
+
+      // ── Module distribution ──────────────────────────────────────────────
+      const moduleDistribution = [1, 2, 3, 4, 5].map(moduleId => {
+        const moduleRuns = enriched.filter(r => r.moduleId === moduleId);
+        const evalModuleRuns = moduleRuns.filter(r => !r.isDemo);
+        const demoModuleRuns = moduleRuns.filter(r => r.isDemo);
+        return { moduleId, label: `M${moduleId}`, evalCount: evalModuleRuns.length, demoCount: demoModuleRuns.length };
+      });
+
+      // ── Radar: class average per step ────────────────────────────────────
+      const radarData = stepCompletionRates.map(s => ({
+        step: s.code,
+        label: s.code,
+        value: s.completionRate,
+      }));
+
+      return {
+        kpis: { totalStudents, totalRuns, completedRuns, completionRate, avgScore, passRate, complianceRate, avgProgress, demoCount: demoRuns.length },
+        studentRanking,
+        stepCompletionRates,
+        errorFrequency: errorFrequencyArr,
+        scoreBuckets,
+        scoreTimeline,
+        heatmapData,
+        moduleDistribution,
+        radarData,
+        recentRuns: enriched.slice(-10).reverse(),
+      };
     }),
 
     // Evaluation-only analytics (excludes demo sessions)

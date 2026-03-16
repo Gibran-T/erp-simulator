@@ -22,6 +22,7 @@ import CohortManager from "./pages/teacher/CohortManager";
 import ScenarioManager from "./pages/teacher/ScenarioManager";
 import AssignmentManager from "./pages/teacher/AssignmentManager";
 import MonitorDashboard from "./pages/teacher/MonitorDashboard";
+import AnalyticsDashboard from "./pages/teacher/AnalyticsDashboard";
 import TeacherSlidesHub from "./pages/teacher/TeacherSlidesHub";
 import AdminPanel from "./pages/admin/AdminPanel";
 import Legal from "./pages/Legal";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/teacher/scenarios" component={ScenarioManager} />
       <Route path="/teacher/assignments" component={AssignmentManager} />
       <Route path="/teacher/monitor" component={MonitorDashboard} />
+      <Route path="/teacher/analytics" component={AnalyticsDashboard} />
       <Route path="/teacher/slides" component={TeacherSlidesHub} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />

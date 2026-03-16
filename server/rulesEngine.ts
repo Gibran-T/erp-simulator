@@ -1,8 +1,8 @@
 /**
  * Rules Engine — Module 1, Module 2 & Module 3
  *
- * Module 1: WMS Process Flow
- *   PO → GR → Stock Available → SO → GI → Cycle Count → Compliance
+ * Module 1: WMS Process Flow (9 steps — full physical zone logic)
+ *   PO → GR(→REC) → PUTAWAY(REC→STOCK) → Stock Available → SO → PICKING(STOCK→EXP) → GI(→EXP) → Cycle Count → Compliance
  *
  * Module 2: Exécution d'entrepôt et gestion des emplacements
  *   GR → PUTAWAY → FIFO_PICK → STOCK_ACCURACY → COMPLIANCE_ADV
@@ -13,7 +13,7 @@
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 export type StepCode =
-  | "PO" | "GR" | "STOCK" | "SO" | "GI" | "CC" | "COMPLIANCE"   // Module 1
+  | "PO" | "GR" | "PUTAWAY_M1" | "STOCK" | "SO" | "PICKING_M1" | "GI" | "CC" | "COMPLIANCE"   // Module 1
   | "PUTAWAY" | "FIFO_PICK" | "STOCK_ACCURACY" | "COMPLIANCE_ADV" // Module 2
   | "CC_LIST" | "CC_COUNT" | "CC_RECON" | "REPLENISH" | "COMPLIANCE_M3"; // Module 3
 
@@ -34,6 +34,7 @@ export interface RunState {
     bin: string;
     qty: number;
     posted: boolean;
+    docRef?: string | null;
   }>;
   cycleCounts: Array<{
     sku: string;
@@ -44,15 +45,31 @@ export interface RunState {
   inventory: Record<string, number>; // key: `${sku}::${bin}`
 }
 
-// ─── Module 1 Step Definitions ────────────────────────────────────────────────
+// ─── Zone Constants ──────────────────────────────────────────────────────────
+export const ZONE_RECEPTION  = "RECEPTION";
+export const ZONE_STOCKAGE   = "STOCKAGE";
+export const ZONE_PICKING    = "PICKING";
+export const ZONE_EXPEDITION = "EXPEDITION";
+export const ZONE_RESERVE    = "RESERVE";
+
+/** Bins that belong to each zone — populated from master_bins seed data */
+export const RECEPTION_BINS  = ["REC-01", "REC-02"];
+export const STOCKAGE_BINS   = ["B-01-R1-L1", "B-01-R1-L2", "B-02-R1-L1", "TRANSIT-01"];
+export const PICKING_BINS    = ["A-01-R1-L1", "A-01-R1-L2", "A-02-R1-L1"];
+export const EXPEDITION_BINS = ["EXP-01", "EXP-02"];
+export const RESERVE_BINS    = ["C-01-R1-L1", "C-01-R1-L2"];
+
+// ─── Module 1 Step Definitions (9 steps with physical zone logic) ─────────────
 export const MODULE1_STEPS: StepDefinition[] = [
-  { code: "PO",          labelFr: "Bon de commande",        labelEn: "Purchase Order",      order: 1, prerequisite: null,    moduleId: 1 },
-  { code: "GR",          labelFr: "Réception marchandises", labelEn: "Goods Receipt",        order: 2, prerequisite: "PO",    moduleId: 1 },
-  { code: "STOCK",       labelFr: "Stock disponible",       labelEn: "Stock Available",      order: 3, prerequisite: "GR",    moduleId: 1 },
-  { code: "SO",          labelFr: "Commande client",        labelEn: "Sales Order",          order: 4, prerequisite: "STOCK", moduleId: 1 },
-  { code: "GI",          labelFr: "Sortie marchandises",    labelEn: "Goods Issue",          order: 5, prerequisite: "SO",    moduleId: 1 },
-  { code: "CC",          labelFr: "Comptage cyclique",      labelEn: "Cycle Count",          order: 6, prerequisite: "GI",    moduleId: 1 },
-  { code: "COMPLIANCE",  labelFr: "Conformité système",     labelEn: "System Compliance",    order: 7, prerequisite: "CC",    moduleId: 1 },
+  { code: "PO",          labelFr: "Bon de commande (ME21N)",          labelEn: "Purchase Order (ME21N)",         order: 1, prerequisite: null,          moduleId: 1 },
+  { code: "GR",          labelFr: "Réception quai (MIGO)",            labelEn: "Goods Receipt — Dock (MIGO)",    order: 2, prerequisite: "PO",          moduleId: 1 },
+  { code: "PUTAWAY_M1",  labelFr: "Rangement stock (LT0A)",           labelEn: "Putaway to Stock (LT0A)",        order: 3, prerequisite: "GR",          moduleId: 1 },
+  { code: "STOCK",       labelFr: "Stock disponible",                 labelEn: "Stock Available",                order: 4, prerequisite: "PUTAWAY_M1",  moduleId: 1 },
+  { code: "SO",          labelFr: "Commande client (VA01)",           labelEn: "Sales Order (VA01)",             order: 5, prerequisite: "STOCK",       moduleId: 1 },
+  { code: "PICKING_M1",  labelFr: "Prélèvement expédition (VL01N)",   labelEn: "Picking to Dispatch (VL01N)",    order: 6, prerequisite: "SO",          moduleId: 1 },
+  { code: "GI",          labelFr: "Sortie marchandises (VL02N)",      labelEn: "Goods Issue (VL02N)",            order: 7, prerequisite: "PICKING_M1",  moduleId: 1 },
+  { code: "CC",          labelFr: "Comptage cyclique (MI01)",         labelEn: "Cycle Count (MI01)",             order: 8, prerequisite: "GI",          moduleId: 1 },
+  { code: "COMPLIANCE",  labelFr: "Conformité système",               labelEn: "System Compliance",             order: 9, prerequisite: "CC",          moduleId: 1 },
 ];
 
 // ─── Module 2 Step Definitions ────────────────────────────────────────────────
@@ -80,6 +97,77 @@ export interface ValidationResult {
   reasonFr?: string;
 }
 
+// ─── Module 1: Zone Validation ───────────────────────────────────────────────
+export interface ZoneValidationResult extends ValidationResult {
+  fieldError?: { field: string; expected: string; actual: string };
+}
+
+export function validateGRZone(bin: string): ZoneValidationResult {
+  if (!RECEPTION_BINS.includes(bin)) {
+    return {
+      allowed: false,
+      reason: `GR must use a RECEPTION bin (${RECEPTION_BINS.join(", ")}). Got: "${bin}"`,
+      reasonFr: `La réception (GR) doit utiliser un emplacement de la zone RÉCEPTION (${RECEPTION_BINS.join(", ")}). Emplacement saisi : "${bin}" — les marchandises reçues ne peuvent pas aller directement au stock.`,
+      fieldError: { field: "bin", expected: RECEPTION_BINS.join(" ou "), actual: bin },
+    };
+  }
+  return { allowed: true };
+}
+
+export function validatePutawayM1Zone(fromBin: string, toBin: string): ZoneValidationResult {
+  if (!RECEPTION_BINS.includes(fromBin)) {
+    return {
+      allowed: false,
+      reason: `Putaway fromBin must be a RECEPTION bin. Got: "${fromBin}"`,
+      reasonFr: `Le rangement doit partir d'un emplacement RÉCEPTION (${RECEPTION_BINS.join(", ")}). Emplacement source : "${fromBin}"`,
+      fieldError: { field: "fromBin", expected: RECEPTION_BINS.join(" ou "), actual: fromBin },
+    };
+  }
+  const validToBins = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+  if (!validToBins.includes(toBin)) {
+    return {
+      allowed: false,
+      reason: `Putaway toBin must be a STOCKAGE, PICKING, or RESERVE bin. Got: "${toBin}"`,
+      reasonFr: `Le rangement doit aller vers un emplacement STOCKAGE, PICKING ou RÉSERVE. Emplacement destination : "${toBin}" — les marchandises ne peuvent pas rester en zone RÉCEPTION ni aller directement en EXPÉDITION.`,
+      fieldError: { field: "toBin", expected: "STOCKAGE / PICKING / RESERVE", actual: toBin },
+    };
+  }
+  return { allowed: true };
+}
+
+export function validatePickingM1Zone(fromBin: string, toBin: string): ZoneValidationResult {
+  const validFromBins = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+  if (!validFromBins.includes(fromBin)) {
+    return {
+      allowed: false,
+      reason: `Picking fromBin must be a STOCKAGE/PICKING/RESERVE bin. Got: "${fromBin}"`,
+      reasonFr: `Le prélèvement doit partir d'un emplacement STOCKAGE, PICKING ou RÉSERVE. Emplacement source : "${fromBin}"`,
+      fieldError: { field: "fromBin", expected: "STOCKAGE / PICKING / RESERVE", actual: fromBin },
+    };
+  }
+  if (!EXPEDITION_BINS.includes(toBin)) {
+    return {
+      allowed: false,
+      reason: `Picking toBin must be an EXPEDITION bin (${EXPEDITION_BINS.join(", ")}). Got: "${toBin}"`,
+      reasonFr: `Le prélèvement doit aller vers un emplacement EXPÉDITION (${EXPEDITION_BINS.join(", ")}). Emplacement destination : "${toBin}" — les marchandises prélevées doivent être déposées au quai d'expédition.`,
+      fieldError: { field: "toBin", expected: EXPEDITION_BINS.join(" ou "), actual: toBin },
+    };
+  }
+  return { allowed: true };
+}
+
+export function validateGIZone(bin: string): ZoneValidationResult {
+  if (!EXPEDITION_BINS.includes(bin)) {
+    return {
+      allowed: false,
+      reason: `GI must use an EXPEDITION bin (${EXPEDITION_BINS.join(", ")}). Got: "${bin}"`,
+      reasonFr: `La sortie marchandises (GI) doit utiliser un emplacement EXPÉDITION (${EXPEDITION_BINS.join(", ")}). Emplacement saisi : "${bin}" — les marchandises doivent être au quai d'expédition avant la sortie.`,
+      fieldError: { field: "bin", expected: EXPEDITION_BINS.join(" ou "), actual: bin },
+    };
+  }
+  return { allowed: true };
+}
+
 // ─── Module 1: canExecuteStep ─────────────────────────────────────────────────
 export function canExecuteStep(step: StepCode, state: RunState): ValidationResult {
   const stepDef = MODULE1_STEPS.find((s) => s.code === step);
@@ -105,32 +193,80 @@ export function canExecuteStep(step: StepCode, state: RunState): ValidationResul
     }
   }
 
-  if (step === "STOCK") {
+  if (step === "PUTAWAY_M1") {
     const hasGR = state.transactions.some((t) => t.docType === "GR" && t.posted);
     if (!hasGR) {
       return {
         allowed: false,
-        reason: "No posted Goods Receipt found",
-        reasonFr: "Aucune Réception marchandises (GR) postée trouvée",
+        reason: "No posted Goods Receipt found — receive goods first",
+        reasonFr: "Aucune GR postée — réceptionnez les marchandises au quai avant le rangement",
       };
     }
-    const totalStock = Object.values(state.inventory).reduce((a, b) => a + b, 0);
-    if (totalStock <= 0) {
+    // Verify GR was posted to a RECEPTION bin
+    const grInReception = state.transactions.some(
+      (t) => t.docType === "GR" && t.posted && RECEPTION_BINS.includes(t.bin)
+    );
+    if (!grInReception) {
       return {
         allowed: false,
-        reason: "Stock on-hand is zero or negative",
-        reasonFr: "Le stock disponible est nul ou négatif",
+        reason: `GR must have been posted to a RECEPTION bin (${RECEPTION_BINS.join(", ")}) before putaway`,
+        reasonFr: `La GR doit avoir été postée vers un emplacement RÉCEPTION (${RECEPTION_BINS.join(", ")}) avant le rangement`,
+      };
+    }
+  }
+
+  if (step === "STOCK") {
+    const hasPutaway = state.completedSteps.includes("PUTAWAY_M1");
+    if (!hasPutaway) {
+      return {
+        allowed: false,
+        reason: "PUTAWAY must be completed before checking available stock",
+        reasonFr: "Le rangement (PUTAWAY) doit être complété avant de vérifier le stock disponible",
+      };
+    }
+    // Stock is in STOCKAGE/PICKING/RESERVE bins after putaway
+    const validBins = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+    const stockInWarehouse = Object.entries(state.inventory)
+      .filter(([key]) => validBins.some((b) => key.endsWith(`::${b}`)))
+      .reduce((sum, [, qty]) => sum + qty, 0);
+    if (stockInWarehouse <= 0) {
+      return {
+        allowed: false,
+        reason: "No stock available in warehouse bins after putaway",
+        reasonFr: "Aucun stock disponible dans les emplacements entrepôt après rangement",
+      };
+    }
+  }
+
+  if (step === "PICKING_M1") {
+    const hasSO = state.transactions.some((t) => t.docType === "SO" && t.posted);
+    if (!hasSO) {
+      return {
+        allowed: false,
+        reason: "No posted Sales Order found — create SO before picking",
+        reasonFr: "Aucune Commande client (SO) postée — créez la SO avant le prélèvement",
       };
     }
   }
 
   if (step === "GI") {
-    const hasSO = state.transactions.some((t) => t.docType === "SO" && t.posted);
-    if (!hasSO) {
+    const hasPicking = state.completedSteps.includes("PICKING_M1");
+    if (!hasPicking) {
       return {
         allowed: false,
-        reason: "No posted Sales Order found",
-        reasonFr: "Aucune Commande client (SO) postée trouvée",
+        reason: "PICKING must be completed before Goods Issue",
+        reasonFr: "Le prélèvement (PICKING) doit être complété avant la sortie marchandises (GI)",
+      };
+    }
+    // Verify picking was done to an EXPEDITION bin
+    const pickingInExpedition = state.transactions.some(
+      (t) => t.docType === "PICKING" && t.posted && EXPEDITION_BINS.includes(t.bin)
+    );
+    if (!pickingInExpedition) {
+      return {
+        allowed: false,
+        reason: `Picking must have been posted to an EXPEDITION bin (${EXPEDITION_BINS.join(", ")}) before GI`,
+        reasonFr: `Le prélèvement doit avoir été posté vers un emplacement EXPÉDITION (${EXPEDITION_BINS.join(", ")}) avant la GI`,
       };
     }
   }
@@ -408,9 +544,11 @@ export function calculateInventory(
     const key = `${tx.sku}::${tx.bin}`;
     if (!(key in inventory)) inventory[key] = 0;
 
-    if (tx.docType === "GR" || tx.docType === "ADJ" || tx.docType === "PUTAWAY") {
+    if (tx.docType === "GR" || tx.docType === "ADJ" || tx.docType === "PUTAWAY" || tx.docType === "PUTAWAY_M1") {
       inventory[key] += Number(tx.qty);
-    } else if (tx.docType === "GI") {
+    } else if (tx.docType === "GI" || tx.docType === "PICKING" || tx.docType === "PICKING_M1") {
+      // PICKING moves goods from stock bin to expedition bin — tracked separately
+      // GI finalizes the exit; both reduce the source bin
       inventory[key] -= Number(tx.qty);
     }
   }
@@ -427,9 +565,9 @@ export function calculateBinLoad(
   const load: Record<string, number> = {};
   for (const tx of transactions) {
     if (!tx.posted) continue;
-    if (tx.docType === "PUTAWAY" || tx.docType === "GR") {
+    if (tx.docType === "PUTAWAY" || tx.docType === "PUTAWAY_M1" || tx.docType === "GR") {
       load[tx.bin] = (load[tx.bin] ?? 0) + Number(tx.qty);
-    } else if (tx.docType === "GI") {
+    } else if (tx.docType === "GI" || tx.docType === "PICKING" || tx.docType === "PICKING_M1") {
       load[tx.bin] = (load[tx.bin] ?? 0) - Number(tx.qty);
     }
   }

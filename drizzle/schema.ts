@@ -136,7 +136,7 @@ export type ScenarioRun = typeof scenarioRuns.$inferSelect;
 export const transactions = mysqlTable("transactions", {
   id: int("id").autoincrement().primaryKey(),
   runId: int("runId").notNull(),
-  docType: mysqlEnum("docType", ["PO", "GR", "SO", "GI", "ADJ", "PUTAWAY"]).notNull(),
+  docType: mysqlEnum("docType", ["PO", "GR", "SO", "GI", "ADJ", "PUTAWAY", "PUTAWAY_M1", "PICKING", "PICKING_M1"]).notNull(),
   moveType: varchar("moveType", { length: 16 }), // e.g. 101, 261, 201
   sku: varchar("sku", { length: 64 }).notNull(),
   bin: varchar("bin", { length: 64 }).notNull(),

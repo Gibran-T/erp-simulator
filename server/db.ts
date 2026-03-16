@@ -355,7 +355,7 @@ export async function getTransactionsByRun(runId: number) {
 
 export async function addTransaction(data: {
   runId: number;
-  docType: "PO" | "GR" | "SO" | "GI" | "ADJ" | "PUTAWAY";
+  docType: "PO" | "GR" | "SO" | "GI" | "ADJ" | "PUTAWAY" | "PUTAWAY_M1" | "PICKING" | "PICKING_M1";
   moveType: string | null;
   sku: string;
   bin: string;
