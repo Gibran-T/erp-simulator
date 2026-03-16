@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 const LOGO_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/h8ynqFBCEuYgutk3aFBMKE/erp-logo-icon_b069b4ac.png';
+const COLLEGE_LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/h8ynqFBCEuYgutk3aFBMKE/college-concorde-logo_3c09f745.jpg';
 
 const MODULE_COLORS: Record<string, string> = {
   'erp-arch': 'oklch(0.65 0.22 295)',
@@ -109,23 +110,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5" style={{ borderBottom: `1px solid ${sidebarBorder}` }}>
-          <img src={LOGO_ICON} alt="ERP Logo" className="w-9 h-9 rounded-lg object-cover" />
-          <div>
-            <div className="text-sm font-bold leading-tight" style={{ fontFamily: 'Space Grotesk', color: textPrimary }}>
-              ERP Simulator
-            </div>
-            <div className="text-xs" style={{ color: textMuted }}>
-              Collège de la Concorde
+        <div className="flex flex-col px-4 pt-4 pb-3 gap-3" style={{ borderBottom: `1px solid ${sidebarBorder}` }}>
+          {/* College logo row */}
+          <div className="flex items-center justify-between">
+            <img
+              src={COLLEGE_LOGO}
+              alt="Collège de la Concorde"
+              className="h-9 w-auto object-contain"
+              style={{ filter: 'brightness(0) invert(1)', opacity: 0.85 }}
+            />
+            <button
+              className="lg:hidden ml-2"
+              onClick={() => setSidebarOpen(false)}
+              style={{ color: textMuted }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          {/* ERP Simulator sub-branding */}
+          <div className="flex items-center gap-2">
+            <img src={LOGO_ICON} alt="ERP Logo" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
+            <div>
+              <div className="font-bold leading-tight" style={{ fontFamily: 'Space Grotesk', color: textPrimary, fontSize: '11px' }}>
+                ERP Integrated Business Simulator
+              </div>
+              <div style={{ color: textMuted, fontSize: '10px' }}>
+                Programme 2 — 30h · 5 modules
+              </div>
             </div>
           </div>
-          <button
-            className="ml-auto lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            style={{ color: textMuted }}
-          >
-            <X size={18} />
-          </button>
         </div>
 
         {/* User info */}
