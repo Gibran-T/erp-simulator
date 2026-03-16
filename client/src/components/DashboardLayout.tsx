@@ -1,16 +1,14 @@
 // DashboardLayout — ERP Integrated Business Simulator
-// Design: Dark corporate ERP — Space Grotesk + DM Sans
-// Features: FR/EN language toggle, Dark/Light mode toggle, translated nav
+// Design: Dark corporate ERP — Space Grotesk + DM Sans — PERMANENT DARK MODE
+// Features: FR/EN language toggle, translated nav
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLang } from '@/contexts/LanguageContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   LayoutDashboard, BookOpen, Play, Users, ClipboardList,
   BarChart3, BookMarked, Settings, LogOut, Menu, X,
   Layers, Package, ShoppingCart, DollarSign, Zap, ChevronRight,
-  Sun, Moon
 } from 'lucide-react';
 
 const LOGO_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/h8ynqFBCEuYgutk3aFBMKE/erp-logo-icon_b069b4ac.png';
@@ -58,10 +56,20 @@ const ERP_MODULES = [
   { id: 'erp-sim', code: 'ERP-SIM', name: 'Integrated Simulation' },
 ];
 
+// ─── Permanent dark palette ───────────────────────────────────
+const bg            = 'oklch(0.10 0.015 255)';
+const sidebarBg     = 'oklch(0.12 0.018 255)';
+const sidebarBorder = 'oklch(1 0 0 / 6%)';
+const headerBg      = 'oklch(0.11 0.016 255)';
+const headerBorder  = 'oklch(1 0 0 / 6%)';
+const textPrimary   = 'oklch(0.93 0.005 255)';
+const textMuted     = 'oklch(0.50 0.010 255)';
+const navItemColor  = 'oklch(0.60 0.010 255)';
+const userCardBg    = 'oklch(0.16 0.020 255)';
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLang();
-  const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modulesExpanded, setModulesExpanded] = useState(false);
@@ -78,20 +86,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const roleColor = user?.role === 'admin' ? 'oklch(0.65 0.22 25)' :
     user?.role === 'teacher' ? 'oklch(0.72 0.15 200)' : 'oklch(0.72 0.16 162)';
-
-  // Light mode adjustments
-  const isDark = theme === 'dark';
-  const bg = isDark ? 'oklch(0.10 0.015 255)' : 'oklch(0.97 0.005 255)';
-  const sidebarBg = isDark ? 'oklch(0.12 0.018 255)' : 'oklch(0.98 0.004 255)';
-  const sidebarBorder = isDark ? 'oklch(1 0 0 / 6%)' : 'oklch(0 0 0 / 8%)';
-  const headerBg = isDark ? 'oklch(0.11 0.016 255)' : 'oklch(0.99 0.003 255)';
-  const headerBorder = isDark ? 'oklch(1 0 0 / 6%)' : 'oklch(0 0 0 / 8%)';
-  const textPrimary = isDark ? 'oklch(0.93 0.005 255)' : 'oklch(0.15 0.015 255)';
-  const textMuted = isDark ? 'oklch(0.50 0.010 255)' : 'oklch(0.45 0.010 255)';
-  const navItemColor = isDark ? 'oklch(0.60 0.010 255)' : 'oklch(0.40 0.010 255)';
-  const userCardBg = isDark ? 'oklch(0.16 0.020 255)' : 'oklch(0.94 0.006 255)';
-  const programmeBadgeBg = isDark ? 'oklch(0.60 0.20 255 / 10%)' : 'oklch(0.60 0.20 255 / 8%)';
-  const programmeBadgeBorder = isDark ? 'oklch(0.60 0.20 255 / 20%)' : 'oklch(0.60 0.20 255 / 25%)';
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: bg }}>
@@ -186,7 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="pt-3 pb-1">
             <button
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider"
-              style={{ color: isDark ? 'oklch(0.40 0.010 255)' : 'oklch(0.50 0.010 255)' }}
+              style={{ color: 'oklch(0.40 0.010 255)' }}
               onClick={() => setModulesExpanded(!modulesExpanded)}
             >
               <span>{lang === 'fr' ? 'Modules ERP' : 'ERP Modules'}</span>
@@ -217,7 +211,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Programme badge */}
         <div className="px-3 pb-2">
-          <div className="rounded-lg px-3 py-2 text-xs" style={{ background: programmeBadgeBg, border: `1px solid ${programmeBadgeBorder}` }}>
+          <div className="rounded-lg px-3 py-2 text-xs"
+            style={{ background: 'oklch(0.60 0.20 255 / 10%)', border: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
             <div className="font-semibold" style={{ color: 'oklch(0.75 0.16 255)' }}>Programme 2 — ERP</div>
             <div style={{ color: textMuted }}>{lang === 'fr' ? '30 heures · 5 modules' : '30 hours · 5 modules'}</div>
           </div>
@@ -251,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu size={20} />
           </button>
           <div className="flex-1">
-            <div className="text-xs font-mono" style={{ color: isDark ? 'oklch(0.40 0.010 255)' : 'oklch(0.50 0.010 255)' }}>
+            <div className="text-xs font-mono" style={{ color: 'oklch(0.40 0.010 255)' }}>
               ERP Integrated Business Simulator
             </div>
           </div>
@@ -265,13 +260,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Language toggle FR / EN */}
           <div className="flex items-center rounded-md overflow-hidden"
-            style={{ border: `1px solid ${isDark ? 'oklch(1 0 0 / 12%)' : 'oklch(0 0 0 / 12%)'}` }}>
+            style={{ border: '1px solid oklch(1 0 0 / 12%)' }}>
             <button
               onClick={() => setLang('fr')}
               className="px-2.5 py-1 text-xs font-bold font-mono transition-all"
               style={{
                 background: lang === 'fr' ? 'oklch(0.60 0.20 255 / 25%)' : 'transparent',
-                color: lang === 'fr' ? 'oklch(0.80 0.16 255)' : (isDark ? 'oklch(0.45 0.010 255)' : 'oklch(0.55 0.010 255)')
+                color: lang === 'fr' ? 'oklch(0.80 0.16 255)' : 'oklch(0.45 0.010 255)'
               }}
             >FR</button>
             <button
@@ -279,26 +274,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="px-2.5 py-1 text-xs font-bold font-mono transition-all"
               style={{
                 background: lang === 'en' ? 'oklch(0.60 0.20 255 / 25%)' : 'transparent',
-                color: lang === 'en' ? 'oklch(0.80 0.16 255)' : (isDark ? 'oklch(0.45 0.010 255)' : 'oklch(0.55 0.010 255)')
+                color: lang === 'en' ? 'oklch(0.80 0.16 255)' : 'oklch(0.45 0.010 255)'
               }}
             >EN</button>
           </div>
-
-          {/* Dark / Light mode toggle */}
-          {toggleTheme && (
-            <button
-              onClick={toggleTheme}
-              className="w-8 h-8 rounded-md flex items-center justify-center transition-all"
-              style={{
-                background: isDark ? 'oklch(1 0 0 / 6%)' : 'oklch(0 0 0 / 5%)',
-                color: isDark ? 'oklch(0.65 0.010 255)' : 'oklch(0.45 0.010 255)',
-                border: `1px solid ${isDark ? 'oklch(1 0 0 / 10%)' : 'oklch(0 0 0 / 10%)'}`
-              }}
-              title={theme === 'dark' ? (lang === 'fr' ? 'Mode clair' : 'Light mode') : (lang === 'fr' ? 'Mode sombre' : 'Dark mode')}
-            >
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
-          )}
         </header>
 
         {/* Page content */}
