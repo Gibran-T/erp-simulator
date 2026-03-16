@@ -3,6 +3,8 @@
  * Fully bilingual FR/EN — connected to global language toggle
  * All text uses t(fr, en) from useLanguage()
  */
+import FioriShell from "@/components/FioriShell";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState, useMemo } from "react";
@@ -15,7 +17,7 @@ import {
 import {
   Users, TrendingUp, CheckCircle2, ShieldCheck, Award, Activity,
   BarChart2, RefreshCw, BookOpen, AlertTriangle, Clock, Target,
-  Loader2, TrendingUp as TrendingUpIcon, ChevronDown,
+  Loader2, TrendingUp as TrendingUpIcon, ChevronDown, ArrowLeft,
 } from "lucide-react";
 import {
   Select,
@@ -462,13 +464,24 @@ export default function AnalyticsDashboard() {
     );
   }
 
+  const [, navigate] = useLocation();
+
   return (
+    <FioriShell>
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Dashboard Header ──────────────────────────────────────────────── */}
       <div className="border-b border-border bg-card px-6 py-4 sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/teacher")}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mr-1"
+              title={t("Retour au tableau de bord", "Back to dashboard")}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("Retour", "Back")}</span>
+            </button>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: "linear-gradient(135deg, #0078d4, #8764b8)" }}>
               <BarChart2 className="w-5 h-5 text-white" />
@@ -1002,5 +1015,6 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
     </div>
+    </FioriShell>
   );
 }
