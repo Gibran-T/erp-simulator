@@ -27,7 +27,7 @@ const DEMO_USERS: (User & { password: string })[] = [
   {
     id: 'admin-1',
     name: 'Admin Système',
-    email: 'admin@concordia.ca',
+    email: 'admin@laconcorde.ca',
     password: 'admin123',
     role: 'admin',
     progress: {}
@@ -35,7 +35,7 @@ const DEMO_USERS: (User & { password: string })[] = [
   {
     id: 'teacher-1',
     name: 'Prof. Marie Dupont',
-    email: 'prof@concordia.ca',
+    email: 'prof@laconcorde.ca',
     password: 'prof123',
     role: 'teacher',
     progress: {}
@@ -43,7 +43,7 @@ const DEMO_USERS: (User & { password: string })[] = [
   {
     id: 'student-1',
     name: 'Alexandre Tremblay',
-    email: 'student@concordia.ca',
+    email: 'student@laconcorde.ca',
     password: 'student123',
     role: 'student',
     cohort: 'ERP-2026-A',
@@ -52,7 +52,7 @@ const DEMO_USERS: (User & { password: string })[] = [
   {
     id: 'student-2',
     name: 'Sophie Lavoie',
-    email: 'sophie@concordia.ca',
+    email: 'sophie@laconcorde.ca',
     password: 'student123',
     role: 'student',
     cohort: 'ERP-2026-A',

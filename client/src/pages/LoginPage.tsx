@@ -14,9 +14,9 @@ const SYSTEMS = [
 ];
 
 const DEMO_CREDENTIALS = [
-  { role: 'Admin', email: 'admin@concordia.ca', password: 'admin123', color: 'oklch(0.65 0.22 25)' },
-  { role: 'Professeur', email: 'prof@concordia.ca', password: 'prof123', color: 'oklch(0.72 0.15 200)' },
-  { role: 'Étudiant', email: 'student@concordia.ca', password: 'student123', color: 'oklch(0.72 0.16 162)' },
+  { role: 'Admin', email: 'admin@laconcorde.ca', password: 'admin123', color: 'oklch(0.65 0.22 25)' },
+  { role: 'Professeur', email: 'prof@laconcorde.ca', password: 'prof123', color: 'oklch(0.72 0.15 200)' },
+  { role: 'Étudiant', email: 'student@laconcorde.ca', password: 'student123', color: 'oklch(0.72 0.16 162)' },
 ];
 
 export default function LoginPage() {
@@ -148,7 +148,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="votre@concordia.ca"
+              placeholder="votre@laconcorde.ca"
               required
               className="w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all"
               style={{

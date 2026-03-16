@@ -192,6 +192,86 @@ const moduleERPARCH: ERPModule = {
         dynamics: 'Dynamics 365 : Power Platform, Azure, Power BI intégré — 220,000+ clients',
         odoo: 'Odoo 17 : Python, PostgreSQL, interface web moderne — 7M+ utilisateurs'
       }
+    },
+    {
+      id: 'arch-s7',
+      title: 'Les T-codes SAP — La navigation dans SAP S/4HANA',
+      subtitle: 'Comprendre la logique des codes de transaction SAP',
+      type: 'concept',
+      content: 'Dans SAP S/4HANA, chaque action dans le système est exécutée via un T-code (Transaction Code). C\'est une adresse directe vers une fonction précise. La convention de nommage est logique : les deux premières lettres indiquent le module, la lettre finale indique l\'action (N=Nouveau, 2=Modifier, 3=Afficher). Dans Dynamics 365 et Odoo, la navigation se fait par menus cliquables.',
+      keyPoints: [
+        'T-code MM (Achats) : ME = Materials Management External — ME51N, ME21N, MIGO, MIRO',
+        'T-code SD (Ventes) : VA = Ventes — VA01, VL01N, VL02N, VF01, F-28',
+        'T-code FI (Finance) : FB = Financial Booking — FB50, F-53, FS10N, FB03',
+        'Convention SAP : N = Nouveau | 2 = Modifier | 3 = Afficher (ex: ME21N = Créer PO, ME22N = Modifier PO)',
+        'Dynamics 365 : navigation par modules dans le menu latéral (Procurement, Sales, Finance)',
+        'Odoo : barre de navigation supérieure par application (Achats, Ventes, Comptabilité)'
+      ],
+      systemRef: {
+        sap: 'SAP : saisir le T-code dans la barre de commande en haut à gauche → Entrée pour exécuter',
+        dynamics: 'Dynamics 365 : Modules > Supply Chain Management > Procurement and sourcing > ...',
+        odoo: 'Odoo : Menu principal > Achats / Ventes / Comptabilité > sous-menus'
+      }
+    },
+    {
+      id: 'arch-s8',
+      title: 'Flux Achats (P2P) dans SAP, Dynamics et Odoo',
+      subtitle: 'Le cycle Procure-to-Pay étape par étape dans les 3 systèmes',
+      type: 'process',
+      content: 'Le département Achats utilise le module MM dans SAP. Voici le flux complet Procure-to-Pay avec les T-codes SAP et leurs équivalents exacts dans Dynamics 365 et Odoo. Mémorisez ce flux — il sera testé dans les scénarios MM.',
+      keyPoints: [
+        'Étape 1 — Demande d\'achat (PR) : SAP ME51N | Dynamics : Purchase Requisition | Odoo : Demande d\'achat',
+        'Étape 2 — Bon de commande (PO) : SAP ME21N | Dynamics : Purchase Order | Odoo : Bon de commande',
+        'Étape 3 — Réception marchandises (GR) : SAP MIGO (Mvt 101) | Dynamics : Product Receipt | Odoo : Réception',
+        'Étape 4 — Vérification facture (IV) : SAP MIRO | Dynamics : Vendor Invoice | Odoo : Facture fournisseur',
+        'Étape 5 — Paiement fournisseur : SAP F-53 (manuel) / F110 (auto) | Dynamics : Payment Journal | Odoo : Paiement',
+        'Flux SAP complet : ME51N → ME21N → MIGO → MIRO → F-53'
+      ],
+      systemRef: {
+        sap: 'SAP MM — Flux P2P : ME51N → ME21N → MIGO (101) → MIRO → F-53',
+        dynamics: 'Dynamics 365 — Flux P2P : Requisition → Purchase Order → Product Receipt → Vendor Invoice → Payment',
+        odoo: 'Odoo — Flux P2P : Demande d\'achat → Bon de commande → Réception → Facture → Paiement'
+      }
+    },
+    {
+      id: 'arch-s9',
+      title: 'Flux Ventes (O2C) dans SAP, Dynamics et Odoo',
+      subtitle: 'Le cycle Order-to-Cash étape par étape dans les 3 systèmes',
+      type: 'process',
+      content: 'Le département Ventes utilise le module SD dans SAP. Voici le flux complet Order-to-Cash avec les T-codes SAP et leurs équivalents dans Dynamics 365 et Odoo. Ce flux sera pratiqué en détail dans le module SD.',
+      keyPoints: [
+        'Étape 1 — Commande client (SO) : SAP VA01 | Dynamics : Sales Order | Odoo : Bon de commande client',
+        'Étape 2 — Bon de livraison : SAP VL01N | Dynamics : Shipment | Odoo : Bon de livraison',
+        'Étape 3 — Sortie de stock (GI) : SAP VL02N (Post Goods Issue) | Dynamics : Ship Products | Odoo : Valider livraison',
+        'Étape 4 — Facturation client : SAP VF01 | Dynamics : Customer Invoice | Odoo : Facture client',
+        'Étape 5 — Paiement client : SAP F-28 | Dynamics : Customer Payment | Odoo : Paiement reçu',
+        'Flux SAP complet : VA01 → VL01N → VL02N → VF01 → F-28'
+      ],
+      systemRef: {
+        sap: 'SAP SD — Flux O2C : VA01 → VL01N → VL02N (PGI) → VF01 → F-28',
+        dynamics: 'Dynamics 365 — Flux O2C : Sales Order → Delivery → Ship → Customer Invoice → Payment',
+        odoo: 'Odoo — Flux O2C : Commande → Livraison → Validation → Facture → Paiement'
+      }
+    },
+    {
+      id: 'arch-s10',
+      title: 'Écritures Comptables Automatiques (FI)',
+      subtitle: 'Comment chaque transaction génère une écriture dans FI',
+      type: 'concept',
+      content: 'L\'intégration ERP signifie que chaque transaction opérationnelle génère automatiquement une écriture comptable dans FI — sans saisie manuelle. Comprendre ces écritures est fondamental pour interpréter les états financiers.',
+      keyPoints: [
+        'Réception GR (MIGO) → Débit : Compte Stock | Crédit : Compte GR-IR (transitoire)',
+        'Facture fournisseur IV (MIRO) → Débit : Compte GR-IR | Crédit : Compte Fournisseur (AP)',
+        'Paiement fournisseur (F-53) → Débit : Compte Fournisseur | Crédit : Compte Banque',
+        'Sortie de stock GI (VL02N) → Débit : COGS (Coût des ventes) | Crédit : Compte Stock',
+        'Facture client (VF01) → Débit : Compte Clients (AR) | Crédit : Compte Ventes (CA)',
+        'Paiement client (F-28) → Débit : Compte Banque | Crédit : Compte Clients'
+      ],
+      systemRef: {
+        sap: 'SAP FI T-codes : FB50 (écriture manuelle), FS10N (solde compte), FB03 (consulter écriture)',
+        dynamics: 'Dynamics 365 Finance : General Ledger alimenté automatiquement par Supply Chain et Sales',
+        odoo: 'Odoo Comptabilité : Grand livre alimenté automatiquement par Achats et Ventes'
+      }
     }
   ],
   scenarios: [
@@ -606,6 +686,46 @@ const moduleMM: ERPModule = {
         sap: 'SAP : Fiche fournisseur (Vendor Master) — T-code XK01/XK02',
         dynamics: 'Dynamics 365 : Accounts Payable > Vendors > All Vendors',
         odoo: 'Odoo : Achats > Fournisseurs > Contacts'
+      }
+    },
+    {
+      id: 'mm-s8',
+      title: 'Champs Obligatoires dans chaque étape P2P',
+      subtitle: 'Ce que vous devez saisir dans SAP, Dynamics et Odoo',
+      type: 'concept',
+      content: 'Chaque étape du cycle Procure-to-Pay exige des champs spécifiques. Connaître ces champs est essentiel pour exécuter les transactions correctement dans les scénarios MM. Les champs marqués * sont obligatoires dans les 3 systèmes.',
+      keyPoints: [
+        'ME51N (PR) : *Matériau/Service, *Quantité, *Date livraison souhaitée, *Centre de coûts, *Société',
+        'ME21N (PO) : *Fournisseur, *Matériau, *Quantité, *Prix unitaire, *Devise, *Conditions paiement',
+        'MIGO (GR) : *Référence PO, *Quantité reçue, *Dépôt de destination, *Mouvement 101',
+        'MIRO (IV) : *Référence PO, *Montant facture, *Date facture, *Numéro facture fournisseur',
+        'F-53 (Paiement) : *Compte fournisseur, *Montant, *Date valeur, *Compte bancaire',
+        'Conseil : toujours vérifier que la quantité MIGO ≤ quantité PO et montant MIRO ≤ montant PO'
+      ],
+      systemRef: {
+        sap: 'SAP : champs en rouge = obligatoires, champs en jaune = avertissement si vides',
+        dynamics: 'Dynamics 365 : champs avec astérisque (*) = obligatoires dans tous les formulaires',
+        odoo: 'Odoo : champs en gras = obligatoires, message d\'erreur si incomplets'
+      }
+    },
+    {
+      id: 'mm-s9',
+      title: 'Impact Comptable du Cycle P2P',
+      subtitle: 'Écritures générées automatiquement dans FI',
+      type: 'concept',
+      content: 'Chaque étape du cycle P2P génère automatiquement une écriture dans le module FI. Comprendre ces écritures vous permet de valider que le cycle est complet et que les comptes sont équilibrés.',
+      keyPoints: [
+        'MIGO (GR) → Débit : 300000 Stocks | Crédit : 191000 GR/IR Clearing (compte transitoire)',
+        'MIRO (IV) → Débit : 191000 GR/IR Clearing | Crédit : 160000 Comptes fournisseurs (AP)',
+        'F-53 (Paiement) → Débit : 160000 Comptes fournisseurs | Crédit : 113000 Banque',
+        'Impact sur le bilan : Stocks +, Banque -, Fournisseurs = 0 après paiement',
+        'Compte GR/IR = compte transitoire qui s\'annule entre MIGO et MIRO',
+        'Exemple : PO 10 000 CAD → GR +10 000 stocks → MIRO +10 000 AP → F-53 -10 000 banque'
+      ],
+      systemRef: {
+        sap: 'SAP FI : vérifier écritures avec FB03, solde compte avec FS10N',
+        dynamics: 'Dynamics 365 Finance : Accounts Payable > Transactions > Vendor transactions',
+        odoo: 'Odoo Comptabilité : Fournisseurs > Factures > Écritures comptables'
       }
     }
   ],
@@ -1044,6 +1164,46 @@ const moduleSD: ERPModule = {
         'Intégration avec PP : si stock insuffisant, ordre de fabrication créé',
         'Visibilité complète pour le commercial sur la disponibilité'
       ]
+    },
+    {
+      id: 'sd-s8',
+      title: 'Champs Obligatoires dans chaque étape O2C',
+      subtitle: 'Ce que vous devez saisir dans SAP, Dynamics et Odoo',
+      type: 'concept',
+      content: 'Chaque étape du cycle Order-to-Cash exige des champs spécifiques. Connaître ces champs est essentiel pour exécuter les transactions correctement dans les scénarios SD.',
+      keyPoints: [
+        'VA01 (SO) : *Client, *Type commande (OR), *Matériau, *Quantité, *Date livraison souhaitée, *Incoterms',
+        'VL01N (Livraison) : *Référence SO, *Date livraison, *Dépôt expédition, *Transporteur',
+        'VL02N (PGI) : *Quantité livrée, *Valider sortie de stock (Post Goods Issue)',
+        'VF01 (Facture) : *Référence livraison, *Type facturation (F2), *Date facturation',
+        'F-28 (Paiement) : *Compte client, *Montant, *Date valeur, *Référence facture',
+        'Flux SAP complet : VA01 → VL01N → VL02N (PGI) → VF01 → F-28'
+      ],
+      systemRef: {
+        sap: 'SAP : champs obligatoires en rouge, message d\'erreur si manquants avant sauvegarde',
+        dynamics: 'Dynamics 365 : champs avec astérisque (*) dans Sales Order et Customer Invoice',
+        odoo: 'Odoo : champs en gras dans Commande client, Livraison et Facture client'
+      }
+    },
+    {
+      id: 'sd-s9',
+      title: 'Impact Comptable du Cycle O2C',
+      subtitle: 'Écritures générées automatiquement dans FI',
+      type: 'concept',
+      content: 'Chaque étape du cycle O2C génère automatiquement une écriture dans FI. La sortie de stock (PGI) et la facturation sont les deux étapes qui ont le plus grand impact sur les états financiers.',
+      keyPoints: [
+        'VL02N PGI (Sortie stock) → Débit : 500000 COGS (Coût des ventes) | Crédit : 300000 Stocks',
+        'VF01 (Facture client) → Débit : 140000 Clients (AR) | Crédit : 800000 Chiffre d\'affaires',
+        'F-28 (Paiement reçu) → Débit : 113000 Banque | Crédit : 140000 Clients (AR)',
+        'Marge brute = CA (800000) - COGS (500000) — calculée automatiquement dans FI',
+        'Exemple : Vente 15 000 CAD, coût 8 000 CAD → Marge brute = 7 000 CAD (46.7%)',
+        'Impact sur le bilan : Stocks -, Clients +, puis Banque + après paiement'
+      ],
+      systemRef: {
+        sap: 'SAP FI : vérifier écritures avec FB03, rapport P&L avec S_ALR_87012284',
+        dynamics: 'Dynamics 365 Finance : Accounts Receivable > Transactions > Customer transactions',
+        odoo: 'Odoo Comptabilité : Clients > Factures > Écritures comptables'
+      }
     }
   ],
   scenarios: [
@@ -1428,6 +1588,46 @@ const moduleFI: ERPModule = {
         dynamics: 'Dynamics 365 : Financial Reporting > Balance Sheet / P&L',
         odoo: 'Odoo : Comptabilité > Rapports > Bilan / Compte de résultat'
       }
+    },
+    {
+      id: 'fi-s6',
+      title: 'Les Écritures Comptables — Logique Débit/Crédit',
+      subtitle: 'Comprendre la mécanique comptable dans l\'ERP',
+      type: 'concept',
+      content: 'Dans tout ERP, chaque transaction génère une écriture en partie double : Chaque écriture a un Débit et un Crédit de même montant. La somme des débits = la somme des crédits. C\'est la règle d\'or de la comptabilité.',
+      keyPoints: [
+        'Règle : Actifs augmentent au Débit | Passifs augmentent au Crédit',
+        'Règle : Charges augmentent au Débit | Produits augmentent au Crédit',
+        'Achat de stock : Débit Stocks (actif+) | Crédit Fournisseurs (passif+)',
+        'Paiement fournisseur : Débit Fournisseurs (passif-) | Crédit Banque (actif-)',
+        'Vente : Débit Clients (actif+) | Crédit Chiffre d\'affaires (produit+)',
+        'Paiement client : Débit Banque (actif+) | Crédit Clients (actif-)'
+      ],
+      systemRef: {
+        sap: 'SAP FB50 : saisir Débit/Crédit manuellement | FB03 : consulter écritures existantes',
+        dynamics: 'Dynamics 365 Finance : General Journal > Journal entries > Debit/Credit columns',
+        odoo: 'Odoo Comptabilité : Opérations > Écritures comptables > Colonnes Débit/Crédit'
+      }
+    },
+    {
+      id: 'fi-s7',
+      title: 'Tableau de Bord Financier ERP',
+      subtitle: 'Indicateurs clés et KPIs financiers dans les 3 systèmes',
+      type: 'concept',
+      content: 'Les KPIs financiers permettent au contrôleur de gestion de surveiller la santé financière de l\'entreprise en temps réel. Ces indicateurs sont calculés automatiquement à partir des transactions saisies dans l\'ERP.',
+      keyPoints: [
+        'Marge brute = CA - COGS | Marge nette = CA - Toutes charges | Cibles : MB > 30%, MN > 10%',
+        'DSO (Days Sales Outstanding) = (Clients / CA) x 365 | Cible : < 45 jours',
+        'DPO (Days Payable Outstanding) = (Fournisseurs / Achats) x 365 | Cible : 30-60 jours',
+        'Ratio de liquidité = Actifs courants / Passifs courants | Cible : > 1.5',
+        'EBITDA = Résultat + Intérêts + Impôts + Amortissements',
+        'Rotation des stocks = COGS / Stock moyen | Cible : > 6x par an'
+      ],
+      systemRef: {
+        sap: 'SAP : Tableau de bord Fiori, transactions S_ALR_87012284 (P&L), F.01 (Bilan)',
+        dynamics: 'Dynamics 365 Finance : Financial Insights > Key metrics dashboard',
+        odoo: 'Odoo Comptabilité : Tableau de bord > KPIs financiers en temps réel'
+      }
     }
   ],
   scenarios: [
@@ -1641,7 +1841,7 @@ const moduleERPSIM: ERPModule = {
       type: 'concept',
       content: 'La simulation intégrée est l\'aboutissement du cours. L\'étudiant gère une entreprise de distribution complète : approvisionnement, réception en entrepôt, commandes clients, livraisons et validation financière — le tout dans un environnement ERP simulé.',
       keyPoints: [
-        'Cas d\'entreprise : Distributions Concordia Inc.',
+        'Cas d\'entreprise : Distributions La Concorde Inc.',
         'Cycle complet : Fournisseur → Entrepôt → Client → Finance',
         'Tous les modules actifs simultanément : MM + SD + FI',
         'Détection et correction d\'écarts opérationnels',
@@ -1650,10 +1850,10 @@ const moduleERPSIM: ERPModule = {
     },
     {
       id: 'sim-s2',
-      title: 'Cas d\'Entreprise : Distributions Concordia Inc.',
+      title: 'Cas d\'Entreprise : Distributions La Concorde Inc.',
       subtitle: 'Contexte de la simulation finale',
       type: 'concept',
-      content: 'Distributions Concordia Inc. est une entreprise de distribution basée à Montréal. Elle utilise un ERP intégré pour gérer ses opérations. Vous êtes le responsable des opérations ERP pour la journée du 15 mars 2026.',
+      content: 'Distributions La Concorde Inc. est une entreprise de distribution basée à Montréal. Elle utilise un ERP intégré pour gérer ses opérations. Vous êtes le responsable des opérations ERP pour la journée du 15 mars 2026.',
       keyPoints: [
         'Secteur : Distribution de produits électroniques',
         'Fournisseur principal : TechSupply Inc. (Toronto)',
@@ -1678,13 +1878,33 @@ const moduleERPSIM: ERPModule = {
         'Étape 7 : Paiement fournisseur (MM-FI)',
         'Étape 8 : Analyse financière finale (FI)'
       ]
+    },
+    {
+      id: 'sim-s4',
+      title: 'Révision Consolidée — Checklist avant la Simulation',
+      subtitle: 'Tous les T-codes et flux à maîtriser pour ERP-SIM-01',
+      type: 'concept',
+      content: 'Avant de commencer la simulation intégrée, vérifiez que vous maîtrisez les éléments suivants. Chaque étape de la simulation ERP-SIM-01 fait appel à ces connaissances.',
+      keyPoints: [
+        '✅ MM — Flux P2P SAP : ME51N → ME21N → MIGO (101) → MIRO → F-53',
+        '✅ SD — Flux O2C SAP : VA01 → VL01N → VL02N (PGI) → VF01 → F-28',
+        '✅ FI — GR : Débit Stocks / Crédit GR-IR | IV : Débit GR-IR / Crédit AP | Paiement : Débit AP / Crédit Banque',
+        '✅ FI — PGI : Débit COGS / Crédit Stocks | Facture : Débit AR / Crédit CA | Paiement : Débit Banque / Crédit AR',
+        '✅ Marge brute = Chiffre d\'affaires - COGS | Cas : TABLET-PRO-10 coût 180 CAD, prix 299 CAD → Marge = 119 CAD (39.8%)',
+        '✅ ATP Check : si stock < quantité demandée → livraison partielle + réapprovisionnement urgent (ME51N)'
+      ],
+      systemRef: {
+        sap: 'SAP : tous les T-codes utilisés dans ERP-SIM-01 sont couverts dans les modules MM, SD et FI',
+        dynamics: 'Dynamics 365 : mêmes flux via menus Supply Chain, Sales et Finance',
+        odoo: 'Odoo : mêmes flux via applications Achats, Ventes et Comptabilité'
+      }
     }
   ],
   scenarios: [
     {
       id: 'erp-sim-01',
       code: 'ERP-SIM-01',
-      title: 'Cycle ERP complet — Distributions Concordia',
+      title: 'Cycle ERP complet — Distributions La Concorde',
       description: 'Gérer un cycle d\'affaires complet : réception commande client → approvisionnement → livraison → facturation → analyse financière.',
       difficulty: 'Avancé',
       duration: '60 min',
@@ -1701,7 +1921,7 @@ const moduleERPSIM: ERPModule = {
           dynamicsName: 'Sales Order',
           odooName: 'Commande client',
           fields: [
-            { id: 'client_sim', label: 'Client', type: 'select', options: ['ElectroMTL', 'TechSupply Inc.', 'Distributions Concordia', 'Client inconnu'], required: true, correctValue: 'ElectroMTL', hint: 'Client principal de Distributions Concordia' },
+            { id: 'client_sim', label: 'Client', type: 'select', options: ['ElectroMTL', 'TechSupply Inc.', 'Distributions La Concorde', 'Client inconnu'], required: true, correctValue: 'ElectroMTL', hint: 'Client principal de Distributions La Concorde' },
             { id: 'produit_sim', label: 'Produit commandé', type: 'text', placeholder: 'Ex: TABLET-PRO-10', required: true, correctValue: 'TABLET-PRO-10', hint: 'Code produit des tablettes' },
             { id: 'quantite_sim', label: 'Quantité commandée', type: 'number', placeholder: 'Ex: 80', required: true, correctValue: '80', hint: 'ElectroMTL commande 80 unités' },
             { id: 'prix_sim', label: 'Prix unitaire (CAD)', type: 'number', placeholder: 'Ex: 299.00', required: true, correctValue: '299.00', hint: 'Prix de vente des tablettes' }
@@ -1720,7 +1940,7 @@ const moduleERPSIM: ERPModule = {
           dynamicsName: 'Purchase Requisition',
           odooName: 'Demande d\'achat',
           fields: [
-            { id: 'fournisseur_sim', label: 'Fournisseur', type: 'select', options: ['TechSupply Inc.', 'ElectroMTL', 'Distributions Concordia', 'Fournisseur inconnu'], required: true, correctValue: 'TechSupply Inc.', hint: 'Fournisseur principal de tablettes' },
+            { id: 'fournisseur_sim', label: 'Fournisseur', type: 'select', options: ['TechSupply Inc.', 'ElectroMTL', 'Distributions La Concorde', 'Fournisseur inconnu'], required: true, correctValue: 'TechSupply Inc.', hint: 'Fournisseur principal de tablettes' },
             { id: 'quantite_pr_sim', label: 'Quantité à commander', type: 'number', placeholder: 'Ex: 30', required: true, correctValue: '30', hint: 'Quantité manquante pour satisfaire ElectroMTL' },
             { id: 'prix_achat_sim', label: 'Prix d\'achat unitaire (CAD)', type: 'number', placeholder: 'Ex: 180.00', required: true, correctValue: '180.00', hint: 'Prix d\'achat des tablettes chez TechSupply' }
           ],
