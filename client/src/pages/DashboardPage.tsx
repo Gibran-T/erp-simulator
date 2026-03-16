@@ -1,5 +1,6 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLang } from '@/contexts/LanguageContext';
 import { ERP_MODULES } from '@/lib/erpData';
 import { Link } from 'wouter';
 import {
@@ -31,6 +32,7 @@ const RECENT_ACTIVITIES = [
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { lang, t } = useLang();
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
   const completedScenarios = Object.keys(user?.progress || {}).length;
@@ -45,10 +47,12 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-              Bonjour, {user?.name?.split(' ')[0]} 👋
+              {lang === 'fr' ? 'Bonjour' : 'Hello'}, {user?.name?.split(' ')[0]}
             </h1>
             <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>
-              {isTeacher ? 'Tableau de bord professeur — ERP Integrated Business Simulator' : `Programme 2 · ERP Systems · ${user?.cohort || 'ERP-2026'}`}
+              {isTeacher
+                ? (lang === 'fr' ? 'Tableau de bord professeur — ERP Integrated Business Simulator' : 'Teacher Dashboard — ERP Integrated Business Simulator')
+                : `Programme 2 · ERP Systems · ${user?.cohort || 'ERP-2026'}`}
             </p>
           </div>
           <div className="hidden md:block text-xs px-3 py-1.5 rounded-full font-mono"
