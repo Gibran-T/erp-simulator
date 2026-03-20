@@ -8,7 +8,7 @@ import { useLang } from '@/contexts/LanguageContext';
 import {
   LayoutDashboard, BookOpen, Play, Users, ClipboardList,
   BarChart3, BookMarked, Settings, LogOut, Menu, X,
-  Layers, Package, ShoppingCart, DollarSign, Zap, ChevronRight,
+  Layers, Package, ShoppingCart, DollarSign, Zap, ChevronRight, PauseCircle,
 } from 'lucide-react';
 
 const LOGO_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/h8ynqFBCEuYgutk3aFBMKE/erp-logo-icon_b069b4ac.png';
@@ -231,6 +231,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
+        {/* Pause Classe — teacher/admin only */}
+        {(user?.role === 'teacher' || user?.role === 'admin') && (
+          <div className="px-3 pb-2">
+            <a href="/pause" target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-all"
+              style={{ background: 'oklch(0.78 0.16 70 / 12%)', color: 'oklch(0.78 0.14 70)', border: '1px solid oklch(0.78 0.16 70 / 25%)' }}
+              title="Ouvrir la page Pause sur le projecteur">
+              <PauseCircle size={16} />
+              <span>{lang === 'fr' ? 'Mode Pause classe' : 'Class Pause mode'}</span>
+            </a>
+          </div>
+        )}
         {/* Logout */}
         <div className="px-3 pb-4" style={{ borderTop: `1px solid ${sidebarBorder}`, paddingTop: '12px' }}>
           <button
