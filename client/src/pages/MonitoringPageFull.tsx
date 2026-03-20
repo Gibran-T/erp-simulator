@@ -9,6 +9,21 @@ import { BarChart3, Users, TrendingUp, Award, CheckCircle2, Clock, Mail } from '
 
 const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
 
+function timeAgo(value: string): string {
+  // Handle both ISO timestamps and legacy strings like 'Il y a 2h'
+  if (!value || value === 'Jamais') return 'Jamais';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value; // legacy string — return as-is
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'À l\'instant';
+  if (mins < 60) return `Il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `Il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `Il y a ${days}j`;
+}
+
 export default function MonitoringPageFull() {
   const { students, cohorts, getCohortStats } = useStudents();
 
@@ -191,7 +206,7 @@ export default function MonitoringPageFull() {
                       </div>
                       <div className="hidden lg:block">
                         <div className="flex items-center gap-1 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
-                          <Clock size={10} /> {student.lastActive}
+                          <Clock size={10} /> {timeAgo(student.lastActive)}
                         </div>
                       </div>
                     </div>

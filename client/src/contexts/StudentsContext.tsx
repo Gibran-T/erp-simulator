@@ -32,7 +32,7 @@ export interface Cohort {
 interface StudentsContextType {
   students: Student[];
   cohorts: Cohort[];
-  addStudent: (student: Omit<Student, 'id' | 'enrolledAt' | 'progress' | 'quizScores' | 'lastActive'>) => void;
+  addStudent: (student: Omit<Student, 'id' | 'enrolledAt' | 'progress' | 'quizScores' | 'lastActive'>) => { success: boolean; error?: string };
   updateStudent: (id: string, updates: Partial<Student>) => void;
   removeStudent: (id: string) => void;
   addCohort: (cohort: Omit<Cohort, 'id' | 'createdAt'>) => void;
@@ -87,9 +87,16 @@ export function StudentsProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('erp_cohorts', JSON.stringify(cohorts));
   }, [cohorts]);
 
-  const addStudent = useCallback((student: Omit<Student, 'id' | 'enrolledAt' | 'progress' | 'quizScores' | 'lastActive'>) => {
+  const addStudent = useCallback((student: Omit<Student, 'id' | 'enrolledAt' | 'progress' | 'quizScores' | 'lastActive'>): { success: boolean; error?: string } => {
+    // Fix 2: Prevent duplicate emails
+    const emailLower = student.email.trim().toLowerCase();
+    const duplicate = students.find(s => s.email.toLowerCase() === emailLower);
+    if (duplicate) {
+      return { success: false, error: `Un étudiant avec l'email "${student.email}" existe déjà (${duplicate.name}).` };
+    }
     const newStudent: Student = {
       ...student,
+      email: student.email.trim(),
       id: nanoid(),
       enrolledAt: new Date().toISOString().split('T')[0],
       progress: {},
@@ -97,7 +104,8 @@ export function StudentsProvider({ children }: { children: React.ReactNode }) {
       lastActive: 'Jamais',
     };
     setStudents(prev => [...prev, newStudent]);
-  }, []);
+    return { success: true };
+  }, [students]);
 
   const updateStudent = useCallback((id: string, updates: Partial<Student>) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));

@@ -265,7 +265,11 @@ export default function CohortsPage() {
 
   function saveStudent(d: { name: string; email: string; cohortId: string; status: 'active' | 'inactive'; notes?: string }) {
     if (editStudent) { updateStudent(editStudent.id, d); toast.success(`Étudiant ${d.name} mis à jour`); }
-    else { addStudent(d); toast.success(`Étudiant ${d.name} ajouté`); }
+    else {
+      const result = addStudent(d);
+      if (!result.success) { toast.error(result.error || 'Erreur lors de l\'ajout'); return; }
+      toast.success(`Étudiant ${d.name} ajouté`);
+    }
     setShowStudent(false); setEditStudent(undefined);
   }
 
