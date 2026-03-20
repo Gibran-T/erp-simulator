@@ -1898,6 +1898,126 @@ const moduleERPSIM: ERPModule = {
         dynamics: 'Dynamics 365 : mêmes flux via menus Supply Chain, Sales et Finance',
         odoo: 'Odoo : mêmes flux via applications Achats, Ventes et Comptabilité'
       }
+    },
+    {
+      id: 'sim-s5',
+      title: 'L\'ATP Check — Vérification de Disponibilité',
+      subtitle: 'Available-to-Promise : la logique de promesse de livraison',
+      type: 'concept',
+      content: 'L\'ATP Check (Available-to-Promise) est l\'une des fonctions les plus critiques de l\'intégration MM-SD. Lorsqu\'un client passe une commande, l\'ERP vérifie automatiquement si le stock disponible peut satisfaire la demande à la date souhaitée. Si le stock est insuffisant, l\'ERP propose une date de livraison réaliste ou déclenche un réapprovisionnement automatique.',
+      keyPoints: [
+        'Stock disponible = Stock physique - Réservations existantes + Entrées prévues',
+        'Si stock ≥ quantité commandée → livraison confirmée à la date demandée',
+        'Si stock < quantité commandée → livraison partielle + réapprovisionnement urgent',
+        'Dans notre cas : commande 80 unités, stock 50 → manque 30 → ME51N automatique',
+        'L\'ATP Check protège la promesse client tout en optimisant les stocks',
+        'Dynamics 365 et Odoo ont des mécanismes équivalents (Available inventory check)'
+      ],
+      systemRef: {
+        sap: 'SAP : ATP Check déclenché automatiquement lors de VA01 — résultat visible dans l\'onglet Disponibilité',
+        dynamics: 'Dynamics 365 : Delivery date control + ATP calculation dans Sales Order',
+        odoo: 'Odoo : Règle de réapprovisionnement automatique si stock < seuil minimum'
+      }
+    },
+    {
+      id: 'sim-s6',
+      title: 'Les Écritures Comptables de la Simulation',
+      subtitle: 'Toutes les écritures FI générées par ERP-SIM-01',
+      type: 'process',
+      content: 'La simulation ERP-SIM-01 génère 6 écritures comptables automatiques dans le module FI. Comprendre ces écritures est essentiel pour l\'analyse financière finale. Chaque écriture respecte la règle de la partie double : total débits = total crédits.',
+      keyPoints: [
+        'Écriture 1 — Réception GR (MIGO) : Débit Stock 5 400 CAD / Crédit GR-IR 5 400 CAD',
+        'Écriture 2 — Facture fournisseur (MIRO) : Débit GR-IR 5 400 CAD / Crédit Fournisseur 5 400 CAD',
+        'Écriture 3 — Paiement fournisseur (F-53) : Débit Fournisseur 5 400 CAD / Crédit Banque 5 400 CAD',
+        'Écriture 4 — Sortie stock/PGI (VL02N) : Débit COGS 14 400 CAD / Crédit Stock 14 400 CAD',
+        'Écriture 5 — Facture client (VF01) : Débit Clients 23 920 CAD / Crédit Ventes 23 920 CAD',
+        'Résultat final : CA 23 920 CAD | COGS 14 400 CAD | Marge brute 9 520 CAD (39,8%)'
+      ],
+      systemRef: {
+        sap: 'SAP FI : toutes les écritures consultables via FB03 (par pièce) ou FS10N (par compte)',
+        dynamics: 'Dynamics 365 Finance : Voucher transactions — traçabilité complète par transaction source',
+        odoo: 'Odoo Comptabilité : Pièces comptables — chaque transaction opérationnelle génère une pièce'
+      }
+    },
+    {
+      id: 'sim-s7',
+      title: 'Analyse de Rentabilité — Lire un P&L ERP',
+      subtitle: 'Interpréter le compte de résultat généré par la simulation',
+      type: 'concept',
+      content: 'À la fin de la simulation, l\'ERP génère automatiquement un compte de résultat (P&L — Profit & Loss) pour la transaction. C\'est la synthèse financière de toutes les opérations effectuées. Un gestionnaire ERP doit savoir lire et interpréter ce rapport.',
+      keyPoints: [
+        'Chiffre d\'affaires (CA) = Quantité vendue × Prix de vente = 80 × 299 = 23 920 CAD',
+        'Coût des marchandises vendues (COGS) = Quantité × Coût d\'achat = 80 × 180 = 14 400 CAD',
+        'Marge brute = CA - COGS = 23 920 - 14 400 = 9 520 CAD',
+        'Taux de marge brute = Marge brute / CA = 9 520 / 23 920 = 39,8%',
+        'Un taux de marge > 30% est généralement sain pour la distribution',
+        'L\'ERP calcule ce P&L en temps réel dès que toutes les transactions sont enregistrées'
+      ],
+      systemRef: {
+        sap: 'SAP : KE30 (Profitability Analysis) ou S_ALR_87012284 (P&L par centre de profit)',
+        dynamics: 'Dynamics 365 : Financial Reporting > Income Statement (Profit & Loss)',
+        odoo: 'Odoo : Comptabilité > Rapports > Compte de résultat'
+      }
+    },
+    {
+      id: 'sim-s8',
+      title: 'Comparaison des 3 ERP — Simulation Intégrée',
+      subtitle: 'SAP vs Dynamics 365 vs Odoo pour un cycle complet',
+      type: 'comparison',
+      content: 'Les trois ERP exécutent le même cycle d\'affaires mais avec des interfaces, des terminologies et des niveaux de complexité différents. Cette comparaison vous prépare à travailler dans n\'importe quel environnement ERP professionnel.',
+      keyPoints: [
+        'SAP S/4HANA : T-codes VA01 → MIGO → MIRO → VL01N → VF01 → F-53 — interface Fiori ou GUI classique',
+        'Dynamics 365 : Sales Order → Product Receipt → Vendor Invoice → Ship → Customer Invoice — navigation par menus',
+        'Odoo : Commande client → Réception → Facture fournisseur → Livraison → Facture client — interface web intuitive',
+        'SAP : plus rigide, plus de contrôles, idéal pour grandes entreprises avec processus standardisés',
+        'Dynamics 365 : intégration native avec Excel, Teams, Power BI — idéal pour entreprises Microsoft',
+        'Odoo : plus flexible, personnalisable, coût plus bas — idéal pour PME en croissance'
+      ],
+      systemRef: {
+        sap: 'SAP ERP-SIM-01 : VA01 → ME51N → ME21N → MIGO → MIRO → VL01N → VL02N → VF01 → F-53 → KE30',
+        dynamics: 'Dynamics 365 : Sales Order → Requisition → PO → Receipt → Invoice → Shipment → Cust. Invoice → Payment → P&L',
+        odoo: 'Odoo : Commande client → Demande achat → BC → Réception → Facture fourn. → Livraison → Facture client → Paiement → Rapport'
+      }
+    },
+    {
+      id: 'sim-s9',
+      title: 'Erreurs Courantes et Comment les Corriger',
+      subtitle: 'Les 6 erreurs les plus fréquentes dans ERP-SIM-01',
+      type: 'concept',
+      content: 'Lors de la simulation intégrée, certaines erreurs reviennent régulièrement. Les identifier et les corriger rapidement est une compétence clé du gestionnaire ERP. Un ERP bien configuré détecte et bloque les erreurs avant qu\'elles ne propagent dans les autres modules.',
+      keyPoints: [
+        'Erreur 1 — Mauvais client ou fournisseur : vérifier le code exact (ElectroMTL, TechSupply Inc.)',
+        'Erreur 2 — Quantité incorrecte : commande 80, stock 50, manque 30 — ne pas confondre les quantités',
+        'Erreur 3 — Prix erroné : coût achat 180 CAD ≠ prix vente 299 CAD — deux prix différents',
+        'Erreur 4 — Oublier le GR avant MIRO : dans SAP, impossible de valider la facture sans réception',
+        'Erreur 5 — Mauvais montant facture client : 80 × 299 = 23 920 CAD (pas 80 × 180)',
+        'Erreur 6 — Marge brute mal calculée : 23 920 - 14 400 = 9 520 CAD (pas 23 920 - 5 400)'
+      ],
+      systemRef: {
+        sap: 'SAP : les messages d\'erreur SAP (rouge) bloquent la transaction — lire le message et corriger le champ indiqué',
+        dynamics: 'Dynamics 365 : validation en ligne avec messages d\'erreur contextuels dans les formulaires',
+        odoo: 'Odoo : alertes visuelles et messages de validation avant confirmation de chaque étape'
+      }
+    },
+    {
+      id: 'sim-s10',
+      title: 'Bilan du Cours — Compétences ERP Acquises',
+      subtitle: 'Ce que vous savez faire après le Programme 2 ERP',
+      type: 'summary',
+      content: 'Félicitations ! En complétant le Programme 2 ERP du Collège de la Concorde, vous avez acquis des compétences opérationnelles concrètes sur trois systèmes ERP leaders du marché. Ces compétences sont directement valorisables sur le marché du travail québécois et international.',
+      keyPoints: [
+        '✅ ERP-ARCH : comprendre l\'architecture modulaire et comparer SAP, Dynamics 365, Odoo',
+        '✅ MM : exécuter un cycle Procure-to-Pay complet (PR → PO → GR → IV → Paiement)',
+        '✅ SD : exécuter un cycle Order-to-Cash complet (SO → Livraison → Facturation → Paiement)',
+        '✅ FI : lire et générer des écritures comptables automatiques, analyser un P&L',
+        '✅ ERP-SIM : gérer un cycle d\'affaires transversal complet intégrant MM + SD + FI',
+        '🎯 Prochaine étape : certifications SAP (SAP Certified Associate), Microsoft (MB-300), Odoo (Odoo Functional)'
+      ],
+      systemRef: {
+        sap: 'SAP Certifications : C_TS410 (Integration), C_TS422 (MM), C_TS460 (SD) — valeur marché : 70 000–120 000 CAD/an',
+        dynamics: 'Microsoft Certifications : MB-300 (Finance & Operations), MB-310 (Finance) — valeur marché : 65 000–110 000 CAD/an',
+        odoo: 'Odoo Certification : Odoo 17 Functional — valeur marché : 55 000–90 000 CAD/an (PME québécoises)'
+      }
     }
   ],
   scenarios: [
