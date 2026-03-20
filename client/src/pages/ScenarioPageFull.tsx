@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getScenarioById, type TransactionStep, type TransactionField } from '@/lib/erpData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudents } from '@/contexts/StudentsContext';
 import { useParams, useLocation } from 'wouter';
 import {
   ChevronRight, ChevronLeft, CheckCircle2, XCircle, AlertCircle,
@@ -31,6 +32,8 @@ export default function ScenarioPageFull() {
   const scenarioId = params.scenarioId || '';
   const result = getScenarioById(scenarioId);
   const { user, updateProgress } = useAuth();
+  const { students, updateStudent } = useStudents();
+  const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
   const [, navigate] = useLocation();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -133,11 +136,31 @@ export default function ScenarioPageFull() {
       setStepFeedback(null);
       setShowHint(false);
     } else {
-      const finalScore = Math.round(85 + Math.random() * 15);
+      // Deterministic score: ratio of correct steps, minus 10 pts per hint used
+      const correctSteps = scenario.steps.filter((_, i) => {
+        const inputs = stepInputs[i] || {};
+        const s = scenario.steps[i];
+        if (!s.fields || s.fields.length === 0) return true;
+        return s.fields.every(f => !f.correctValue || inputs[f.id]?.trim() === f.correctValue);
+      }).length;
+      const hintPenalty = hintsUsed.size * 10;
+      const rawScore = Math.round((correctSteps / totalSteps) * 100);
+      const finalScore = Math.max(0, Math.min(100, rawScore - hintPenalty));
       setScore(finalScore);
       setFinished(true);
       setTimerActive(false);
       updateProgress(scenarioId, finalScore);
+      // Bridge: update the student record in StudentsContext so monitoring reflects real activity
+      if (user?.email) {
+        const matched = students.find(s => s.email.toLowerCase() === user.email.toLowerCase());
+        if (matched) {
+          const updatedProgress = { ...matched.progress, [scenarioId]: finalScore };
+          updateStudent(matched.id, {
+            progress: updatedProgress,
+            lastActive: new Date().toISOString(),
+          });
+        }
+      }
       toast.success(`Scénario complété ! Score : ${finalScore}%`);
     }
     setStepStatuses(newStatuses);
@@ -455,7 +478,7 @@ export default function ScenarioPageFull() {
                       style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>
                       <ChevronLeft size={14} /> Précédent
                     </button>
-                    <button onClick={() => setShowHint(!showHint)}
+                    <button onClick={() => { setShowHint(!showHint); if (!showHint) setHintsUsed(prev => new Set(prev).add(currentStep)); }}
                       className="px-3 py-2 rounded-lg text-xs transition-all"
                       style={{ background: 'oklch(0.78 0.16 70 / 15%)', color: 'oklch(0.78 0.14 70)' }}>
                       {showHint ? 'Masquer' : 'Indice'}
