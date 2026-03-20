@@ -19,7 +19,8 @@ import AssignmentsPage from "./pages/AssignmentsPage";
 import MonitoringPage from "./pages/MonitoringPage";
 import TeacherGuidePage from "./pages/TeacherGuidePage";
 import AdminPage from "./pages/AdminPage";
-import NotFound from "./pages/NotFound";
+import NotFound from './pages/NotFound';
+import PausePage from './pages/PausePage';
 
 function AppRouter() {
   const { isAuthenticated } = useAuth();
@@ -47,6 +48,7 @@ function AppRouter() {
       <Route path="/monitoring" component={MonitoringPage} />
       <Route path="/teacher-guide" component={TeacherGuidePage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/pause" component={PausePage} />
       <Route component={NotFound} />
     </Switch>
   );

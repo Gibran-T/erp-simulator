@@ -2,14 +2,14 @@
  * CohortsPage — ERP Integrated Business Simulator
  * Full student management: add/edit/remove students and cohorts
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useStudents, Student, Cohort } from '@/contexts/StudentsContext';
 import { toast } from 'sonner';
 import {
   Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   BookOpen, X, Check, UserPlus, Mail, Search, AlertTriangle,
-  GraduationCap, Calendar, ToggleLeft, ToggleRight
+  GraduationCap, Calendar, ToggleLeft, ToggleRight, Upload, FileText
 } from 'lucide-react';
 
 function StudentModal({ cohortId, student, cohorts, onClose, onSave }: {
@@ -248,6 +248,51 @@ export default function CohortsPage() {
   const [editCohort, setEditCohort] = useState<Cohort | undefined>();
   const [confirmDel, setConfirmDel] = useState<{ type: 'student' | 'cohort'; id: string; name: string } | null>(null);
   const [addToCohort, setAddToCohort] = useState('');
+  const [csvPreview, setCsvPreview] = useState<{ rows: Array<{ name: string; email: string; cohortId: string; valid: boolean; error?: string }>; fileName: string } | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  function handleCsvFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      // Skip header row if it looks like a header (no @ in second column)
+      const dataLines = lines[0] && !lines[0].includes('@') ? lines.slice(1) : lines;
+      const defaultCohortId = cohorts.find(c => c.status === 'active')?.id || cohorts[0]?.id || '';
+      const rows = dataLines.map(line => {
+        const parts = line.split(/[,;\t]/).map(p => p.trim().replace(/^"|"$/g, ''));
+        const name = parts[0] || '';
+        const email = parts[1] || '';
+        const cohortName = parts[2] || '';
+        const matchedCohort = cohortName ? cohorts.find(c => c.name.toLowerCase() === cohortName.toLowerCase()) : null;
+        const cohortId = matchedCohort?.id || defaultCohortId;
+        let error: string | undefined;
+        if (!name) error = 'Nom manquant';
+        else if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) error = 'Email invalide';
+        else if (students.find(s => s.email.toLowerCase() === email.toLowerCase())) error = 'Email déjà existant';
+        return { name, email, cohortId, valid: !error, error };
+      }).filter(r => r.name || r.email); // remove blank rows
+      setCsvPreview({ rows, fileName: file.name });
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  function confirmCsvImport() {
+    if (!csvPreview) return;
+    const valid = csvPreview.rows.filter(r => r.valid);
+    let imported = 0;
+    valid.forEach(r => {
+      const result = addStudent({ name: r.name, email: r.email, cohortId: r.cohortId, status: 'active' });
+      if (result.success) imported++;
+    });
+    const skipped = csvPreview.rows.length - imported;
+    toast.success(`${imported} étudiant(s) importé(s)${skipped > 0 ? `, ${skipped} ignoré(s)` : ''}`);
+    setCsvPreview(null);
+  }
 
   const totalStudents = students.length;
   const activeStudents = students.filter(s => s.status === 'active').length;
@@ -303,11 +348,20 @@ export default function CohortsPage() {
             <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Gestion des cohortes</h1>
             <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>Gérez vos groupes d'étudiants — Programme 2 ERP</p>
           </div>
-          <button onClick={() => { setEditCohort(undefined); setShowCohort(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shrink-0"
-            style={{ background: 'oklch(0.60 0.20 255)', color: 'white' }}>
-            <Plus size={16} /> Nouvelle cohorte
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <input ref={csvInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFile} />
+            <button onClick={() => csvInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: 'oklch(0.72 0.16 162 / 20%)', color: 'oklch(0.72 0.14 162)', border: '1px solid oklch(0.72 0.16 162 / 30%)' }}
+              title="Importer une liste d'étudiants depuis un fichier CSV">
+              <Upload size={16} /> Importer CSV
+            </button>
+            <button onClick={() => { setEditCohort(undefined); setShowCohort(true); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: 'oklch(0.60 0.20 255)', color: 'white' }}>
+              <Plus size={16} /> Nouvelle cohorte
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -428,6 +482,56 @@ export default function CohortsPage() {
         onClose={() => { setShowStudent(false); setEditStudent(undefined); }} onSave={saveStudent} />}
       {showCohort && <CohortModal cohort={editCohort}
         onClose={() => { setShowCohort(false); setEditCohort(undefined); }} onSave={saveCohort} />}
+      {/* CSV Preview Modal */}
+      {csvPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'oklch(0 0 0 / 75%)' }}>
+          <div className="w-full max-w-lg rounded-2xl p-6 space-y-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.72 0.16 162 / 30%)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText size={18} style={{ color: 'oklch(0.72 0.14 162)' }} />
+                <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Aperçu de l'import</h2>
+              </div>
+              <button onClick={() => setCsvPreview(null)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.010 255)' }}><X size={18} /></button>
+            </div>
+            <p className="text-xs" style={{ color: 'oklch(0.50 0.010 255)' }}>
+              Fichier : <strong style={{ color: 'oklch(0.72 0.14 162)' }}>{csvPreview.fileName}</strong> — {csvPreview.rows.filter(r => r.valid).length} valide(s), {csvPreview.rows.filter(r => !r.valid).length} ignoré(s)
+            </p>
+            <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+              {csvPreview.rows.map((row, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg"
+                  style={{ background: row.valid ? 'oklch(0.72 0.16 162 / 8%)' : 'oklch(0.65 0.22 25 / 8%)', border: `1px solid ${row.valid ? 'oklch(0.72 0.16 162 / 20%)' : 'oklch(0.65 0.22 25 / 20%)'}` }}>
+                  <div className="shrink-0">
+                    {row.valid
+                      ? <Check size={14} style={{ color: 'oklch(0.72 0.14 162)' }} />
+                      : <X size={14} style={{ color: 'oklch(0.65 0.22 25)' }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold truncate" style={{ color: 'oklch(0.85 0.005 255)' }}>{row.name || '—'}</div>
+                    <div className="text-xs truncate" style={{ color: 'oklch(0.50 0.010 255)' }}>{row.email || '—'}</div>
+                  </div>
+                  {!row.valid && <span className="text-xs shrink-0" style={{ color: 'oklch(0.65 0.22 25)' }}>{row.error}</span>}
+                  {row.valid && (
+                    <span className="text-xs shrink-0" style={{ color: 'oklch(0.50 0.010 255)' }}>
+                      {cohorts.find(c => c.id === row.cohortId)?.name || 'Cohorte par défaut'}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Format attendu : <code style={{ color: 'oklch(0.72 0.14 162)' }}>nom,email</code> ou <code style={{ color: 'oklch(0.72 0.14 162)' }}>nom,email,cohorte</code> — une ligne par étudiant</p>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setCsvPreview(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>Annuler</button>
+              <button onClick={confirmCsvImport} disabled={csvPreview.rows.filter(r => r.valid).length === 0}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                style={{ background: 'oklch(0.72 0.16 162)', color: 'white' }}>
+                Importer {csvPreview.rows.filter(r => r.valid).length} étudiant(s)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {confirmDel && <ConfirmModal
         message={confirmDel.type === 'student'
           ? `Supprimer l'étudiant "${confirmDel.name}" ? Cette action est irréversible.`
