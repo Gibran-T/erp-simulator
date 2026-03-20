@@ -59,6 +59,14 @@ export type Scenario = {
   learningObjective: string;
 };
 
+export type QuizQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+};
+
 export type ERPModule = {
   id: string;
   code: string;
@@ -73,6 +81,7 @@ export type ERPModule = {
   description: string;
   slides: SlideContent[];
   scenarios: Scenario[];
+  quiz?: QuizQuestion[];
 };
 
 // ============================================================
@@ -1628,6 +1637,46 @@ const moduleFI: ERPModule = {
         dynamics: 'Dynamics 365 Finance : Financial Insights > Key metrics dashboard',
         odoo: 'Odoo Comptabilité : Tableau de bord > KPIs financiers en temps réel'
       }
+    },
+    {
+      id: 'fi-s8',
+      title: 'Le Bilan Comptable (Balance Sheet)',
+      subtitle: 'Actifs, Passifs et Capitaux Propres — la photographie financière',
+      type: 'concept',
+      content: 'Le bilan est un état financier qui présente la situation patrimoniale de l\'entreprise à une date donnée. Il répond à la question : "Qu\'est-ce que l\'entreprise possède et comment est-ce financé ?" Dans un ERP, le bilan est généré automatiquement à partir des écritures comptables accumulées dans le Grand Livre.',
+      keyPoints: [
+        'ACTIFS = ce que l\'entreprise possède : Trésorerie + Clients + Stocks + Immobilisations',
+        'PASSIFS = ce que l\'entreprise doit : Fournisseurs + Emprunts + Dettes fiscales',
+        'CAPITAUX PROPRES = Actifs - Passifs = richesse des actionnaires',
+        'Équation fondamentale : Actifs = Passifs + Capitaux Propres (toujours équilibrée)',
+        'Actifs courants (< 1 an) : trésorerie, clients, stocks | Actifs non courants : équipements, brevets',
+        'Dans notre simulation : Stocks 14 400 CAD (actif) | Clients 23 920 CAD (actif) | Fournisseur 5 400 CAD (passif)'
+      ],
+      systemRef: {
+        sap: 'SAP : F.01 (Bilan complet) | FS10N (solde par compte GL) | S_ALR_87012284 (Bilan simplifié)',
+        dynamics: 'Dynamics 365 Finance : Financial Reporting > Balance Sheet — mise à jour en temps réel',
+        odoo: 'Odoo Comptabilité : Rapports > Bilan — filtrable par date, société, journal'
+      }
+    },
+    {
+      id: 'fi-s9',
+      title: 'Le Tableau des Flux de Trésorerie (Cash Flow)',
+      subtitle: 'Suivre les entrées et sorties de liquidités dans l\'ERP',
+      type: 'process',
+      content: 'Le tableau des flux de trésorerie (Cash Flow Statement) montre comment l\'entreprise génère et utilise ses liquidités sur une période. Un ERP peut être rentable sur le papier (P&L positif) mais en difficulté de trésorerie si les clients paient en retard. C\'est pourquoi le Cash Flow est aussi important que le P&L.',
+      keyPoints: [
+        'Flux d\'exploitation : encaissements clients - paiements fournisseurs - charges opérationnelles',
+        'Flux d\'investissement : achats/ventes d\'équipements, acquisitions d\'entreprises',
+        'Flux de financement : emprunts bancaires, remboursements, dividendes versés',
+        'Cash Flow net = Flux exploitation + Flux investissement + Flux financement',
+        'Règle d\'or : une entreprise peut avoir un P&L positif et faire faillite par manque de cash',
+        'Dans notre simulation : encaissement client 23 920 CAD (futur) - paiement fournisseur 5 400 CAD = +18 520 CAD net'
+      ],
+      systemRef: {
+        sap: 'SAP : S_ALR_87012271 (Cash Flow Statement) | FF7A (prévision de trésorerie à court terme)',
+        dynamics: 'Dynamics 365 Finance : Cash and bank management > Cash flow forecasts',
+        odoo: 'Odoo Comptabilité : Rapports > Flux de trésorerie | Tableau de bord trésorerie'
+      }
     }
   ],
   scenarios: [
@@ -2151,13 +2200,95 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ SIMULATION COMPLÈTE ! CA : 23 920,00 | COGS : 14 400,00 | Marge brute : 9 520,00 CAD (39,8%). Cycle ERP complet réussi ! Tous les modules intégrés avec succès. Score final calculé.',
           errorMessage: '❌ CA = 23 920,00 | COGS = 14 400,00 | Marge = 9 520,00 CAD.',
-          points: 50
+           points: 50
+        }
+      ]
+    },
+    {
+      id: 'erp-sim-02',
+      code: 'ERP-SIM-02',
+      title: 'Cycle O2C — InfoTech Solutions',
+      description: 'Exécuter un cycle Order-to-Cash complet pour un nouveau client : commande, vérification stock, livraison, facturation et analyse de marge.',
+      difficulty: 'Intermédiaire',
+      duration: '30 min',
+      learningObjective: 'Maîtriser le cycle Order-to-Cash (SD + FI) de façon autonome avant la simulation intégrée complète.',
+      totalPoints: 100,
+      steps: [
+        {
+          id: 'sim-02-s1',
+          stepNumber: 1,
+          code: 'SIM2-SO-001',
+          name: 'Créer la commande client InfoTech',
+          objective: 'Enregistrer la commande de 40 ordinateurs portables de InfoTech Solutions',
+          sapCode: 'VA01',
+          dynamicsName: 'Sales Order',
+          odooName: 'Commande client',
+          fields: [
+            { id: 'client_sim2', label: 'Client', type: 'select', options: ['InfoTech Solutions', 'ElectroMTL', 'TechSupply Inc.', 'Client inconnu'], required: true, correctValue: 'InfoTech Solutions', hint: 'Nouveau client de Distributions La Concorde' },
+            { id: 'produit_sim2', label: 'Produit commandé', type: 'text', placeholder: 'Ex: LAPTOP-PRO-15', required: true, correctValue: 'LAPTOP-PRO-15', hint: 'Code produit des ordinateurs portables' },
+            { id: 'quantite_sim2', label: 'Quantité commandée', type: 'number', placeholder: 'Ex: 40', required: true, correctValue: '40', hint: 'InfoTech Solutions commande 40 unités' },
+            { id: 'prix_sim2', label: 'Prix unitaire (CAD)', type: 'number', placeholder: 'Ex: 899.00', required: true, correctValue: '899.00', hint: 'Prix de vente des ordinateurs portables' }
+          ],
+          validationMessage: '✅ Commande SIM2-SO-001 créée ! 40 × 899,00 = 35 960,00 CAD. ATP Check : Stock disponible = 40 unités. Livraison confirmée — aucun réapprovisionnement nécessaire.',
+          errorMessage: '❌ Vérifiez le client (InfoTech Solutions), le produit (LAPTOP-PRO-15), la quantité (40) et le prix (899,00 CAD).',
+          points: 25
+        },
+        {
+          id: 'sim-02-s2',
+          stepNumber: 2,
+          code: 'SIM2-DEL-001',
+          name: 'Préparer et expédier la commande',
+          objective: 'Créer le bon de livraison et valider l\'expédition des 40 ordinateurs',
+          sapCode: 'VL01N + VL02N (PGI)',
+          dynamicsName: 'Delivery + Ship',
+          odooName: 'Livraison + Valider',
+          fields: [
+            { id: 'qte_exp_sim2', label: 'Quantité expédiée', type: 'number', placeholder: 'Ex: 40', required: true, correctValue: '40', hint: 'Toute la commande InfoTech Solutions' },
+            { id: 'transporteur_sim2', label: 'Transporteur', type: 'select', options: ['FedEx Priority', 'Purolator Express', 'Transport interne', 'UPS Standard'], required: true, correctValue: 'FedEx Priority', hint: 'InfoTech Solutions exige FedEx Priority' }
+          ],
+          validationMessage: '✅ Livraison SIM2-DEL-001 ! 40 ordinateurs expédiés via FedEx Priority. Écriture FI automatique : Débit COGS 22 000,00 / Crédit Stock 22 000,00 CAD.',
+          errorMessage: '❌ Expédiez 40 unités via FedEx Priority.',
+          points: 25
+        },
+        {
+          id: 'sim-02-s3',
+          stepNumber: 3,
+          code: 'SIM2-INV-001',
+          name: 'Facturer InfoTech Solutions',
+          objective: 'Générer la facture client de 35 960,00 CAD',
+          sapCode: 'VF01',
+          dynamicsName: 'Customer Invoice',
+          odooName: 'Facture client',
+          fields: [
+            { id: 'montant_inv_sim2', label: 'Montant de la facture (CAD)', type: 'number', placeholder: 'Ex: 35960.00', required: true, correctValue: '35960.00', hint: '40 × 899,00 = 35 960,00 CAD' },
+            { id: 'echeance_sim2', label: 'Conditions de paiement', type: 'select', options: ['Net 30 jours', 'Net 60 jours', '2/10 Net 30', 'Paiement immédiat'], required: true, correctValue: '2/10 Net 30', hint: 'InfoTech Solutions bénéficie d\'un escompte 2% si paiement sous 10 jours' }
+          ],
+          validationMessage: '✅ Facture SIM2-INV-001 ! 35 960,00 CAD. Écriture FI : Débit Clients 35 960,00 / Crédit Ventes 35 960,00. Escompte possible : 719,20 CAD si paiement sous 10 jours.',
+          errorMessage: '❌ Le montant est 35 960,00 CAD (40 × 899,00). Conditions : 2/10 Net 30.',
+          points: 25
+        },
+        {
+          id: 'sim-02-s4',
+          stepNumber: 4,
+          code: 'SIM2-FI-001',
+          name: 'Analyse de rentabilité O2C',
+          objective: 'Calculer la marge brute et le taux de marge de la transaction',
+          sapCode: 'KE30',
+          dynamicsName: 'Profitability Analysis',
+          odooName: 'Rapport de rentabilité',
+          fields: [
+            { id: 'ca_sim2', label: 'Chiffre d\'affaires (CAD)', type: 'number', placeholder: 'Ex: 35960.00', required: true, correctValue: '35960.00', hint: '40 × 899,00 CAD' },
+            { id: 'cogs_sim2', label: 'Coût des marchandises vendues (CAD)', type: 'number', placeholder: 'Ex: 22000.00', required: true, correctValue: '22000.00', hint: '40 × 550,00 CAD (coût d\'achat LAPTOP-PRO-15)' },
+            { id: 'marge_sim2', label: 'Marge brute (CAD)', type: 'number', placeholder: 'Ex: 13960.00', required: true, correctValue: '13960.00', hint: '35 960,00 - 22 000,00 = 13 960,00 CAD' }
+          ],
+          validationMessage: '✅ Cycle O2C complété ! CA : 35 960,00 | COGS : 22 000,00 | Marge brute : 13 960,00 CAD (38,8%). Excellent résultat ! Vous êtes prêt pour ERP-SIM-01.',
+          errorMessage: '❌ CA = 35 960,00 | COGS = 22 000,00 (40 × 550,00) | Marge = 13 960,00 CAD.',
+          points: 25
         }
       ]
     }
   ]
 };
-
 // ============================================================
 // EXPORT — All modules
 // ============================================================
@@ -2181,6 +2312,274 @@ export const getScenarioById = (scenarioId: string): { module: ERPModule; scenar
     if (scenario) return { module, scenario };
   }
   return undefined;
+};
+
+// ============================================================
+// QUIZ DATA — 4-5 MCQ questions per module
+// ============================================================
+export const MODULE_QUIZZES: Record<string, QuizQuestion[]> = {
+  'erp-arch': [
+    {
+      id: 'arch-q1',
+      question: 'Qu\'est-ce qu\'un ERP (Enterprise Resource Planning) ?',
+      options: [
+        'Un logiciel de comptabilité uniquement',
+        'Un système intégré qui unifie tous les processus de l\'entreprise dans une base de données centrale',
+        'Un outil de gestion des ressources humaines',
+        'Un système de gestion des stocks seulement'
+      ],
+      correctIndex: 1,
+      explanation: 'Un ERP unifie TOUS les processus (achats, ventes, finance, RH, production) dans une seule base de données centralisée, éliminant les silos d\'information entre départements.'
+    },
+    {
+      id: 'arch-q2',
+      question: 'Dans SAP S/4HANA, que signifie la convention de nommage des T-codes ? Par exemple : ME21N',
+      options: [
+        'ME = Materials External, 21 = numéro de version, N = Nouveau',
+        'ME = Module ERP, 21 = année 2021, N = Normal',
+        'ME = Materials Management External, 21 = code fonction, N = Nouveau (créer)',
+        'ME = Menu ERP, 21 = niveau d\'accès, N = Navigation'
+      ],
+      correctIndex: 2,
+      explanation: 'Dans SAP, ME = Materials Management External (module achats), le numéro identifie la fonction, et N = Nouveau (créer). ME22N = Modifier PO, ME23N = Afficher PO.'
+    },
+    {
+      id: 'arch-q3',
+      question: 'Quel ERP est le plus adapté pour une PME en croissance avec un budget limité ?',
+      options: [
+        'SAP S/4HANA',
+        'Microsoft Dynamics 365',
+        'Odoo',
+        'Tous sont équivalents pour une PME'
+      ],
+      correctIndex: 2,
+      explanation: 'Odoo est open source, modulaire et flexible. Son coût est nettement inférieur à SAP et Dynamics 365, ce qui le rend idéal pour les PME. Il compte plus de 7 millions d\'utilisateurs mondiaux.'
+    },
+    {
+      id: 'arch-q4',
+      question: 'Qu\'est-ce que l\'intégration ERP signifie concrètement ?',
+      options: [
+        'Tous les employés utilisent le même ordinateur',
+        'Une transaction dans un module met automatiquement à jour les autres modules concernés',
+        'Les données sont sauvegardées dans le cloud',
+        'L\'ERP remplace tous les autres logiciels de l\'entreprise'
+      ],
+      correctIndex: 1,
+      explanation: 'L\'intégration signifie qu\'une réception de marchandises (MM) met automatiquement à jour les stocks ET génère une écriture comptable (FI) sans saisie manuelle supplémentaire.'
+    },
+    {
+      id: 'arch-q5',
+      question: 'Quel événement a marqué le passage des ERP vers le cloud (SaaS) ?',
+      options: [
+        'Les années 1960 avec MRP',
+        'Les années 1990 avec SAP R/3',
+        'Les années 2010 avec Dynamics 365 et Odoo Cloud',
+        'Les années 2000 avec l\'ERP étendu'
+      ],
+      correctIndex: 2,
+      explanation: 'C\'est dans les années 2010 que les ERP cloud (SaaS) se sont imposés, avec Microsoft Dynamics 365 et Odoo en mode abonnement, permettant l\'accès depuis n\'importe quel appareil.'
+    }
+  ],
+  'mm': [
+    {
+      id: 'mm-q1',
+      question: 'Quel est le bon ordre du cycle Procure-to-Pay (P2P) dans SAP ?',
+      options: [
+        'ME21N → ME51N → MIGO → MIRO → F-53',
+        'ME51N → ME21N → MIGO → MIRO → F-53',
+        'MIGO → ME51N → ME21N → MIRO → F-53',
+        'ME51N → MIRO → ME21N → MIGO → F-53'
+      ],
+      correctIndex: 1,
+      explanation: 'Le flux P2P correct est : Demande d\'achat (ME51N) → Bon de commande (ME21N) → Réception marchandises (MIGO) → Vérification facture (MIRO) → Paiement (F-53).'
+    },
+    {
+      id: 'mm-q2',
+      question: 'Quel mouvement SAP (Mvt) est utilisé pour la réception standard de marchandises ?',
+      options: [
+        'Mouvement 201 (sortie vers centre de coûts)',
+        'Mouvement 101 (réception par rapport au bon de commande)',
+        'Mouvement 301 (transfert entre magasins)',
+        'Mouvement 601 (sortie pour livraison client)'
+      ],
+      correctIndex: 1,
+      explanation: 'Le mouvement 101 dans MIGO correspond à la réception de marchandises par rapport à un bon de commande. Il augmente le stock et génère l\'écriture : Débit Stock / Crédit GR-IR.'
+    },
+    {
+      id: 'mm-q3',
+      question: 'Qu\'est-ce que le compte GR-IR dans SAP ?',
+      options: [
+        'Un compte bancaire pour les paiements fournisseurs',
+        'Un compte de résultat pour les achats',
+        'Un compte transitoire entre la réception marchandises et la facture fournisseur',
+        'Un compte de stock pour les marchandises en transit'
+      ],
+      correctIndex: 2,
+      explanation: 'GR-IR (Goods Receipt / Invoice Receipt) est un compte transitoire. Il est crédité lors de la réception (MIGO) et débité lors de la facture (MIRO). Il doit être soldé à zéro quand GR = IR.'
+    },
+    {
+      id: 'mm-q4',
+      question: 'Dans Odoo, quelle application correspond au module MM de SAP ?',
+      options: [
+        'Application Ventes',
+        'Application Comptabilité',
+        'Application Achats + Application Inventaire',
+        'Application Fabrication'
+      ],
+      correctIndex: 2,
+      explanation: 'Dans Odoo, le module MM de SAP est couvert par deux applications : Achats (pour les bons de commande et factures fournisseurs) et Inventaire (pour la gestion des stocks et réceptions).'
+    }
+  ],
+  'sd': [
+    {
+      id: 'sd-q1',
+      question: 'Quel est le bon ordre du cycle Order-to-Cash (O2C) dans SAP ?',
+      options: [
+        'VF01 → VA01 → VL01N → VL02N → F-28',
+        'VA01 → VL01N → VL02N → VF01 → F-28',
+        'VA01 → VF01 → VL01N → VL02N → F-28',
+        'VL01N → VA01 → VF01 → VL02N → F-28'
+      ],
+      correctIndex: 1,
+      explanation: 'Le flux O2C correct est : Commande client (VA01) → Créer livraison (VL01N) → Valider expédition/PGI (VL02N) → Facturation (VF01) → Paiement client (F-28).'
+    },
+    {
+      id: 'sd-q2',
+      question: 'Que signifie PGI dans SAP SD ?',
+      options: [
+        'Plan Général d\'Inventaire',
+        'Post Goods Issue — la sortie physique de stock lors de l\'expédition',
+        'Processus de Gestion Intégré',
+        'Paiement Garanti Immédiat'
+      ],
+      correctIndex: 1,
+      explanation: 'PGI (Post Goods Issue) est l\'enregistrement de la sortie physique de marchandises du stock. Il génère automatiquement l\'écriture FI : Débit COGS / Crédit Stock.'
+    },
+    {
+      id: 'sd-q3',
+      question: 'Qu\'est-ce que l\'ATP Check dans le cycle O2C ?',
+      options: [
+        'Une vérification du crédit client avant d\'accepter la commande',
+        'Un contrôle de la qualité des marchandises à expédier',
+        'Une vérification de la disponibilité du stock pour promettre une date de livraison',
+        'Un audit de la transaction par le service financier'
+      ],
+      correctIndex: 2,
+      explanation: 'L\'ATP (Available-to-Promise) Check vérifie si le stock disponible peut satisfaire la commande à la date demandée. Si insuffisant, l\'ERP propose une date alternative ou déclenche un réapprovisionnement.'
+    },
+    {
+      id: 'sd-q4',
+      question: 'Dans Microsoft Dynamics 365, quel équivalent correspond au T-code SAP VF01 (facturation) ?',
+      options: [
+        'Sales Order',
+        'Customer Invoice',
+        'Product Receipt',
+        'Payment Journal'
+      ],
+      correctIndex: 1,
+      explanation: 'VF01 dans SAP (créer facture client) correspond à Customer Invoice dans Dynamics 365. Dans Odoo, c\'est la Facture client générée depuis la commande de vente.'
+    }
+  ],
+  'fi': [
+    {
+      id: 'fi-q1',
+      question: 'Lors d\'une réception de marchandises (MIGO), quelle écriture comptable est générée automatiquement ?',
+      options: [
+        'Débit Fournisseur / Crédit Banque',
+        'Débit Stock / Crédit GR-IR',
+        'Débit COGS / Crédit Stock',
+        'Débit Clients / Crédit Ventes'
+      ],
+      correctIndex: 1,
+      explanation: 'La réception GR (MIGO) génère : Débit Stock (augmentation de l\'actif) / Crédit GR-IR (compte transitoire en attente de la facture fournisseur).'
+    },
+    {
+      id: 'fi-q2',
+      question: 'Quelle est l\'équation fondamentale du bilan comptable ?',
+      options: [
+        'Actifs = Passifs - Capitaux Propres',
+        'Passifs = Actifs + Capitaux Propres',
+        'Actifs = Passifs + Capitaux Propres',
+        'Capitaux Propres = Actifs × Passifs'
+      ],
+      correctIndex: 2,
+      explanation: 'L\'équation fondamentale est : Actifs = Passifs + Capitaux Propres. Elle est toujours équilibrée car chaque transaction respecte la partie double (débit = crédit).'
+    },
+    {
+      id: 'fi-q3',
+      question: 'Qu\'est-ce que le DSO (Days Sales Outstanding) mesure ?',
+      options: [
+        'Le nombre de jours de stock disponible',
+        'Le nombre moyen de jours pour encaisser les créances clients',
+        'Le délai moyen de paiement des fournisseurs',
+        'Le nombre de jours pour clôturer les comptes en fin de mois'
+      ],
+      correctIndex: 1,
+      explanation: 'DSO = (Solde Clients / CA) × 365. Il mesure le délai moyen d\'encaissement. Un DSO élevé (> 60 jours) signifie que les clients paient lentement, ce qui crée des problèmes de trésorerie.'
+    },
+    {
+      id: 'fi-q4',
+      question: 'Une entreprise peut-elle faire faillite même avec un P&L (compte de résultat) positif ?',
+      options: [
+        'Non, un P&L positif garantit la solvabilité',
+        'Oui, si les clients ne paient pas et que la trésorerie est épuisée',
+        'Non, l\'ERP prévient automatiquement ce risque',
+        'Oui, mais seulement dans les grandes entreprises'
+      ],
+      correctIndex: 1,
+      explanation: 'C\'est la règle d\'or : une entreprise peut être rentable (P&L positif) mais faire faillite si ses clients ne paient pas et qu\'elle manque de liquidités pour payer ses fournisseurs et employés.'
+    }
+  ],
+  'erp-sim': [
+    {
+      id: 'sim-q1',
+      question: 'Dans ERP-SIM-01, pourquoi faut-il commander 30 unités supplémentaires à TechSupply ?',
+      options: [
+        'Parce que le stock initial est à zéro',
+        'Parce que ElectroMTL commande 80 unités mais le stock disponible n\'est que de 50',
+        'Parce que le fournisseur impose un minimum de commande de 30',
+        'Parce que 30 unités sont réservées pour un autre client'
+      ],
+      correctIndex: 1,
+      explanation: 'L\'ATP Check détecte : commande 80 unités - stock disponible 50 unités = manque de 30 unités. L\'ERP déclenche automatiquement une demande de réapprovisionnement urgent (ME51N).'
+    },
+    {
+      id: 'sim-q2',
+      question: 'Quel est le montant correct de la marge brute dans ERP-SIM-01 ?',
+      options: [
+        '5 400,00 CAD (paiement fournisseur)',
+        '18 520,00 CAD (CA - paiement fournisseur)',
+        '9 520,00 CAD (CA 23 920 - COGS 14 400)',
+        '23 920,00 CAD (chiffre d\'affaires total)'
+      ],
+      correctIndex: 2,
+      explanation: 'Marge brute = CA - COGS = 23 920,00 - 14 400,00 = 9 520,00 CAD (39,8%). COGS = 80 unités × 180 CAD (coût d\'achat). Attention : ne pas confondre COGS avec le paiement fournisseur (30 × 180 = 5 400 CAD).'
+    },
+    {
+      id: 'sim-q3',
+      question: 'Dans quel ordre les écritures comptables FI sont-elles générées dans ERP-SIM-01 ?',
+      options: [
+        'Facture client → PGI → Réception GR → Facture fourn. → Paiement fourn.',
+        'Réception GR → Facture fourn. → Paiement fourn. → PGI → Facture client',
+        'PGI → Facture client → Réception GR → Facture fourn. → Paiement fourn.',
+        'Réception GR → PGI → Facture fourn. → Facture client → Paiement fourn.'
+      ],
+      correctIndex: 1,
+      explanation: 'L\'ordre chronologique correct est : 1) Réception GR (stock + GR-IR), 2) Facture fournisseur (GR-IR + AP), 3) Paiement fournisseur (AP + Banque), 4) PGI expédition (COGS + Stock), 5) Facture client (AR + Ventes).'
+    },
+    {
+      id: 'sim-q4',
+      question: 'Quelle est la différence principale entre ERP-SIM-01 (Avancé) et ERP-SIM-02 (Intermédiaire) ?',
+      options: [
+        'ERP-SIM-02 utilise un système ERP différent',
+        'ERP-SIM-01 intègre MM + SD + FI avec réapprovisionnement, ERP-SIM-02 est un cycle O2C pur sans réapprovisionnement',
+        'ERP-SIM-02 est plus long et plus complexe',
+        'Il n\'y a pas de différence, ils couvrent les mêmes étapes'
+      ],
+      correctIndex: 1,
+      explanation: 'ERP-SIM-02 est un cycle O2C pur (SD + FI) avec stock suffisant — idéal pour pratiquer avant ERP-SIM-01. ERP-SIM-01 est transversal (MM + SD + FI) avec détection de rupture de stock et réapprovisionnement d\'urgence.'
+    }
+  ]
 };
 
 
