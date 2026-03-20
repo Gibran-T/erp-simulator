@@ -1,25 +1,29 @@
+/**
+ * MonitoringPageFull — ERP Integrated Business Simulator
+ * Real-time student monitoring using StudentsContext (localStorage-backed)
+ */
 import DashboardLayout from '@/components/DashboardLayout';
+import { useStudents } from '@/contexts/StudentsContext';
 import { ERP_MODULES } from '@/lib/erpData';
-import { BarChart3, Users, TrendingUp, Award, CheckCircle2, Clock } from 'lucide-react';
-
-const STUDENTS = [
-  { name: 'Alexandre Tremblay', cohort: 'ERP-2026-A', progress: { 'erp-arch-01': 92, 'erp-arch-02': 88, 'mm-01': 95, 'mm-02': 78 }, lastActive: 'Il y a 2h' },
-  { name: 'Sophie Lavoie', cohort: 'ERP-2026-A', progress: { 'erp-arch-01': 85, 'erp-arch-02': 91, 'mm-01': 87 }, lastActive: 'Il y a 4h' },
-  { name: 'Marc Bouchard', cohort: 'ERP-2026-A', progress: { 'erp-arch-01': 78 }, lastActive: 'Hier' },
-  { name: 'Julie Gagnon', cohort: 'ERP-2026-B', progress: { 'erp-arch-01': 96, 'erp-arch-02': 94, 'erp-arch-03': 89, 'mm-01': 92, 'mm-02': 88, 'sd-01': 91 }, lastActive: 'Il y a 1h' },
-  { name: 'Pierre Martin', cohort: 'ERP-2026-B', progress: { 'erp-arch-01': 82, 'mm-01': 79 }, lastActive: 'Il y a 3h' },
-  { name: 'Isabelle Roy', cohort: 'ERP-2026-B', progress: { 'erp-arch-01': 90, 'erp-arch-02': 86, 'mm-01': 93, 'sd-01': 88, 'fi-01': 85 }, lastActive: 'Il y a 30min' },
-];
+import { BarChart3, Users, TrendingUp, Award, CheckCircle2, Clock, Mail } from 'lucide-react';
 
 const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
 
 export default function MonitoringPageFull() {
-  const avgScore = Math.round(STUDENTS.reduce((acc, s) => {
-    const scores = Object.values(s.progress);
-    return acc + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
-  }, 0) / STUDENTS.length);
+  const { students, cohorts, getCohortStats } = useStudents();
 
-  const avgCompletion = Math.round(STUDENTS.reduce((acc, s) => acc + (Object.keys(s.progress).length / totalScenarios) * 100, 0) / STUDENTS.length);
+  const avgScore = students.length === 0 ? 0 : Math.round(
+    students.reduce((acc, s) => {
+      const scores = Object.values(s.progress);
+      return acc + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
+    }, 0) / students.length
+  );
+
+  const avgCompletion = students.length === 0 ? 0 : Math.round(
+    students.reduce((acc, s) => acc + (Object.keys(s.progress).length / totalScenarios) * 100, 0) / students.length
+  );
+
+  const activeStudents = students.filter(s => s.status === 'active');
 
   return (
     <DashboardLayout>
@@ -36,8 +40,8 @@ export default function MonitoringPageFull() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Étudiants actifs', value: STUDENTS.length, icon: <Users size={18} />, color: 'oklch(0.72 0.15 200)' },
-            { label: 'Score moyen', value: `${avgScore}%`, icon: <Award size={18} />, color: 'oklch(0.78 0.16 70)' },
+            { label: 'Étudiants actifs', value: activeStudents.length, icon: <Users size={18} />, color: 'oklch(0.72 0.15 200)' },
+            { label: 'Score moyen', value: avgScore > 0 ? `${avgScore}%` : '—', icon: <Award size={18} />, color: 'oklch(0.78 0.16 70)' },
             { label: 'Complétion moyenne', value: `${avgCompletion}%`, icon: <TrendingUp size={18} />, color: 'oklch(0.72 0.16 162)' },
             { label: 'Scénarios disponibles', value: totalScenarios, icon: <BarChart3 size={18} />, color: 'oklch(0.65 0.22 295)' },
           ].map((stat, i) => (
@@ -59,114 +63,143 @@ export default function MonitoringPageFull() {
           <div className="space-y-3">
             {ERP_MODULES.map(mod => {
               const modScenarioIds = mod.scenarios.map(s => s.id);
-              const completions = STUDENTS.map(st => {
-                const done = modScenarioIds.filter(id => st.progress[id as keyof typeof st.progress] !== undefined).length;
-                return mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
-              });
-              const avg = Math.round(completions.reduce((a, b) => a + b, 0) / completions.length);
+              const studentsWithMod = students.filter(s => modScenarioIds.some(id => s.progress[id] !== undefined));
+              const completion = students.length === 0 ? 0 : Math.round((studentsWithMod.length / students.length) * 100);
+              const avgModScore = studentsWithMod.length === 0 ? 0 : Math.round(
+                studentsWithMod.reduce((acc, s) => {
+                  const scores = modScenarioIds.map(id => s.progress[id]).filter(v => v !== undefined) as number[];
+                  return acc + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
+                }, 0) / studentsWithMod.length
+              );
               return (
-                <div key={mod.id} className="flex items-center gap-4">
-                  <div className="w-20 shrink-0">
-                    <span className="text-xs font-mono font-bold" style={{ color: mod.color }}>{mod.code}</span>
-                  </div>
-                  <div className="flex-1 flex items-center gap-2">
-                    <div className="flex-1 h-2 rounded-full" style={{ background: 'oklch(0.20 0.018 255)' }}>
-                      <div className="h-full rounded-full transition-all" style={{ width: `${avg}%`, background: mod.color }} />
+                <div key={mod.id}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium" style={{ color: 'oklch(0.75 0.005 255)' }}>{mod.name}</span>
+                    <div className="flex items-center gap-3">
+                      {avgModScore > 0 && (
+                        <span className="text-xs font-semibold" style={{ color: 'oklch(0.78 0.16 70)' }}>moy. {avgModScore}%</span>
+                      )}
+                      <span className="text-xs font-semibold" style={{ color: 'oklch(0.60 0.20 255)' }}>{completion}%</span>
                     </div>
-                    <span className="text-xs font-semibold w-10 text-right" style={{ color: mod.color }}>{avg}%</span>
                   </div>
-                  <div className="flex gap-1">
-                    {completions.map((c, i) => (
-                      <div key={i} className="w-5 h-5 rounded text-xs flex items-center justify-center font-bold"
-                        style={{
-                          background: c >= 80 ? `${mod.color}30` : c >= 50 ? `${mod.color}15` : 'oklch(0.18 0.018 255)',
-                          color: c >= 80 ? mod.color : c >= 50 ? mod.color + 'aa' : 'oklch(0.35 0.010 255)',
-                          fontSize: '9px'
-                        }}>
-                        {c > 0 ? c : '—'}
-                      </div>
-                    ))}
+                  <div className="h-2 rounded-full" style={{ background: 'oklch(0.20 0.018 255)' }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${completion}%`, background: 'oklch(0.60 0.20 255)' }} />
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="flex gap-1 mt-3 justify-end">
-            {STUDENTS.map((s, i) => (
-              <div key={i} className="w-5 text-center" style={{ fontSize: '9px', color: 'oklch(0.40 0.010 255)' }}>
-                {s.name.split(' ')[0].charAt(0)}{s.name.split(' ')[1]?.charAt(0)}
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Student table */}
-        <div className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-          <div className="p-4 border-b" style={{ borderColor: 'oklch(1 0 0 / 6%)' }}>
-            <h2 className="text-base font-semibold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>
-              Détail par étudiant
+        {/* Cohort overview */}
+        {cohorts.length > 0 && (
+          <div className="rounded-xl p-5" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
+            <h2 className="text-base font-semibold mb-4" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>
+              Résumé par cohorte
             </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid oklch(1 0 0 / 6%)' }}>
-                  {['Étudiant', 'Cohorte', 'Scénarios', 'Score moy.', 'Dernière activité', 'Progression'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider"
-                      style={{ color: 'oklch(0.45 0.010 255)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {STUDENTS.map((student, i) => {
-                  const scores = Object.values(student.progress);
-                  const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-                  const pct = Math.round((Object.keys(student.progress).length / totalScenarios) * 100);
-                  return (
-                    <tr key={i} style={{ borderBottom: '1px solid oklch(1 0 0 / 4%)' }}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ background: 'oklch(0.60 0.20 255 / 20%)', color: 'oklch(0.72 0.16 255)' }}>
-                            {student.name.charAt(0)}
-                          </div>
-                          <span className="text-sm font-medium" style={{ color: 'oklch(0.82 0.005 255)' }}>{student.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-mono" style={{ color: 'oklch(0.50 0.010 255)' }}>{student.cohort}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm" style={{ color: 'oklch(0.75 0.008 255)' }}>
-                          {Object.keys(student.progress).length}/{totalScenarios}
+            <div className="space-y-3">
+              {cohorts.map(cohort => {
+                const stats = getCohortStats(cohort.id);
+                return (
+                  <div key={cohort.id} className="flex items-center gap-4 p-3 rounded-xl" style={{ background: 'oklch(0.11 0.015 255)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold" style={{ color: 'oklch(0.85 0.005 255)' }}>{cohort.name}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full"
+                          style={{ background: cohort.status === 'active' ? 'oklch(0.72 0.16 162 / 20%)' : 'oklch(0.18 0.018 255)', color: cohort.status === 'active' ? 'oklch(0.72 0.14 162)' : 'oklch(0.45 0.010 255)' }}>
+                          {cohort.status === 'active' ? 'Actif' : cohort.status === 'planned' ? 'Planifié' : 'Complété'}
                         </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm font-semibold" style={{
-                          color: avg >= 90 ? 'oklch(0.72 0.16 162)' : avg >= 70 ? 'oklch(0.78 0.16 70)' : 'oklch(0.65 0.22 25)'
-                        }}>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: 'oklch(0.20 0.018 255)' }}>
+                        <div className="h-full rounded-full" style={{ width: `${stats.avgCompletion}%`, background: 'oklch(0.60 0.20 255)' }} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-center shrink-0">
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{stats.total}</div>
+                        <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>étudiants</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.78 0.16 70)' }}>{stats.avgScore > 0 ? `${stats.avgScore}%` : '—'}</div>
+                        <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>score moy.</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.60 0.20 255)' }}>{stats.avgCompletion}%</div>
+                        <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>complétion</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Student table */}
+        <div className="rounded-xl p-5" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
+          <h2 className="text-base font-semibold mb-4" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>
+            Détail par étudiant
+          </h2>
+          {students.length === 0 ? (
+            <div className="text-center py-8">
+              <Users size={32} className="mx-auto mb-3" style={{ color: 'oklch(0.35 0.010 255)' }} />
+              <p className="text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>Aucun étudiant enregistré. Ajoutez des étudiants dans la page Cohortes.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {students.map(student => {
+                const completedCount = Object.keys(student.progress).length;
+                const scores = Object.values(student.progress);
+                const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                const completion = Math.round((completedCount / totalScenarios) * 100);
+                const cohort = cohorts.find(c => c.id === student.cohortId);
+
+                return (
+                  <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(1 0 0 / 5%)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+                      style={{ background: student.status === 'active' ? 'oklch(0.60 0.20 255 / 20%)' : 'oklch(0.18 0.018 255)', color: student.status === 'active' ? 'oklch(0.72 0.16 255)' : 'oklch(0.45 0.010 255)' }}>
+                      {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold truncate" style={{ color: 'oklch(0.85 0.005 255)' }}>{student.name}</span>
+                        {cohort && <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>{cohort.name}</span>}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
+                        <Mail size={10} /> {student.email}
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-4 text-center shrink-0">
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{completedCount}/{totalScenarios}</div>
+                        <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>scénarios</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: avg >= 70 ? 'oklch(0.72 0.16 162)' : avg >= 50 ? 'oklch(0.78 0.16 70)' : avg > 0 ? 'oklch(0.65 0.22 25)' : 'oklch(0.45 0.010 255)' }}>
                           {avg > 0 ? `${avg}%` : '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
-                          <Clock size={11} /> {student.lastActive}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 rounded-full" style={{ background: 'oklch(0.20 0.018 255)', minWidth: '60px' }}>
-                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'oklch(0.60 0.20 255)' }} />
-                          </div>
-                          <span className="text-xs font-semibold" style={{ color: 'oklch(0.60 0.16 255)' }}>{pct}%</span>
+                        <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>score moy.</div>
+                      </div>
+                      <div className="w-20">
+                        <div className="flex justify-between mb-0.5">
+                          <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{completion}%</span>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <div className="h-1.5 rounded-full" style={{ background: 'oklch(0.20 0.018 255)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${completion}%`, background: 'oklch(0.60 0.20 255)' }} />
+                        </div>
+                      </div>
+                      <div className="hidden lg:block">
+                        <div className="flex items-center gap-1 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
+                          <Clock size={10} /> {student.lastActive}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

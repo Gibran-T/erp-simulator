@@ -5,6 +5,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { StudentsProvider } from "./contexts/StudentsContext";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -56,12 +57,14 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <LanguageProvider>
+        <StudentsProvider>
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
             <AppRouter />
           </TooltipProvider>
         </AuthProvider>
+        </StudentsProvider>
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
