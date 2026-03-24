@@ -5,19 +5,25 @@ import { useParams, useLocation } from "wouter";
 import { CheckCircle, Lock, ArrowRight, AlertTriangle, Trophy, FlaskConical } from "lucide-react";
 
 const STEPS = [
-  { key: "PO",         label: "Purchase Order", labelFr: "Bon de commande",    code: "ME21N", descFr: "Créer la commande d'achat",        descEn: "Create purchase order" },
-  { key: "GR",         label: "Goods Receipt",  labelFr: "Réception marchand.", code: "MIGO",  descFr: "Enregistrer la réception",          descEn: "Record goods receipt" },
-  { key: "SO",         label: "Sales Order",    labelFr: "Commande client",     code: "VA01",  descFr: "Créer la commande client",          descEn: "Create sales order" },
-  { key: "GI",         label: "Goods Issue",    labelFr: "Sortie de stock",     code: "VL02N", descFr: "Émettre les marchandises",          descEn: "Issue goods" },
-  { key: "CC",         label: "Cycle Count",    labelFr: "Comptage inventaire", code: "MI01",  descFr: "Compter l'inventaire",              descEn: "Count inventory" },
-  { key: "ADJ",        label: "Adjustment",     labelFr: "Ajustement",          code: "MI07",  descFr: "Ajuster les écarts",                descEn: "Adjust variances" },
-  { key: "COMPLIANCE", label: "Compliance",     labelFr: "Conformité",          code: "MB52",  descFr: "Valider la conformité",             descEn: "Validate compliance" },
+  { key: "PO",         label: "Purchase Order",   labelFr: "Bon de commande",       code: "ME21N",  descFr: "Créer la commande d'achat",              descEn: "Create purchase order" },
+  { key: "GR",         label: "Goods Receipt",    labelFr: "Réception marchand.",   code: "MIGO",   descFr: "Enregistrer la réception",               descEn: "Record goods receipt" },
+  { key: "PUTAWAY_M1", label: "Putaway (LT0A)",   labelFr: "Rangement stock",       code: "LT0A",   descFr: "Ranger RÉC → STOCKAGE",                  descEn: "Putaway REC → STOCKAGE" },
+  { key: "STOCK",      label: "Stock Check",      labelFr: "Stock disponible",      code: "MB52",   descFr: "Vérifier stock disponible",              descEn: "Verify available stock" },
+  { key: "SO",         label: "Sales Order",      labelFr: "Commande client",       code: "VA01",   descFr: "Créer la commande client",               descEn: "Create sales order" },
+  { key: "PICKING_M1", label: "Picking (VL01N)",  labelFr: "Prélèvement expéd.",    code: "VL01N",  descFr: "Prélever STOCKAGE → EXPÉD.",             descEn: "Pick STOCKAGE → DISPATCH" },
+  { key: "GI",         label: "Goods Issue",      labelFr: "Sortie de stock",       code: "VL02N",  descFr: "Émettre les marchandises",               descEn: "Issue goods" },
+  { key: "CC",         label: "Cycle Count",      labelFr: "Comptage inventaire",   code: "MI01",   descFr: "Compter l'inventaire",                   descEn: "Count inventory" },
+  { key: "ADJ",        label: "Adjustment",       labelFr: "Ajustement",            code: "MI07",   descFr: "Ajuster les écarts",                     descEn: "Adjust variances" },
+  { key: "COMPLIANCE", label: "Compliance",       labelFr: "Conformité",            code: "MB52",   descFr: "Valider la conformité",                  descEn: "Validate compliance" },
 ];
 
 const PEDAGOGICAL_OBJECTIVES: Record<string, { fr: string; en: string }> = {
   PO:         { fr: "Comprendre le processus d'approvisionnement : création d'une commande d'achat (PO) avec fournisseur, SKU et quantité.", en: "Understand the procurement process: creating a purchase order (PO) with supplier, SKU, and quantity." },
   GR:         { fr: "Maîtriser l'entrée en stock : la réception physique (GR) impacte l'inventaire uniquement si Posted=Y.", en: "Master stock entry: physical receipt (GR) impacts inventory only when Posted=Y." },
+  PUTAWAY_M1: { fr: "Comprendre le rangement WMS : transférer la marchandise de la zone RÉCEPTION vers la zone STOCKAGE via LT0A.", en: "Understand WMS putaway: transfer goods from RECEPTION zone to STOCKAGE zone via LT0A." },
+  STOCK:      { fr: "Vérifier la disponibilité stock : confirmer que le stock est bien en zone STOCKAGE avant de créer un SO.", en: "Verify stock availability: confirm stock is in STOCKAGE zone before creating a SO." },
   SO:         { fr: "Analyser la demande client : un Sales Order (SO) ne peut être créé que si le stock disponible est suffisant.", en: "Analyze customer demand: a Sales Order (SO) can only be created if sufficient stock is available." },
+  PICKING_M1: { fr: "Maîtriser le prélèvement WMS : déplacer la marchandise de STOCKAGE vers EXPÉDITION via VL01N avant la GI.", en: "Master WMS picking: move goods from STOCKAGE to EXPÉDITION via VL01N before GI." },
   GI:         { fr: "Contrôler la sortie de stock : le Goods Issue (GI) déduit le stock et génère le mouvement 601.", en: "Control stock outflow: Goods Issue (GI) deducts stock and generates movement 601." },
   CC:         { fr: "Vérifier l'exactitude de l'inventaire : comparer le stock physique au stock système pour détecter les écarts.", en: "Verify inventory accuracy: compare physical stock to system stock to detect variances." },
   ADJ:        { fr: "Corriger les écarts : tout écart de Cycle Count doit être résolu par un ajustement (ADJ) avant la clôture.", en: "Correct variances: all Cycle Count variances must be resolved by an adjustment (ADJ) before closing." },

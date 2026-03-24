@@ -363,3 +363,13 @@
 - [x] Frontend: Search/filter by name, email, cohort, status
 - [x] FioriShell: add "Étudiants" nav item for teacher
 - [x] Seed test accounts: 4 students + 1 teacher + 1 admin
+
+## Bug Fix: StepForm PUTAWAY_M1 / PICKING_M1 / STOCK (2026-03-23)
+- [x] Add PUTAWAY_M1 config (LT0A, fromBin/toBin fields) to StepForm STEP_CONFIG
+- [x] Add STOCK config (MB52, auto-validated info panel) to StepForm STEP_CONFIG
+- [x] Add PICKING_M1 config (VL01N, fromBin/toBin fields) to StepForm STEP_CONFIG
+- [x] Add submitPUTAWAY_M1 and submitPICKING_M1 mutations to StepForm
+- [x] Add fromBin/toBin field rendering with zone hints (RÉCEPTION/STOCKAGE/EXPÉDITION)
+- [x] Add PUTAWAY_M1, STOCK, PICKING_M1 to MissionControl STEPS array
+- [x] Add PUTAWAY_M1, STOCK, PICKING_M1 to PEDAGOGICAL_OBJECTIVES in MissionControl
+- [x] All 50 vitest tests pass, zero TypeScript errors
