@@ -297,3 +297,69 @@
 ## Bug: FioriShell nav bar overflow
 - [x] Fix nav items cramped/overlapping on medium screens — icons only on md, icons+labels on lg+, overflow-x scroll with hidden scrollbar
 - [x] Fix Analytics page not opening — session expiry issue (login required after sandbox reset); nav fix applied
+
+## Feature: Email/Password Authentication for Students
+- [ ] Add email + password login option (no Manus account required)
+- [ ] Teacher can create student accounts from admin panel
+- [ ] Student receives credentials by email or from teacher
+- [ ] Both Manus OAuth and email/password work simultaneously
+
+## Feature: 30-Hour Content Gap Analysis & Additions
+- [ ] Audit current content hours per module (real vs declared)
+- [ ] Identify missing content to reach 30h with quality
+- [ ] Add quiz/QCM activities per module (10-15 min each)
+- [ ] Add case study readings per module
+- [ ] Add glossary/reference sheets per module
+- [ ] Produce content gap analysis PDF for professor
+
+## Feature: Visual Quality Upgrade (SAP Fiori / Odoo Level)
+- [ ] Upgrade StepForm to SAP Fiori-inspired transaction panel
+- [ ] Improve MissionControl layout with professional WMS dashboard feel
+- [ ] Add color-coded status indicators (green/amber/red) like real WMS
+- [ ] Improve RunReport with professional score card design
+- [ ] Upgrade student ScenarioList to look like Odoo module selection
+
+## Audit: Teacher Environment Functional Review
+- [ ] Test all 8 teacher nav items and document what works/broken
+- [ ] Verify cohort creation and student assignment flow
+- [ ] Verify scenario assignment to cohort flow
+- [ ] Verify monitoring real-time view
+- [ ] Verify analytics charts with real data
+- [ ] Document missing teacher features
+
+## Audit: Student Environment Functional Review
+- [ ] Test complete scenario flow as student (all 7 steps)
+- [ ] Verify step validation feedback
+- [ ] Verify score report after completion
+- [ ] Verify score evolution chart
+- [ ] Document missing student features
+
+## Bug Fixes & Improvements (Audit 2026-03-23)
+- [ ] Fix Module 19/24 bug in ScenarioManager — M4/M5 show wrong IDs because seed ran multiple times; fix by mapping module code to label
+- [ ] Add /student redirect to /student/scenarios (currently 404)
+- [ ] Add student onboarding/welcome page before first scenario
+- [ ] Fix teacher Assignments page — verify full functionality
+- [ ] Add cohort quick-create from teacher dashboard
+
+## Feature: Teacher-Managed Student Accounts (2026-03-24)
+- [x] DB: isActive + notes columns added to users table (migration 0010 applied)
+- [x] Backend: auth.localLogin — email/password login (bcrypt, JWT session)
+- [x] Backend: auth.localRegister — student self-registration with optional access code
+- [x] Backend: auth.createAccount — teacher/admin creates student/teacher accounts
+- [x] Backend: auth.resetPassword — admin resets any user's password
+- [x] Backend: auth guard blocks isActive=false users from logging in
+- [x] Backend: students.list — teacher lists all students (with cohort, lastSignedIn, isActive, score stats)
+- [x] Backend: students.create — teacher creates student account (email, name, password, cohort)
+- [x] Backend: students.setActive — teacher activates/deactivates (includes/excludes) student
+- [x] Backend: students.updateNotes — teacher adds notes to student profile
+- [x] Backend: students.resetPassword — teacher resets student password
+- [x] Backend: students.assignCohort — teacher assigns student to cohort
+- [x] Frontend: /teacher/students — Student Management page with full table
+- [x] Frontend: Create Student dialog (name, email, password, cohort)
+- [x] Frontend: Activate/Deactivate toggle per student (include/exclude)
+- [x] Frontend: Reset Password dialog per student
+- [x] Frontend: Notes field per student (inline edit)
+- [x] Frontend: Assign to Cohort dropdown per student
+- [x] Frontend: Search/filter by name, email, cohort, status
+- [x] FioriShell: add "Étudiants" nav item for teacher
+- [x] Seed test accounts: 4 students + 1 teacher + 1 admin

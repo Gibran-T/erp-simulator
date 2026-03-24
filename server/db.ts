@@ -93,6 +93,40 @@ export async function getAllUsers() {
   return db.select().from(users);
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0];
+}
+
+export async function createLocalUser(data: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  role: "student" | "teacher" | "admin";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const openId = `local:${data.email}`;
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    name: data.name,
+    passwordHash: data.passwordHash,
+    loginMethod: "local",
+    role: data.role,
+    lastSignedIn: new Date(),
+  });
+  return getUserByEmail(data.email);
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
 export async function updateUserRole(userId: number, role: "student" | "teacher" | "admin") {
   const db = await getDb();
   if (!db) return;
@@ -550,4 +584,91 @@ export async function resetRun(runId: number) {
   await db.delete(progress).where(eq(progress.runId, runId));
   // Delete the run itself so the student can start a new one
   await db.delete(scenarioRuns).where(eq(scenarioRuns.id, runId));
+}
+
+// ─── Teacher: Student Management ──────────────────────────────────────────────
+
+/** List all students with their profile (cohort) and last activity */
+export async function listStudents(opts?: { cohortId?: number; includeAll?: boolean }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Base query: all users with role=student (or all roles if includeAll)
+  const conditions: any[] = [];
+  if (!opts?.includeAll) {
+    conditions.push(eq(users.role, "student"));
+  }
+  if (opts?.cohortId) {
+    conditions.push(eq(profiles.cohortId, opts.cohortId));
+  }
+
+  const rows = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      isActive: users.isActive,
+      notes: users.notes,
+      loginMethod: users.loginMethod,
+      lastSignedIn: users.lastSignedIn,
+      createdAt: users.createdAt,
+      cohortId: profiles.cohortId,
+      studentNumber: profiles.studentNumber,
+    })
+    .from(users)
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(users.createdAt);
+
+  return rows;
+}
+
+/** Set a student's isActive status (include/exclude from the course) */
+export async function setStudentActive(userId: number, isActive: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ isActive }).where(eq(users.id, userId));
+}
+
+/** Update teacher notes for a student */
+export async function updateStudentNotes(userId: number, notes: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ notes }).where(eq(users.id, userId));
+}
+
+/** Assign a student to a cohort (upsert profile) */
+export async function assignStudentToCohort(userId: number, cohortId: number | null) {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  if (existing.length > 0) {
+    await db.update(profiles).set({ cohortId }).where(eq(profiles.userId, userId));
+  } else {
+    await db.insert(profiles).values({ userId, cohortId });
+  }
+}
+
+/** Get aggregated stats for a student (total runs, best score, avg score) */
+export async function getStudentStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { totalRuns: 0, completedRuns: 0, bestScore: null, avgScore: null };
+
+  const runs = await db
+    .select()
+    .from(scenarioRuns)
+    .where(eq(scenarioRuns.userId, userId));
+
+  const completed = runs.filter((r) => r.completedAt !== null);
+  const scores = completed
+    .map((r) => (r as any).totalScore)
+    .filter((s) => s !== null && s !== undefined) as number[];
+
+  return {
+    totalRuns: runs.length,
+    completedRuns: completed.length,
+    bestScore: scores.length > 0 ? Math.max(...scores) : null,
+    avgScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+  };
 }

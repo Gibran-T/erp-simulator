@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import {
   addCycleCount,
   addPutawayRecord,
@@ -41,6 +42,14 @@ import {
   getPreAuthorizedEmails,
   addPreAuthorizedEmail,
   removePreAuthorizedEmail,
+  getUserByEmail,
+  createLocalUser,
+  updateUserPassword,
+  listStudents,
+  setStudentActive,
+  updateStudentNotes,
+  assignStudentToCohort,
+  getStudentStats,
 } from "./db";
 import {
   calculateBinLoad,
@@ -136,12 +145,161 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, getSessionCookieOptions(ctx.req));
       return { success: true };
     }),
+
+    // ── Local email/password login ──────────────────────────────────────────
+    localLogin: publicProcedure
+      .input(z.object({ email: z.string().email(), password: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserByEmail(input.email.toLowerCase());
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou mot de passe incorrect" });
+        }
+        const valid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou mot de passe incorrect" });
+        }
+        if (user.isActive === false) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Compte désactivé. Contactez votre enseignant." });
+        }
+        const { sdk } = await import("./_core/sdk");
+        const { ONE_YEAR_MS } = await import("@shared/const");
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || user.email || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, role: user.role, name: user.name };
+      }),
+
+    // ── Local register (student self-registration) ──────────────────────────
+    localRegister: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(1),
+        accessCode: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const existing = await getUserByEmail(input.email.toLowerCase());
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Un compte existe déjà avec cet email" });
+        }
+        // Validate access code if provided (optional gate)
+        const STUDENT_ACCESS_CODE = process.env.STUDENT_ACCESS_CODE || "TECLOG2025";
+        if (input.accessCode && input.accessCode.toUpperCase() !== STUDENT_ACCESS_CODE.toUpperCase()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Code d'accès invalide" });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const user = await createLocalUser({
+          email: input.email.toLowerCase(),
+          name: input.name,
+          passwordHash,
+          role: "student",
+        });
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erreur lors de la création du compte" });
+        const { sdk } = await import("./_core/sdk");
+        const { ONE_YEAR_MS } = await import("@shared/const");
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || user.email || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, role: user.role, name: user.name };
+      }),
+
+    // ── Admin: create teacher/student account ───────────────────────────────
+    createAccount: protectedProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(1),
+        role: z.enum(["student", "teacher", "admin"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "teacher") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const existing = await getUserByEmail(input.email.toLowerCase());
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Un compte existe déjà avec cet email" });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const user = await createLocalUser({
+          email: input.email.toLowerCase(),
+          name: input.name,
+          passwordHash,
+          role: input.role,
+        });
+        return { success: true, userId: user?.id };
+      }),
+
+    // ── Reset password (admin only) ─────────────────────────────────────────
+    resetPassword: protectedProcedure
+      .input(z.object({ userId: z.number(), newPassword: z.string().min(6) }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await updateUserPassword(input.userId, passwordHash);
+        return { success: true };
+      }),
   }),
 
   // ─── Master Data ───────────────────────────────────────────────────────────
   master: router({
     skus: protectedProcedure.query(() => getAllSkus()),
     bins: protectedProcedure.query(() => getAllBins()),
+  }),
+
+  // ─── Student Management (Teacher) ─────────────────────────────────────────
+  students: router({
+    list: teacherProcedure
+      .input(z.object({ cohortId: z.number().optional(), includeAll: z.boolean().optional() }))
+      .query(async ({ input }) => listStudents(input)),
+
+    create: teacherProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().min(1),
+        password: z.string().min(6),
+        cohortId: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getUserByEmail(input.email.toLowerCase());
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Un compte existe déjà avec cet email" });
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const user = await createLocalUser({ email: input.email.toLowerCase(), name: input.name, passwordHash, role: "student" });
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        if (input.cohortId) await assignStudentToCohort(user.id, input.cohortId);
+        return { success: true, userId: user.id };
+      }),
+
+    setActive: teacherProcedure
+      .input(z.object({ userId: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => { await setStudentActive(input.userId, input.isActive); return { success: true }; }),
+
+    updateNotes: teacherProcedure
+      .input(z.object({ userId: z.number(), notes: z.string() }))
+      .mutation(async ({ input }) => { await updateStudentNotes(input.userId, input.notes); return { success: true }; }),
+
+    resetPassword: teacherProcedure
+      .input(z.object({ userId: z.number(), newPassword: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await updateUserPassword(input.userId, passwordHash);
+        return { success: true };
+      }),
+
+    assignCohort: teacherProcedure
+      .input(z.object({ userId: z.number(), cohortId: z.number().nullable() }))
+      .mutation(async ({ input }) => { await assignStudentToCohort(input.userId, input.cohortId); return { success: true }; }),
+
+    stats: teacherProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => getStudentStats(input.userId)),
   }),
 
   // ─── Scenarios ─────────────────────────────────────────────────────────────

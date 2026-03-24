@@ -64,6 +64,20 @@
       "when": 1773625084519,
       "tag": "0008_fearless_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1774311265841,
+      "tag": "0009_omniscient_turbo",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1774311768440,
+      "tag": "0010_third_cable",
+      "breakpoints": true
     }
   ]
 }

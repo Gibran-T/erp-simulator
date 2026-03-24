@@ -25,7 +25,9 @@ import MonitorDashboard from "./pages/teacher/MonitorDashboard";
 import AnalyticsDashboard from "./pages/teacher/AnalyticsDashboard";
 import TeacherSlidesHub from "./pages/teacher/TeacherSlidesHub";
 import AdminPanel from "./pages/admin/AdminPanel";
+import StudentManager from "./pages/teacher/StudentManager";
 import Legal from "./pages/Legal";
+import LocalLogin from "./pages/LocalLogin";
 import SlideViewer from "./pages/SlideViewer";
 import StudentSlidesHub from "./pages/student/StudentSlidesHub";
 
@@ -34,6 +36,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       {/* Student routes */}
+      <Route path="/student" component={() => { window.location.replace("/student/scenarios"); return null; }} />
       <Route path="/student/scenarios" component={ScenarioList} />
       <Route path="/student/run/:runId" component={MissionControl} />
       <Route path="/student/run/:runId/step/:step" component={StepForm} />
@@ -60,9 +63,11 @@ function Router() {
       <Route path="/teacher/monitor" component={MonitorDashboard} />
       <Route path="/teacher/analytics" component={AnalyticsDashboard} />
       <Route path="/teacher/slides" component={TeacherSlidesHub} />
+      <Route path="/teacher/students" component={StudentManager} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />
       {/* Legal */}
+      <Route path="/login" component={LocalLogin} />
       <Route path="/legal" component={Legal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

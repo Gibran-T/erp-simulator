@@ -11,8 +11,9 @@ export default function Home() {
   // Helper for bilingual text (strings only)
   const t = (fr: string, en: string) => language === "FR" ? fr : en;
 
-  const handleLogin = () => {
-    window.location.href = getLoginUrl();
+  const handleLogin = (role?: string) => {
+    // Redirect to local login page (email/password auth, no Manus account required)
+    window.location.href = `/login${role === 'teacher' ? '?role=teacher' : ''}`;
   };
 
   if (loading) {
@@ -193,14 +194,14 @@ export default function Home() {
               {/* Login buttons */}
               <div className="space-y-2">
                 <button
-                  onClick={handleLogin}
+                  onClick={() => handleLogin()}
                   className="w-full py-2 text-sm font-semibold rounded transition-opacity hover:opacity-90"
                   style={{ background: "#0070f2", color: "#fff" }}
                 >
                   {t("Connexion Étudiant", "Student Login")}
                 </button>
                 <button
-                  onClick={handleLogin}
+                  onClick={() => handleLogin('teacher')}
                   className="w-full py-2 text-sm font-semibold rounded transition-opacity hover:opacity-90"
                   style={{ background: "transparent", color: "#4da6ff", border: "1px solid #1a3a5c" }}
                 >

@@ -18,7 +18,10 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
+  passwordHash: varchar("passwordHash", { length: 255 }), // for local email/password auth
   role: mysqlEnum("role", ["user", "admin", "student", "teacher"]).default("student").notNull(),
+  isActive: boolean("isActive").default(true).notNull(), // teacher can deactivate/exclude students
+  notes: text("notes"), // teacher notes about the student
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
