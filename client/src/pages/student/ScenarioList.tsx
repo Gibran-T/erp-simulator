@@ -183,6 +183,12 @@ export default function ScenarioList() {
   const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
   const { data: myProfile, refetch: refetchProfile } = trpc.profiles.mine.useQuery();
   const upsertProfile = trpc.profiles.upsert.useMutation({ onSuccess: () => refetchProfile() });
+  // Quiz gate: fetch best attempt for the currently selected module
+  const { data: quizBestAttempt } = trpc.quiz.getBestAttempt.useQuery(
+    { moduleId: selectedModule },
+    { enabled: !!selectedModule }
+  );
+  const quizPassed = quizBestAttempt?.passed === true;
 
   const mod = MODULE_CONFIG.find((m) => m.id === selectedModule)!;
   const ModIcon = mod.icon;
@@ -335,14 +341,29 @@ export default function ScenarioList() {
                       {language === "FR" ? mod.descFr : mod.descEn}
                     </p>
                   </div>
-                  <button
-                    onClick={() => navigate(mod.slidesRoute)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold text-white shrink-0 hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: mod.color }}
-                  >
-                    <Presentation size={13} />
-                    {t("Slides M", "Slides M")}{mod.id}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Quiz status badge */}
+                    {quizPassed ? (
+                      <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                        <CheckCircle size={10} /> {t("Quiz ✓", "Quiz ✓")}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => navigate(`/student/quiz/${selectedModule}`)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:opacity-80 transition-opacity"
+                      >
+                        <Lock size={10} /> {t("Quiz requis", "Quiz required")}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => navigate(mod.slidesRoute)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: mod.color }}
+                    >
+                      <Presentation size={13} />
+                      {t("Slides M", "Slides M")}{mod.id}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Process flow steps */}
@@ -521,16 +542,30 @@ export default function ScenarioList() {
                             </button>
                           )}
                           {!activeRun && (
-                            <button
-                              onClick={() => {
-                                // All modules (M1-M5) use the unified ModeSelectionScreen → run flow
-                                setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty ?? undefined });
-                              }}
-                              className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-                              style={{ backgroundColor: mod.color }}
-                            >
-                              <Play size={12} /> {completedRun ? t("Recommencer", "Restart") : t("Démarrer", "Start")}
-                            </button>
+                            quizPassed ? (
+                              <button
+                                onClick={() => {
+                                  setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty ?? undefined });
+                                }}
+                                className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+                                style={{ backgroundColor: mod.color }}
+                              >
+                                <Play size={12} /> {completedRun ? t("Recommencer", "Restart") : t("Démarrer", "Start")}
+                              </button>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                <button
+                                  onClick={() => navigate(`/student/quiz/${selectedModule}`)}
+                                  className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+                                  style={{ backgroundColor: mod.color }}
+                                >
+                                  <Lock size={12} /> {t("Faire le quiz d'abord", "Take quiz first")}
+                                </button>
+                                <span className="text-[10px] text-muted-foreground text-center">
+                                  {t("Score ≥60% requis", "Score ≥60% required")}
+                                </span>
+                              </div>
+                            )
                           )}
                         </div>
                       </div>

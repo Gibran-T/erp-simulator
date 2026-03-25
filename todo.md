@@ -404,5 +404,18 @@
 - [x] Step 5: MissionControl now uses dynamic steps from backend (M1-M5 all supported)
 - [x] Step 5: runs.state uses getNextRequiredStepAllModules + calculateProgressPctAllModules
 - [x] Step 8: 123/123 tests passing, TypeScript 0 errors, DB verified (5 quizzes, 21 questions)
-- [ ] Step 9: Final checkpoint + push to GitHub
-- [ ] Step 10: Final QA Senior report (verdict + action plan)
+- [x] Step 9: Final checkpoint + push to GitHub (158dde16)
+- [x] Step 10: Final QA Senior report (verdict + action plan) — QA_Senior_Mission_Final_2026.pdf
+
+## Sprint: 3 QA Priorities + Student Experience (2026-03-25)
+
+- [x] Priority 1: Quiz gate — block simulation start if quiz not passed (≥60%)
+- [x] Priority 1: Add quiz.getBestAttempt procedure to backend
+- [x] Priority 1: Show quiz status badge on ScenarioList module cards
+- [x] Priority 2: Glossary page /student/glossary with 80 TEC.LOG terms FR/EN
+- [x] Priority 2: Add "Aide" button in StepForm linking to glossary
+- [x] Priority 2: Add glossary link in FioriShell navigation
+- [x] Priority 3: server/trpc.integration.test.ts — M1 full flow (PO→GR→PUTAWAY→SO→PICKING→GI→CC→COMPLIANCE)
+- [x] Priority 3: server/trpc.integration.test.ts — M3 full flow (CC_LIST→CC_COUNT→CC_RECON→REPLENISH)
+- [ ] Student experience run: create account, M1-M5 complete, honest journal
+- [ ] Student journey report PDF

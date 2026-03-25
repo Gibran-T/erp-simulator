@@ -7,6 +7,7 @@ import {
   BarChart2, Settings, ChevronRight, Menu, X, ChevronLeft,
   ChevronRight as ChevronRightIcon, MonitorPlay, Moon, Sun, Globe,
   Presentation, UserCircle, ShieldCheck, GraduationCap, TrendingUp, UserCog,
+  BookMarked,
 } from "lucide-react";
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -86,6 +87,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
     : [
         { href: "/student/scenarios", label: t("Mes Scénarios", "My Scenarios"), icon: BookOpen },
         { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
+        { href: "/student/glossary", label: t("Glossaire", "Glossary"), icon: BookMarked },
       ];
 
   if (isAdmin) {

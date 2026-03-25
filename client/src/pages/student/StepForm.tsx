@@ -4,7 +4,8 @@ import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import React, { useState } from "react";
-import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database } from "lucide-react";
+import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
+import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
@@ -771,6 +772,7 @@ export default function StepForm() {
 
   const { register, handleSubmit, watch, formState: { errors: formErrors } } = useForm<FormValues>();
   const [feedbackPanel, setFeedbackPanel] = useState<{ data: any } | null>(null);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   function handleSuccess(data: any) {
     // Show persistent feedback panel
@@ -1114,19 +1116,33 @@ export default function StepForm() {
             <p className="text-white/60 text-xs">{t("Code Transaction", "Transaction Code")}</p>
             <p className="text-white font-bold text-sm">{cfg.tCode} — {t(cfg.titleFr, cfg.titleEn)}</p>
           </div>
-          <div className="text-right">
-            <p className="text-white/60 text-xs">{t("Statut", "Status")}</p>
-            {isCompleted ? (
-              <span className="badge-valid">✓ {t("VALIDÉ", "DONE")}</span>
-            ) : isLocked ? (
-              <span className="badge-blocked">🔒 {t("VERROUILLÉ", "LOCKED")}</span>
-            ) : isDemo && isOutOfSequence ? (
-              <span className="text-[10px] bg-purple-700 text-white px-2 py-0.5 rounded-full font-semibold">⚠ {t("HORS SÉQUENCE", "OUT OF SEQUENCE")}</span>
-            ) : (
-              <span className="badge-pending">⏳ {t("EN COURS", "IN PROGRESS")}</span>
-            )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowGlossary(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
+              title={t("Ouvrir le glossaire logistique", "Open logistics glossary")}
+            >
+              <BookOpen size={12} />
+              {t("Aide", "Help")}
+            </button>
+            <div className="text-right">
+              <p className="text-white/60 text-xs">{t("Statut", "Status")}</p>
+              {isCompleted ? (
+                <span className="badge-valid">✓ {t("VALIDÉ", "DONE")}</span>
+              ) : isLocked ? (
+                <span className="badge-blocked">🔒 {t("VERROUILLÉ", "LOCKED")}</span>
+              ) : isDemo && isOutOfSequence ? (
+                <span className="text-[10px] bg-purple-700 text-white px-2 py-0.5 rounded-full font-semibold">⚠ {t("HORS SÉQUENCE", "OUT OF SEQUENCE")}</span>
+              ) : (
+                <span className="badge-pending">⏳ {t("EN COURS", "IN PROGRESS")}</span>
+              )}
+            </div>
           </div>
         </div>
+        {/* Glossary Modal */}
+        {showGlossary && (
+          <GlossaryPage modal onClose={() => setShowGlossary(false)} />
+        )}
 
         {/* Locked State */}
         {isLocked && (
