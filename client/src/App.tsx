@@ -32,6 +32,8 @@ import SlideViewer from "./pages/SlideViewer";
 import StudentSlidesHub from "./pages/student/StudentSlidesHub";
 import QuizPage from "./pages/student/QuizPage";
 import GlossaryPage from "./pages/student/GlossaryPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 function Router() {
   return (
@@ -72,8 +74,10 @@ function Router() {
       <Route path="/teacher/students" component={StudentManager} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />
-      {/* Legal */}
+      {/* Auth / Legal */}
       <Route path="/login" component={LocalLogin} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/legal" component={Legal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

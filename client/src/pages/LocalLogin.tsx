@@ -33,6 +33,7 @@ export default function LocalLogin() {
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
   const [regCode, setRegCode] = useState("");
+  const [regStudentNum, setRegStudentNum] = useState("");
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [regError, setRegError] = useState("");
 
@@ -50,9 +51,14 @@ export default function LocalLogin() {
     onError: (err) => setLoginError(err.message),
   });
 
+  const upsertProfileMutation = trpc.profiles.upsert.useMutation();
   const registerMutation = trpc.auth.localRegister.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
+      // Save student number if provided
+      if (regStudentNum.trim()) {
+        await upsertProfileMutation.mutateAsync({ studentNumber: regStudentNum.trim() });
+      }
       navigate("/student/scenarios");
     },
     onError: (err) => setRegError(err.message),
@@ -218,7 +224,13 @@ export default function LocalLogin() {
                         {t("Se connecter", "Sign In")}
                       </Button>
                     </form>
-                    <div className="mt-4 pt-4 border-t border-border text-center">
+                    <div className="mt-4 pt-4 border-t border-border text-center space-y-2">
+                      <a
+                        href="/forgot-password"
+                        className="block text-xs text-primary hover:underline"
+                      >
+                        {t("Mot de passe oublié ?", "Forgot your password?")}
+                      </a>
                       <p className="text-xs text-muted-foreground">
                         {t("Vous n'avez pas de compte ? Utilisez l'onglet \"Créer un compte\".", "No account? Use the \"Create Account\" tab.")}
                       </p>
@@ -296,6 +308,24 @@ export default function LocalLogin() {
                           required
                           autoComplete="new-password"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-student-num">
+                          {t("N° étudiant", "Student number")}
+                          <span className="text-muted-foreground ml-1 text-xs">({t("optionnel", "optional")})</span>
+                        </Label>
+                        <Input
+                          id="reg-student-num"
+                          type="text"
+                          placeholder={t("Ex: 2024-12345", "e.g. 2024-12345")}
+                          value={regStudentNum}
+                          onChange={(e) => setRegStudentNum(e.target.value)}
+                          autoComplete="off"
+                          maxLength={64}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("Votre numéro d'étudiant permet à l'enseignant de vous identifier.", "Your student number helps the teacher identify you.")}
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reg-code">

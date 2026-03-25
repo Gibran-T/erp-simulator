@@ -14,6 +14,7 @@ const STEP_CONFIG: Record<string, {
   etapeFr: string; etapeEn: string;
   objectiveFr: string; objectiveEn: string;
   fields: string[]; tCode: string;
+  binZoneHint?: { bin?: { fr: string; en: string }; fromBin?: { fr: string; en: string }; toBin?: { fr: string; en: string } };
   pedagogicalDeep: { whyFr: string; whyEn: string; realSAPFr: string; realSAPEn: string; dependencyFr: string; dependencyEn: string; realErrorFr: string; realErrorEn: string };
 }> = {
   // ── Module 1 ──────────────────────────────────────────────────────────────
@@ -40,6 +41,9 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Enregistrer la réception physique des marchandises dans la zone RÉCEPTION (REC-01 ou REC-02). Le stock est impacté uniquement si la transaction est postée.",
     objectiveEn: "Record the physical receipt of goods in the RECEPTION zone (REC-01 or REC-02). Stock is only impacted if the transaction is posted.",
     fields: ["docRef", "sku", "bin", "qty", "comment"],
+    binZoneHint: {
+      bin: { fr: "Zone attendue : RÉCEPTION — utilisez REC-01 ou REC-02", en: "Expected zone: RECEPTION — use REC-01 or REC-02" },
+    },
     pedagogicalDeep: {
       whyFr: "Le Goods Receipt (GR) est la confirmation physique que les marchandises commandées sont arrivées en entrepôt. C'est à ce moment que le stock augmente dans le système.",
       whyEn: "The Goods Receipt (GR) is the physical confirmation that ordered goods have arrived at the warehouse. This is when stock increases in the system.",
@@ -57,6 +61,10 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Transférer la marchandise reçue depuis la zone RÉCEPTION (REC-01/REC-02) vers son emplacement de stockage définitif (zone STOCKAGE). Sans cette étape, le stock reste en transit.",
     objectiveEn: "Transfer received goods from the RECEPTION zone (REC-01/REC-02) to their final storage location (STOCKAGE zone). Without this step, stock remains in transit.",
     fields: ["docRef", "sku", "fromBin", "toBin", "qty", "comment"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : RÉCEPTION (REC-01 ou REC-02) — marchandises venant d'être reçues", en: "Source zone: RECEPTION (REC-01 or REC-02) — recently received goods" },
+      toBin: { fr: "Zone destination : STOCKAGE (B-01-R1-L1, B-01-R1-L2, B-02-R1-L1…) — emplacement définitif", en: "Destination zone: STOCKAGE (B-01-R1-L1, B-01-R1-L2, B-02-R1-L1…) — final storage" },
+    },
     pedagogicalDeep: {
       whyFr: "Le putaway (LT0A dans SAP WM) est le transfert physique d'une marchandise depuis la zone de réception vers son emplacement de stockage définitif. Sans cette étape, le stock reste en zone de transit et ne peut pas être prélevé.",
       whyEn: "Putaway (LT0A in SAP WM) is the physical transfer of goods from the receiving zone to their final storage location. Without this step, stock remains in transit and cannot be picked.",
@@ -91,6 +99,9 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Créer une commande client. Le SO ne peut être créé que si le stock disponible est supérieur à zéro dans la zone STOCKAGE.",
     objectiveEn: "Create a sales order. The SO can only be created if available stock is greater than zero in the STOCKAGE zone.",
     fields: ["docRef", "sku", "bin", "qty", "comment"],
+    binZoneHint: {
+      bin: { fr: "Zone attendue : STOCKAGE — le stock doit être disponible dans cette zone", en: "Expected zone: STOCKAGE — stock must be available in this zone" },
+    },
     pedagogicalDeep: {
       whyFr: "Le Sales Order (SO) est l'engagement de l'entreprise envers un client. Il déclenche la réservation de stock et le processus de livraison.",
       whyEn: "The Sales Order (SO) is the company's commitment to a customer. It triggers stock reservation and the delivery process.",
@@ -108,6 +119,10 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Prélever la marchandise depuis la zone STOCKAGE et la déplacer vers la zone EXPÉDITION (EXP-01/EXP-02). Cette étape prépare la sortie physique des marchandises.",
     objectiveEn: "Pick goods from the STOCKAGE zone and move them to the EXPÉDITION zone (EXP-01/EXP-02). This step prepares the physical outbound of goods.",
     fields: ["docRef", "sku", "fromBin", "toBin", "qty", "comment"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — marchandises en stock", en: "Source zone: STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — goods in storage" },
+      toBin: { fr: "Zone destination : EXPÉDITION (EXP-01 ou EXP-02) — zone de départ client", en: "Destination zone: EXPÉDITION (EXP-01 or EXP-02) — outbound dispatch zone" },
+    },
     pedagogicalDeep: {
       whyFr: "Le picking (VL01N dans SAP WM) est le prélèvement physique des marchandises depuis leur emplacement de stockage vers la zone d'expédition. Il précède obligatoirement la sortie de marchandises (GI).",
       whyEn: "Picking (VL01N in SAP WM) is the physical retrieval of goods from their storage location to the dispatch zone. It must precede the Goods Issue (GI).",
@@ -125,6 +140,9 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Émettre les marchandises pour le client depuis la zone EXPÉDITION. Le GI déduit le stock et génère le mouvement 601.",
     objectiveEn: "Issue goods to the customer from the EXPÉDITION zone. The GI deducts stock and generates movement 601.",
     fields: ["docRef", "sku", "bin", "qty", "comment"],
+    binZoneHint: {
+      bin: { fr: "Zone attendue : EXPÉDITION (EXP-01 ou EXP-02) — marchandises prêtes à partir", en: "Expected zone: EXPÉDITION (EXP-01 or EXP-02) — goods ready to ship" },
+    },
     pedagogicalDeep: {
       whyFr: "Le Goods Issue (GI) est la sortie physique des marchandises de l'entrepôt vers le client. Il réduit le stock et transfère la propriété légale au client.",
       whyEn: "The Goods Issue (GI) is the physical departure of goods from the warehouse to the customer. It reduces stock and transfers legal ownership to the customer.",
@@ -195,6 +213,10 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Prélever le lot le plus ancien en premier (First In, First Out). Saisissez le numéro de lot, le bin source (STOCKAGE) et le bin destination (EXPÉDITION).",
     objectiveEn: "Pick the oldest lot first (First In, First Out). Enter the lot number, source bin (STOCKAGE) and destination bin (EXPÉDITION).",
     fields: ["sku", "fromBin", "toBin", "qty", "lotNumber"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — prélevez le lot le plus ancien", en: "Source zone: STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — pick the oldest lot" },
+      toBin: { fr: "Zone destination : EXPÉDITION (EXP-01 ou EXP-02) — zone de départ client", en: "Destination zone: EXPÉDITION (EXP-01 or EXP-02) — outbound dispatch zone" },
+    },
     pedagogicalDeep: {
       whyFr: "FIFO (First In, First Out) est la méthode de gestion des lots qui garantit que les marchandises les plus anciennes sont expédiées en premier. Cela prévient les péremptions et les pertes.",
       whyEn: "FIFO (First In, First Out) is the lot management method that ensures the oldest goods are shipped first. This prevents expiry and losses.",
@@ -439,6 +461,10 @@ const STEP_CONFIG: Record<string, {
     objectiveFr: "Simulation intégrée M5 — Étape 2 : Ranger les marchandises reçues avec traçabilité de lot. Saisissez le bin source (RÉCEPTION), le bin destination (STOCKAGE) et le numéro de lot.",
     objectiveEn: "M5 Integrated Simulation — Step 2: Store received goods with lot traceability. Enter source bin (RECEPTION), destination bin (STOCKAGE) and lot number.",
     fields: ["sku", "fromBin", "toBin", "qty", "lotNumber"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : RÉCEPTION (REC-01 ou REC-02) — marchandises venant d'être reçues", en: "Source zone: RECEPTION (REC-01 or REC-02) — recently received goods" },
+      toBin: { fr: "Zone destination : STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — emplacement définitif", en: "Destination zone: STOCKAGE (B-01-R1-L1, B-01-R1-L2…) — final storage" },
+    },
     pedagogicalDeep: {
       whyFr: "Le rangement M5 combine les compétences de M1 (putaway) et M2 (traçabilité lot). Le numéro de lot est essentiel pour le FIFO dans les étapes suivantes.",
       whyEn: "M5 putaway combines skills from M1 (putaway) and M2 (lot traceability). The lot number is essential for FIFO in subsequent steps.",
@@ -1367,6 +1393,12 @@ export default function StepForm() {
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
+                  {cfg.binZoneHint?.bin && (
+                    <p className="text-xs mt-1.5 text-blue-600 dark:text-blue-400 flex items-start gap-1 bg-blue-50 dark:bg-blue-950/30 rounded px-2 py-1">
+                      <span className="shrink-0 font-bold">&#x1F4CD;</span>
+                      <span>{t(cfg.binZoneHint.bin.fr, cfg.binZoneHint.bin.en)}</span>
+                    </p>
+                  )}
                   {availableStock !== null && (
                     <p className={`text-xs mt-1 font-medium ${availableStock > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
                       {t("Stock disponible", "Available stock")} : {availableStock} {t("unité(s)", "unit(s)")}
@@ -1387,6 +1419,12 @@ export default function StepForm() {
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
+                  {cfg.binZoneHint?.fromBin && (
+                    <p className="text-xs mt-1.5 text-blue-600 dark:text-blue-400 flex items-start gap-1 bg-blue-50 dark:bg-blue-950/30 rounded px-2 py-1">
+                      <span className="shrink-0 font-bold">&#x1F4CD;</span>
+                      <span>{t(cfg.binZoneHint.fromBin.fr, cfg.binZoneHint.fromBin.en)}</span>
+                    </p>
+                  )}
                   {availableStockFromBin !== null && selectedSku && (
                     <p className={`text-xs mt-1 font-medium ${availableStockFromBin > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
                       {t("Stock dans ce bin", "Stock in this bin")} : {availableStockFromBin} {t("unité(s)", "unit(s)")}
@@ -1407,6 +1445,12 @@ export default function StepForm() {
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
+                  {cfg.binZoneHint?.toBin && (
+                    <p className="text-xs mt-1.5 text-blue-600 dark:text-blue-400 flex items-start gap-1 bg-blue-50 dark:bg-blue-950/30 rounded px-2 py-1">
+                      <span className="shrink-0 font-bold">&#x1F4CD;</span>
+                      <span>{t(cfg.binZoneHint.toBin.fr, cfg.binZoneHint.toBin.en)}</span>
+                    </p>
+                  )}
                 </div>
               )}
 

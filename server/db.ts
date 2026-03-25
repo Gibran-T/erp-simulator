@@ -886,3 +886,27 @@ export async function seedQuizData() {
     { quizId: m5.id, orderIndex: 4, difficulty: "hard", questionFr: "Après les 5 modules TEC.LOG, quelle compétence différencie un gestionnaire logistique expert d'un débutant ?", questionEn: "After all 5 TEC.LOG modules, what skill differentiates an expert logistics manager from a beginner?", optionsFr: JSON.stringify(["La capacité à utiliser tous les menus du WMS", "La capacité à interpréter les KPI, identifier les causes racines et proposer des actions correctives mesurables", "La vitesse d'exécution des transactions", "La connaissance de tous les codes d'articles"]), optionsEn: JSON.stringify(["The ability to use all WMS menus", "The ability to interpret KPIs, identify root causes and propose measurable corrective actions", "The speed of executing transactions", "Knowledge of all item codes"]), correctIndex: 1, explanationFr: "L'expertise va au-delà du WMS. Un expert sait : lire les KPI et détecter les anomalies, mener une RCA pour identifier les causes racines, proposer des actions SMART, et prévenir les problèmes. C'est cette capacité d'analyse qui crée de la valeur.", explanationEn: "Expertise goes beyond WMS. An expert knows: how to read KPIs and detect anomalies, conduct RCA to identify root causes, propose SMART actions, and prevent problems. This analytical ability creates value." },
   ]);
 }
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────────
+export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date) {
+  const db = await getDb();
+  if (!db) return null;
+  const { passwordResetTokens } = await import("../drizzle/schema");
+  await db.insert(passwordResetTokens).values({ userId, token, expiresAt });
+  return token;
+}
+
+export async function getPasswordResetToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const { passwordResetTokens } = await import("../drizzle/schema");
+  const [row] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
+  return row ?? null;
+}
+
+export async function markPasswordResetTokenUsed(tokenId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const { passwordResetTokens } = await import("../drizzle/schema");
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, tokenId));
+}

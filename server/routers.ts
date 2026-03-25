@@ -267,6 +267,44 @@ export const appRouter = router({
         await updateUserPassword(input.userId, passwordHash);
         return { success: true };
       }),
+    // ── Request password reset (public) ────────────────────────────────────
+    requestPasswordReset: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input, ctx }) => {
+        const { getUserByEmail, createPasswordResetToken } = await import("./db");
+        const { notifyOwner } = await import("./_core/notification");
+        const user = await getUserByEmail(input.email.toLowerCase());
+        // Always return success to prevent email enumeration
+        if (!user) return { success: true, message: "Si ce compte existe, un lien de réinitialisation a été généré." };
+        // Generate a secure random token
+        const crypto = await import("crypto");
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await createPasswordResetToken(user.id, token, expiresAt);
+        // Build the reset URL using origin from request headers
+        const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/[^/]*$/, "") || "http://localhost:3000";
+        const resetUrl = `${origin}/reset-password/${token}`;
+        // Notify teacher/admin (since we can't email students directly)
+        await notifyOwner({
+          title: `🔑 Réinitialisation de mot de passe — ${user.name || user.email}`,
+          content: `L'étudiant **${user.name || "Inconnu"}** (${user.email}) a demandé une réinitialisation de mot de passe.\n\nLien de réinitialisation (valide 1h) :\n${resetUrl}\n\nPartagez ce lien avec l'étudiant via le canal de communication habituel.`,
+        });
+        return { success: true, resetUrl, message: "Lien de réinitialisation généré. Votre enseignant a été notifié." };
+      }),
+    // ── Reset password with token (public) ─────────────────────────────────
+    resetPasswordWithToken: publicProcedure
+      .input(z.object({ token: z.string().min(1), newPassword: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        const { getPasswordResetToken, markPasswordResetTokenUsed, updateUserPassword } = await import("./db");
+        const tokenRow = await getPasswordResetToken(input.token);
+        if (!tokenRow) throw new TRPCError({ code: "NOT_FOUND", message: "Lien de réinitialisation invalide ou expiré." });
+        if (tokenRow.usedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a déjà été utilisé." });
+        if (new Date() > tokenRow.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a expiré. Veuillez en demander un nouveau." });
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await updateUserPassword(tokenRow.userId, passwordHash);
+        await markPasswordResetTokenUsed(tokenRow.id);
+        return { success: true, message: "Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter." };
+      }),
   }),
 
   // ─── Master Data ───────────────────────────────────────────────────────────

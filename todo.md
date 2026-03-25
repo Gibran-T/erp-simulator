@@ -428,3 +428,10 @@
 - [x] Bug: PUTAWAY_M1 stock debit missing — GR posted +50 to REC-01 but PUTAWAY never debited REC-01, leaving phantom stock (fixed: PUTAWAY now records negative debit transaction for fromBin)
 - [x] Bug: COMPLIANCE step gives no resolution path for unposted transactions — added actionable hints and "Retour au Mission Control" button
 - [x] Feature: Quiz immediate feedback — added quiz.checkAnswer procedure + updated QuizPage to show correct/wrong with explanation after each answer (not just at results)
+
+## UX Improvements Sprint (25 mars 2026)
+
+- [x] Password recovery flow — "Mot de passe oublié" link on login + /forgot-password + /reset-password/:token + DB token table + requestPasswordReset + resetPasswordWithToken procedures
+- [x] Student number onboarding — N° étudiant field in registration form (optional, auto-saved via profiles.upsert after register)
+- [x] Bin zone hints in StepForm — binZoneHint config added to GR, PUTAWAY_M1, SO, PICKING_M1, GI, FIFO_PICK, M5_PUTAWAY; blue hint shown below each bin dropdown
+- [ ] Expert end-to-end validation run M1→M5
