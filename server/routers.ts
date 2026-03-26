@@ -606,7 +606,7 @@ export const appRouter = router({
           return {
             ...r,
             completedSteps: state.completedSteps as string[],
-            progressPct: calculateProgressPct(state.completedSteps),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
             score: r.run.isDemo ? null : calculateTotalScore(events),
           };
         })
@@ -631,7 +631,7 @@ export const appRouter = router({
             const penalties = events.filter(e => e.pointsDelta < 0).length;
             const bonuses   = events.filter(e => e.pointsDelta > 0).length;
             const state     = await buildRunState(r.run.id);
-            const progress  = calculateProgressPct(state.completedSteps);
+            const progress  = calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId);
             return {
               attempt:     idx + 1,
               runId:       r.run.id,
@@ -874,7 +874,7 @@ export const appRouter = router({
           recommendations,
           complianceIssues: compliance.issuesFr,
           completedSteps: state.completedSteps,
-          progressPct: calculateProgressPct(state.completedSteps),
+          progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId),
           zoneFlow,
           transactionTimeline,
           totalTransactions: state.transactions.filter(t => t.posted).length,
@@ -1453,7 +1453,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPct(state.completedSteps),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
             completedSteps: state.completedSteps,
             score: r.run.isDemo ? null : calculateTotalScore(events),
             compliant: compliance.compliant,
@@ -1497,7 +1497,7 @@ export const appRouter = router({
             isDemo: r.run.isDemo,
             status: r.run.status,
             score,
-            progressPct: calculateProgressPct(state.completedSteps),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
             completedSteps: state.completedSteps,
             stepStatus,
             compliant: compliance.compliant,
@@ -1717,7 +1717,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPct(state.completedSteps),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
             completedSteps: state.completedSteps,
             score: calculateTotalScore(events),
             compliant: compliance.compliant,

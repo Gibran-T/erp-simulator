@@ -187,6 +187,8 @@ export default function MissionControl() {
                 ? `→ ${nextStepCode}`
                 : isDemo
                 ? t("✅ Toutes les étapes complétées", "✅ All steps completed")
+                : isCompliant
+                ? t("✅ Simulation terminée — Voir le rapport final", "✅ Simulation complete — View final report")
                 : t("⚠ Vérifier les blocages système", "⚠ Check system blocks")}
             </p>
           </div>

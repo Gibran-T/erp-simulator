@@ -435,3 +435,12 @@
 - [x] Student number onboarding — N° étudiant field in registration form (optional, auto-saved via profiles.upsert after register)
 - [x] Bin zone hints in StepForm — binZoneHint config added to GR, PUTAWAY_M1, SO, PICKING_M1, GI, FIFO_PICK, M5_PUTAWAY; blue hint shown below each bin dropdown
 - [x] Expert end-to-end validation run M1→M5 — PASS (3 bugs fixed: M2 GR routing, PUTAWAY_COMPLETED scoring rule, completeRun() missing in M2-M5 COMPLIANCE procedures)
+
+## Final Polish & Stability Sprint (26 mars 2026)
+
+- [ ] Fix 1: Inventory isolation per run — scope all stock/CC/compliance calculations by runId
+- [ ] Fix 2: Password reset flow end-to-end — token validation, expiry, new password login
+- [ ] Fix 3: Controlled dropdowns in StepForm — SKU, bin, fromBin, toBin retain selected values
+- [ ] Fix 4: Persistent orange banner — hide when compliance.compliant === true
+- [ ] Final clean validation M1→M5 (no hotfix mode)
+- [ ] Final verdict report

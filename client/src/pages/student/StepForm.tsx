@@ -1001,9 +1001,10 @@ export default function StepForm() {
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
   const isLocked = !isDemo && !isCurrentStep && !isCompleted;
   const inventory = runData?.inventory ?? {};
-  const selectedSku = watch("sku");
-  const selectedBin = watch("bin");
-  const selectedFromBin = watch("fromBin");
+  const selectedSku = watch("sku") ?? "";
+  const selectedBin = watch("bin") ?? "";
+  const selectedFromBin = watch("fromBin") ?? "";
+  const selectedToBin = watch("toBin") ?? "";
   const availableStock = selectedSku && selectedBin ? (inventory[`${selectedSku}::${selectedBin}`] ?? 0) : null;
   const availableStockFromBin = selectedSku && selectedFromBin ? (inventory[`${selectedSku}::${selectedFromBin}`] ?? 0) : null;
   const isOutOfSequence = isDemo && !isCurrentStep && !isCompleted;
@@ -1380,7 +1381,7 @@ export default function StepForm() {
                     SKU <span className="text-destructive">*</span>{" "}
                     <span className="text-[10px] text-muted-foreground ml-1">{t("Requis", "Required")}</span>
                   </label>
-                  <select {...register("sku")} className="fiori-field-input fiori-field-active">
+                  <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
                     {masterData?.map((s: any) => (
                       <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
@@ -1395,7 +1396,7 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Bin / Emplacement", "Bin / Location")} <span className="text-destructive">*</span>
                   </label>
-                  <select {...register("bin")} className="fiori-field-input fiori-field-active">
+                  <select {...register("bin")} value={selectedBin} onChange={e => setValue("bin", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner un emplacement", "Select a location")} —</option>
                     {bins?.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
@@ -1421,7 +1422,7 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Bin Source (De)", "Source Bin (From)")} <span className="text-destructive">*</span>
                   </label>
-                  <select {...register("fromBin")} className="fiori-field-input fiori-field-active">
+                  <select {...register("fromBin")} value={selectedFromBin} onChange={e => setValue("fromBin", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner le bin source", "Select source bin")} —</option>
                     {bins?.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
@@ -1447,7 +1448,7 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Bin Destination (Vers)", "Destination Bin (To)")} <span className="text-destructive">*</span>
                   </label>
-                  <select {...register("toBin")} className="fiori-field-input fiori-field-active">
+                  <select {...register("toBin")} value={selectedToBin} onChange={e => setValue("toBin", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner le bin destination", "Select destination bin")} —</option>
                     {bins?.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
@@ -1610,7 +1611,7 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("SKU à inclure dans le comptage", "SKU to include in count")} <span className="text-destructive">*</span>
                   </label>
-                  <select {...register("sku")} className="fiori-field-input fiori-field-active">
+                  <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
                     {masterData?.map((s: any) => (
                       <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
