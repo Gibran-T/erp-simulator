@@ -1730,6 +1730,79 @@ export const appRouter = router({
 
   // ─── Module 2: Advanced Warehouse Operations ───────────────────────────────
   m2: router({
+    /** M2 Step 1: GR (no PO prerequisite for M2) */
+    submitGR: protectedProcedure
+      .input(z.object({
+        runId: z.number(),
+        sku: z.string(),
+        bin: z.string(),
+        qty: z.number().positive(),
+        docRef: z.string(),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const state = await buildRunState(input.runId);
+        const check = canExecuteStepM2("GR" as any, state);
+        if (!check.allowed) {
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: check.reasonFr });
+        }
+        const zoneCheck = validateGRZone(input.bin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheck.reasonFr });
+        }
+        await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
+        await markStepComplete(input.runId, "GR");
+        const rule = getScoringRule("GR_COMPLETED");
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
+        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed)
+          ? [!check.allowed ? check.reasonFr : null, !zoneCheck.allowed ? zoneCheck.reasonFr : null].filter(Boolean).join(" | ")
+          : null;
+        return { success: true, demoWarning: demoWarn };
+      }),
+    /** M2 Step 2: PUTAWAY (RECEPTION → STOCKAGE, no PO prerequisite) */
+    submitPUTAWAY: protectedProcedure
+      .input(z.object({
+        runId: z.number(),
+        sku: z.string(),
+        fromBin: z.string(),
+        toBin: z.string(),
+        qty: z.number().positive(),
+        docRef: z.string(),
+        lotNumber: z.string().optional(),
+        comment: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const state = await buildRunState(input.runId);
+        const check = canExecuteStepM2("PUTAWAY" as any, state);
+        if (!check.allowed) {
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: check.reasonFr });
+        }
+        const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: zoneCheck.reasonFr });
+        }
+        await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
+        await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
+        const lotNum = input.lotNumber || `LOT-${Date.now()}`;
+        await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: lotNum, receivedAt: new Date() });
+        await markStepComplete(input.runId, "PUTAWAY");
+        const rule = getScoringRule("PUTAWAY_COMPLETED");
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
+        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed)
+          ? [!check.allowed ? check.reasonFr : null, !zoneCheck.allowed ? zoneCheck.reasonFr : null].filter(Boolean).join(" | ")
+          : null;
+        return { success: true, demoWarning: demoWarn };
+      }),
     /** M2 Step 3: FIFO Pick */
     submitFifoPick: protectedProcedure
       .input(z.object({

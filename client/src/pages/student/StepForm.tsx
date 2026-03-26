@@ -769,6 +769,8 @@ export default function StepForm() {
   const submitCompliance = trpc.compliance.finalize.useMutation({ onSuccess: handleSuccess, onError: handleError });
 
   // ── M2 mutations ──────────────────────────────────────────────────────────
+  const submitGR_M2 = trpc.m2.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
+  const submitPUTAWAY_M2 = trpc.m2.submitPUTAWAY.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitFifoPick = trpc.m2.submitFifoPick.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitStockAccuracy = trpc.m2.submitStockAccuracy.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitComplianceAdv = trpc.m2.submitComplianceAdv.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -899,8 +901,14 @@ export default function StepForm() {
     switch (stepLower) {
       // ── M1 ──────────────────────────────────────────────────────────────
       case "po": return submitPO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
-      case "gr": return submitGR.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
-      case "putaway_m1": return submitPUTAWAY_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "gr":
+        // M2 GR does not require a prior PO; M1 GR does
+        if (runData?.moduleId === 2) return submitGR_M2.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+        return submitGR.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "putaway_m1":
+        // M2 PUTAWAY uses m2.submitPUTAWAY (no PO prerequisite); M1 uses transactions.submitPUTAWAY_M1
+        if (runData?.moduleId === 2) return submitPUTAWAY_M2.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
+        return submitPUTAWAY_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
       case "so": return submitSO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
       case "picking_m1": return submitPICKING_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
       case "gi": return submitGI.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
