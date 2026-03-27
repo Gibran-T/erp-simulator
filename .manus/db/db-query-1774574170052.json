@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, name, email, cohortId, status FROM erp_students;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, name, email, cohortId, status FROM erp_students;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Alexandre Tremblay",
+      "email": "student@laconcorde.ca",
+      "cohortId": "NULL",
+      "status": "active"
+    },
+    {
+      "id": "2",
+      "name": "Sophie Bergeron",
+      "email": "sophie.bergeron@laconcorde.ca",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "3",
+      "name": "Marc Leblanc",
+      "email": "marc.leblanc@laconcorde.ca",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "4",
+      "name": "Emma Côté",
+      "email": "emma.cote@laconcorde.ca",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "5",
+      "name": "Lucas Gagnon",
+      "email": "lucas.gagnon@laconcorde.ca",
+      "cohortId": "1",
+      "status": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tcohortId\tstatus\n1\tAlexandre Tremblay\tstudent@laconcorde.ca\tNULL\tactive\n2\tSophie Bergeron\tsophie.bergeron@laconcorde.ca\t1\tactive\n3\tMarc Leblanc\tmarc.leblanc@laconcorde.ca\t1\tactive\n4\tEmma Côté\temma.cote@laconcorde.ca\t1\tactive\n5\tLucas Gagnon\tlucas.gagnon@laconcorde.ca\t1\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

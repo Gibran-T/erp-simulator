@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE erp_students SET email = 'alexandre.tremblay@laconcorde.ca', cohortId = 1 WHERE id = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute UPDATE erp_students SET email = 'alexandre.tremblay@laconcorde.ca', cohortId = 1 WHERE id = 1;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 73
+}
