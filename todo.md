@@ -48,3 +48,11 @@
 - [x] Transform ERP brand cards into pedagogical entry points (real-world context, strengths, process equivalence, clickable links)
 - [x] Unify 3-ERP comparison panel visual identity in ScenarioPageFull to match dashboard brand cards
 - [x] Add "même processus, terminologie différente" equivalence message to all 3-ERP comparison panels
+
+## Micro-Learning & Simplification Sprint
+- [x] Simplify dashboard ERP cards to one-line equivalence (strip overload)
+- [x] Simplify scenario-level 3-ERP panel to one key idea per scenario
+- [x] Simplify per-step comparison to one key idea (logo + name + one-line note)
+- [x] Add micro-learning feedback sentence after each correct step
+- [x] Add terminology confusion tracking field to erpData step notes (derived from wrongAttempts + hintsUsed)
+- [x] Expose terminology confusion analytics in teacher monitoring dashboard (Diagnostic ERP panel + class breakdown)
