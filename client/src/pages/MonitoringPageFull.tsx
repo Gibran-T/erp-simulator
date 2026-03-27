@@ -1,40 +1,43 @@
 /**
- * MonitoringPageFull v2.0 — ERP Integrated Business Simulator
+ * MonitoringPageFull v2.1 — ERP Integrated Business Simulator
  * Teacher Control Tower — Real data from tRPC backend
  * Phases 7+8: Post-scenario analytics, at-risk alerts, improvement trends
+ * v2.1: Full FR/EN bilingual support via useLang
  */
 import { useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { trpc } from '@/lib/trpc';
 import { ERP_MODULES } from '@/lib/erpData';
+import { useLang } from '@/contexts/LanguageContext';
 import {
-  BarChart3, Users, TrendingUp, Award, AlertTriangle, CheckCircle2,
-  Clock, X, ChevronDown, ChevronUp, Brain, Zap, Target,
-  RefreshCw, Download, Filter, Eye, BookOpen, RotateCcw
+  BarChart3, Users, TrendingUp, AlertTriangle, CheckCircle2,
+  X, ChevronDown, ChevronUp, Brain,
+  Download, Filter, BookOpen, RotateCcw
 } from 'lucide-react';
 
 const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
+void totalScenarios;
 
-function timeAgo(value: Date | string | null | undefined): string {
-  if (!value) return 'Jamais';
+function timeAgo(value: Date | string | null | undefined, t: (k: string) => string): string {
+  if (!value) return t('common.never');
   const d = new Date(value);
-  if (isNaN(d.getTime())) return 'Jamais';
+  if (isNaN(d.getTime())) return t('common.never');
   const diffMs = Date.now() - d.getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "À l'instant";
-  if (mins < 60) return `Il y a ${mins} min`;
+  if (mins < 1) return t('common.instantAgo');
+  if (mins < 60) return t('common.minutesAgo').replace('{n}', String(mins));
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `Il y a ${hrs}h`;
+  if (hrs < 24) return t('common.hoursAgo').replace('{n}', String(hrs));
   const days = Math.floor(hrs / 24);
-  return `Il y a ${days}j`;
+  return t('common.daysAgo').replace('{n}', String(days));
 }
 
-function classifyLearner(avgScore: number, totalHints: number, totalWrong: number): { label: string; color: string; icon: string } {
-  if (avgScore >= 90 && totalHints <= 1) return { label: 'Exécuteur précis', color: 'oklch(0.72 0.14 162)', icon: '🏆' };
-  if (avgScore >= 80 && totalHints <= 2) return { label: 'Apprenant fiable', color: 'oklch(0.72 0.16 255)', icon: '⭐' };
-  if (avgScore >= 70 && totalWrong > 5) return { label: 'Rapide mais imprécis', color: 'oklch(0.78 0.14 70)', icon: '⚡' };
-  if (avgScore >= 60 && totalHints >= 3) return { label: 'Guidé en progression', color: 'oklch(0.78 0.14 70)', icon: '📈' };
-  return { label: 'Nécessite du soutien', color: 'oklch(0.65 0.22 25)', icon: '🆘' };
+function classifyLearner(avgScore: number, totalHints: number, totalWrong: number, t: (k: string) => string): { label: string; color: string; icon: string } {
+  if (avgScore >= 90 && totalHints <= 1) return { label: t('profile.precise'), color: 'oklch(0.72 0.14 162)', icon: '🏆' };
+  if (avgScore >= 80 && totalHints <= 2) return { label: t('profile.reliable'), color: 'oklch(0.72 0.16 255)', icon: '⭐' };
+  if (avgScore >= 70 && totalWrong > 5) return { label: t('profile.fast'), color: 'oklch(0.78 0.14 70)', icon: '⚡' };
+  if (avgScore >= 60 && totalHints >= 3) return { label: t('profile.guided'), color: 'oklch(0.78 0.14 70)', icon: '📈' };
+  return { label: t('profile.support'), color: 'oklch(0.65 0.22 25)', icon: '🆘' };
 }
 
 /**
@@ -43,22 +46,19 @@ function classifyLearner(avgScore: number, totalHints: number, totalWrong: numbe
  * ERP-specific terms (T-codes, menu names) rather than misunderstanding the process.
  * A student with high hints + low score likely needs process understanding, not just terminology.
  */
-function detectConfusionType(avgScore: number, totalHints: number, totalWrong: number, totalAttempts: number): {
+function detectConfusionType(avgScore: number, totalHints: number, totalWrong: number, totalAttempts: number, t: (k: string) => string): {
   terminologyConfused: boolean;
   processConfused: boolean;
   label: string;
   color: string;
 } {
-  if (totalAttempts === 0) return { terminologyConfused: false, processConfused: false, label: 'Pas de données', color: 'oklch(0.40 0.010 255)' };
+  if (totalAttempts === 0) return { terminologyConfused: false, processConfused: false, label: t('confusion.noData'), color: 'oklch(0.40 0.010 255)' };
   const wrongPerAttempt = totalAttempts > 0 ? totalWrong / totalAttempts : 0;
   const hintsPerAttempt = totalAttempts > 0 ? totalHints / totalAttempts : 0;
-  // Many wrong answers but eventually succeeds = terminology confusion (knows the process, wrong names)
-  if (wrongPerAttempt >= 2 && avgScore >= 60) return { terminologyConfused: true, processConfused: false, label: 'Confond les noms ERP', color: 'oklch(0.78 0.14 70)' };
-  // Many hints + low score = process confusion (doesn't understand the business logic)
-  if (hintsPerAttempt >= 1.5 && avgScore < 65) return { terminologyConfused: false, processConfused: true, label: 'Confond le processus', color: 'oklch(0.65 0.22 25)' };
-  // Both signals = deep confusion
-  if (wrongPerAttempt >= 2 && hintsPerAttempt >= 1.5 && avgScore < 60) return { terminologyConfused: true, processConfused: true, label: 'Confusion terminologie + processus', color: 'oklch(0.65 0.22 25)' };
-  return { terminologyConfused: false, processConfused: false, label: 'Comprend le processus', color: 'oklch(0.72 0.14 162)' };
+  if (wrongPerAttempt >= 2 && avgScore >= 60) return { terminologyConfused: true, processConfused: false, label: t('confusion.termConf'), color: 'oklch(0.78 0.14 70)' };
+  if (hintsPerAttempt >= 1.5 && avgScore < 65) return { terminologyConfused: false, processConfused: true, label: t('confusion.procConf'), color: 'oklch(0.65 0.22 25)' };
+  if (wrongPerAttempt >= 2 && hintsPerAttempt >= 1.5 && avgScore < 60) return { terminologyConfused: true, processConfused: true, label: t('confusion.bothConf'), color: 'oklch(0.65 0.22 25)' };
+  return { terminologyConfused: false, processConfused: false, label: t('confusion.ok'), color: 'oklch(0.72 0.14 162)' };
 }
 
 type AttemptRow = {
@@ -103,7 +103,8 @@ type StudentSummary = {
 function buildSummaries(
   students: StudentRow[],
   attempts: AttemptRow[],
-  cohorts: CohortRow[]
+  cohorts: CohortRow[],
+  t: (k: string) => string
 ): StudentSummary[] {
   return students.map(student => {
     const sa = attempts.filter(a => a.studentId === student.id).sort((a, b) =>
@@ -115,11 +116,7 @@ function buildSummaries(
     const totalHints = sa.reduce((a, b) => a + b.hintsUsed, 0);
     const totalWrong = sa.reduce((a, b) => a + b.wrongAttempts, 0);
     const uniqueScenarios = new Set(sa.map(a => a.scenarioId)).size;
-
-    // At-risk: avg score < 60 with at least 2 attempts
     const isAtRisk = sa.length >= 2 && avgScore < 60;
-
-    // Trend: compare last 2 attempts
     let trend: 'up' | 'down' | 'stable' | 'new' = 'new';
     if (scores.length >= 2) {
       const last = scores[scores.length - 1];
@@ -128,7 +125,6 @@ function buildSummaries(
       else if (last < prev - 5) trend = 'down';
       else trend = 'stable';
     }
-
     const cohort = cohorts.find(c => c.id === student.cohortId);
     return {
       student,
@@ -141,24 +137,23 @@ function buildSummaries(
       totalWrong,
       isAtRisk,
       trend,
-      learnerProfile: classifyLearner(avgScore, totalHints, totalWrong),
+      learnerProfile: classifyLearner(avgScore, totalHints, totalWrong, t),
       cohortName: cohort?.name || '—',
-      confusionSignal: detectConfusionType(avgScore, totalHints, totalWrong, sa.length),
+      confusionSignal: detectConfusionType(avgScore, totalHints, totalWrong, sa.length, t),
     };
   });
 }
 
-function TrendBadge({ trend }: { trend: 'up' | 'down' | 'stable' | 'new' }) {
-  if (trend === 'up') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.72 0.14 162 / 15%)', color: 'oklch(0.72 0.14 162)' }}>↑ Progresse</span>;
-  if (trend === 'down') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>↓ Régresse</span>;
-  if (trend === 'stable') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.78 0.14 70 / 15%)', color: 'oklch(0.78 0.14 70)' }}>→ Stable</span>;
-  return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>Nouveau</span>;
+function TrendBadge({ trend, t }: { trend: 'up' | 'down' | 'stable' | 'new'; t: (k: string) => string }) {
+  if (trend === 'up') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.72 0.14 162 / 15%)', color: 'oklch(0.72 0.14 162)' }}>↑ {t('monitoring.filterImproving').split(' ')[0]}</span>;
+  if (trend === 'down') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>↓ {t('monitoring.regressing')}</span>;
+  if (trend === 'stable') return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.78 0.14 70 / 15%)', color: 'oklch(0.78 0.14 70)' }}>→ {t('monitoring.stable')}</span>;
+  return <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>{t('monitoring.new')}</span>;
 }
 
-function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onClose: () => void }) {
+function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; onClose: () => void; t: (k: string) => string }) {
   const { student, attempts, avgScore, bestScore, totalAttempts, totalHints, totalWrong, learnerProfile, cohortName, confusionSignal } = summary;
 
-  // Group attempts by scenario
   const byScenario: Record<string, AttemptRow[]> = {};
   for (const a of attempts) {
     if (!byScenario[a.scenarioId]) byScenario[a.scenarioId] = [];
@@ -187,9 +182,9 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
           {/* Score summary */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Score moyen', value: totalAttempts > 0 ? `${avgScore}%` : '—', color: avgScore >= 80 ? 'oklch(0.72 0.14 162)' : avgScore >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' },
-              { label: 'Meilleur score', value: totalAttempts > 0 ? `${bestScore}%` : '—', color: 'oklch(0.72 0.16 255)' },
-              { label: 'Tentatives', value: String(totalAttempts), color: 'oklch(0.65 0.010 255)' },
+              { label: t('monitoring.avgScore'), value: totalAttempts > 0 ? `${avgScore}%` : '—', color: avgScore >= 80 ? 'oklch(0.72 0.14 162)' : avgScore >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' },
+              { label: t('monitoring.bestScore'), value: totalAttempts > 0 ? `${bestScore}%` : '—', color: 'oklch(0.72 0.16 255)' },
+              { label: t('common.attempts'), value: String(totalAttempts), color: 'oklch(0.65 0.010 255)' },
             ].map((s, i) => (
               <div key={i} className="p-3 rounded-xl text-center" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
                 <div className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: s.color }}>{s.value}</div>
@@ -200,45 +195,41 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
 
           {/* Learner profile */}
           <div className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>Profil d'apprentissage</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.learnerProfile')}</div>
             <div className="flex items-center gap-2">
               <span className="text-xl">{learnerProfile.icon}</span>
               <span className="font-semibold" style={{ color: learnerProfile.color }}>{learnerProfile.label}</span>
-              <TrendBadge trend={summary.trend} />
+              <TrendBadge trend={summary.trend} t={t} />
             </div>
           </div>
 
           {/* ERP confusion signal */}
           {totalAttempts > 0 && (
             <div className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${confusionSignal.color}25` }}>
-              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>Diagnostic ERP</div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.erpDiagnostic')}</div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full" style={{ background: confusionSignal.color }} />
                 <span className="text-sm font-semibold" style={{ color: confusionSignal.color }}>{confusionSignal.label}</span>
               </div>
               <div className="text-xs leading-relaxed" style={{ color: 'oklch(0.50 0.010 255)' }}>
-                {confusionSignal.terminologyConfused && !confusionSignal.processConfused &&
-                  'Cet étudiant commet beaucoup d’erreurs mais finit par réussir. Il comprend le processus métier mais confond les noms ERP (T-codes, menus). Recommandation : exercices de mémorisation de la terminologie.'}
-                {confusionSignal.processConfused && !confusionSignal.terminologyConfused &&
-                  'Cet étudiant utilise beaucoup d’indices et obtient un score faible. Il ne comprend pas encore la logique du processus métier. Recommandation : revoir les slides du module et refaire le scénario en mode guidé.'}
-                {confusionSignal.terminologyConfused && confusionSignal.processConfused &&
-                  'Double confusion : terminologie ERP et logique de processus. Recommandation : session individuelle avec le professeur avant de continuer.'}
-                {!confusionSignal.terminologyConfused && !confusionSignal.processConfused && totalAttempts > 0 &&
-                  'L’étudiant distingue correctement le processus métier de la terminologie ERP. Aucune intervention nécessaire.'}
+                {confusionSignal.terminologyConfused && !confusionSignal.processConfused && t('monitoring.diagTermConf')}
+                {confusionSignal.processConfused && !confusionSignal.terminologyConfused && t('monitoring.diagProcConf')}
+                {confusionSignal.terminologyConfused && confusionSignal.processConfused && t('monitoring.diagBothConf')}
+                {!confusionSignal.terminologyConfused && !confusionSignal.processConfused && totalAttempts > 0 && t('monitoring.diagOk')}
               </div>
               <div className="mt-2 flex gap-3 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
-                <span>{totalWrong} erreur{totalWrong > 1 ? 's' : ''} totales</span>
+                <span>{totalWrong} {t('monitoring.totalErrors')}</span>
                 <span>·</span>
-                <span>{totalHints} indice{totalHints > 1 ? 's' : ''} utilisé{totalHints > 1 ? 's' : ''}</span>
+                <span>{totalHints} {t('monitoring.hintsUsed')}</span>
               </div>
             </div>
           )}
 
           {/* Attempt history by scenario */}
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>Historique des tentatives</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.attemptHistory')}</div>
             {Object.keys(byScenario).length === 0 ? (
-              <div className="text-sm text-center py-6" style={{ color: 'oklch(0.45 0.010 255)' }}>Aucune tentative enregistrée</div>
+              <div className="text-sm text-center py-6" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.noAttempts')}</div>
             ) : (
               <div className="space-y-3">
                 {Object.entries(byScenario).map(([scenarioId, scenAttempts]) => {
@@ -264,8 +255,8 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
                                 </div>
                               </div>
                               <span className="text-sm font-bold w-10 text-right" style={{ color: scColor }}>{sc}%</span>
-                              <span className="text-xs w-20 text-right" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(a.completedAt)}</span>
-                              {a.examMode ? <span className="text-xs px-1 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>Examen</span> : null}
+                              <span className="text-xs w-20 text-right" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(a.completedAt, t)}</span>
+                              {a.examMode ? <span className="text-xs px-1 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>Exam</span> : null}
                             </div>
                           );
                         })}
@@ -280,14 +271,14 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
           {/* Teacher actions */}
           {totalAttempts > 0 && (
             <div className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
-              <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>Actions professeur</div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.teacherActions')}</div>
               <div className="space-y-2">
                 {confusionSignal.processConfused && (
                   <a href={`/modules/${attempts[0]?.moduleId || 'mm'}`}
                     className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
                     style={{ background: 'oklch(0.72 0.16 255 / 15%)', color: 'oklch(0.72 0.16 255)', border: '1px solid oklch(0.72 0.16 255 / 25%)' }}>
                     <BookOpen size={12} />
-                    Revoir les slides du module
+                    {t('monitoring.reviewSlides')}
                     <span className="ml-auto text-xs opacity-60">Recommandé</span>
                   </a>
                 )}
@@ -296,19 +287,19 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
                     className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
                     style={{ background: 'oklch(0.78 0.14 70 / 15%)', color: 'oklch(0.78 0.14 70)', border: '1px solid oklch(0.78 0.14 70 / 25%)' }}>
                     <RotateCcw size={12} />
-                    Retenter en mode guidé
+                    {t('monitoring.retryGuided')}
                   </a>
                 )}
                 {!confusionSignal.terminologyConfused && !confusionSignal.processConfused && avgScore >= 80 && (
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'oklch(0.72 0.14 162 / 10%)', color: 'oklch(0.72 0.14 162)', border: '1px solid oklch(0.72 0.14 162 / 20%)' }}>
                     <CheckCircle2 size={12} />
-                    Aucune intervention nécessaire — étudiant autonome
+                    {t('monitoring.diagOk').split('.')[0]}
                   </div>
                 )}
                 {avgScore < 60 && totalAttempts >= 2 && (
                   <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'oklch(0.65 0.22 25 / 10%)', color: 'oklch(0.65 0.22 25)', border: '1px solid oklch(0.65 0.22 25 / 20%)' }}>
                     <AlertTriangle size={12} />
-                    Session individuelle recommandée avant de continuer
+                    {t('monitoring.diagBothConf').split('.')[0]}
                   </div>
                 )}
               </div>
@@ -317,7 +308,7 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
 
           {/* Last active */}
           <div className="text-xs text-center" style={{ color: 'oklch(0.40 0.010 255)' }}>
-            Dernière activité : {timeAgo(student.lastActive)}
+            {t('common.lastActive')} : {timeAgo(student.lastActive, t)}
           </div>
         </div>
       </div>
@@ -326,6 +317,7 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
 }
 
 export default function MonitoringPageFull() {
+  const { t } = useLang();
   const { data: attemptsRaw = [] } = trpc.attempts.allHistory.useQuery();
   const { data: studentsRaw = [] } = trpc.students.list.useQuery();
   const { data: cohortsRaw = [] } = trpc.cohorts.list.useQuery();
@@ -340,7 +332,7 @@ export default function MonitoringPageFull() {
   const [selectedSummary, setSelectedSummary] = useState<StudentSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'students' | 'cohorts' | 'insights'>('students');
 
-  const summaries = useMemo(() => buildSummaries(students, attempts, cohorts), [students, attempts, cohorts]);
+  const summaries = useMemo(() => buildSummaries(students, attempts, cohorts, t), [students, attempts, cohorts, t]);
 
   const filtered = useMemo(() => {
     let list = selectedCohort ? summaries.filter(s => s.student.cohortId === selectedCohort) : summaries;
@@ -366,11 +358,10 @@ export default function MonitoringPageFull() {
     else { setSortKey(key); setSortDir('desc'); }
   }
 
-  // CSV export
   function exportCSV() {
-    const rows = ['Nom,Email,Cohorte,Score moyen,Meilleur score,Tentatives,Scénarios,Profil,En risque'];
+    const rows = [`${t('common.name')},Email,${t('common.cohort')},${t('monitoring.avgScore')},${t('monitoring.bestScore')},${t('common.attempts')},${t('common.scenarios')},${t('monitoring.learnerProfile')},${t('monitoring.atRisk')}`];
     for (const s of summaries) {
-      rows.push([s.student.name, s.student.email, s.cohortName, s.avgScore, s.bestScore, s.totalAttempts, s.uniqueScenarios, s.learnerProfile.label, s.isAtRisk ? 'Oui' : 'Non'].join(','));
+      rows.push([s.student.name, s.student.email, s.cohortName, s.avgScore, s.bestScore, s.totalAttempts, s.uniqueScenarios, s.learnerProfile.label, s.isAtRisk ? t('common.yes') : t('common.no')].join(','));
     }
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -379,7 +370,6 @@ export default function MonitoringPageFull() {
     URL.revokeObjectURL(url);
   }
 
-  // Cohort insights
   const cohortInsights = useMemo(() => {
     return cohorts.map(c => {
       const cs = summaries.filter(s => s.student.cohortId === c.id);
@@ -390,7 +380,6 @@ export default function MonitoringPageFull() {
     });
   }, [cohorts, summaries]);
 
-  // Module difficulty insights
   const moduleInsights = useMemo(() => {
     return ERP_MODULES.map(mod => {
       const modAttempts = attempts.filter(a => a.moduleId === mod.id);
@@ -407,25 +396,25 @@ export default function MonitoringPageFull() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-              Tour de contrôle pédagogique
+              {t('monitoring.controlTower')}
             </h1>
             <p className="text-sm mt-0.5" style={{ color: 'oklch(0.45 0.010 255)' }}>
-              Suivi en temps réel · {students.length} étudiants · {totalAttemptsCount} tentatives enregistrées
+              {t('monitoring.realtime')} · {students.length} {t('common.students').toLowerCase()} · {totalAttemptsCount} {t('monitoring.attempts')}
             </p>
           </div>
           <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80"
             style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)', border: '1px solid oklch(0.60 0.20 255 / 25%)' }}>
-            <Download size={14} /> Exporter CSV
+            <Download size={14} /> {t('monitoring.exportCSV')}
           </button>
         </div>
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { icon: <Users size={20} />, label: 'Étudiants', value: students.length, color: 'oklch(0.72 0.16 255)' },
-            { icon: <BarChart3 size={20} />, label: 'Score moyen', value: `${avgClassScore}%`, color: avgClassScore >= 70 ? 'oklch(0.72 0.14 162)' : 'oklch(0.78 0.14 70)' },
-            { icon: <TrendingUp size={20} />, label: 'Tentatives', value: totalAttemptsCount, color: 'oklch(0.65 0.010 255)' },
-            { icon: <AlertTriangle size={20} />, label: 'En risque', value: atRiskCount, color: atRiskCount > 0 ? 'oklch(0.65 0.22 25)' : 'oklch(0.72 0.14 162)' },
+            { icon: <Users size={20} />, label: t('common.students'), value: students.length, color: 'oklch(0.72 0.16 255)' },
+            { icon: <BarChart3 size={20} />, label: t('monitoring.avgScore'), value: `${avgClassScore}%`, color: avgClassScore >= 70 ? 'oklch(0.72 0.14 162)' : 'oklch(0.78 0.14 70)' },
+            { icon: <TrendingUp size={20} />, label: t('common.attempts'), value: totalAttemptsCount, color: 'oklch(0.65 0.010 255)' },
+            { icon: <AlertTriangle size={20} />, label: t('monitoring.atRisk'), value: atRiskCount, color: atRiskCount > 0 ? 'oklch(0.65 0.22 25)' : 'oklch(0.72 0.14 162)' },
           ].map((kpi, i) => (
             <div key={i} className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <div className="flex items-center gap-2 mb-2" style={{ color: kpi.color }}>{kpi.icon}</div>
@@ -444,7 +433,7 @@ export default function MonitoringPageFull() {
                 background: activeTab === tab ? 'oklch(0.60 0.20 255 / 20%)' : 'transparent',
                 color: activeTab === tab ? 'oklch(0.72 0.16 255)' : 'oklch(0.45 0.010 255)',
               }}>
-              {tab === 'students' ? 'Étudiants' : tab === 'cohorts' ? 'Cohortes' : 'Insights pédagogiques'}
+              {tab === 'students' ? t('monitoring.tabStudents') : tab === 'cohorts' ? t('monitoring.tabCohorts') : t('monitoring.tabInsights')}
             </button>
           ))}
         </div>
@@ -456,12 +445,12 @@ export default function MonitoringPageFull() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1">
                 <Filter size={14} style={{ color: 'oklch(0.45 0.010 255)' }} />
-                <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Cohorte :</span>
+                <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('common.cohort')} :</span>
               </div>
               <button onClick={() => setSelectedCohort(null)}
                 className="text-xs px-3 py-1 rounded-lg transition-all"
                 style={{ background: !selectedCohort ? 'oklch(0.60 0.20 255 / 20%)' : 'oklch(0.14 0.018 255)', color: !selectedCohort ? 'oklch(0.72 0.16 255)' : 'oklch(0.55 0.010 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-                Tous ({summaries.length})
+                {t('monitoring.filterAll')} ({summaries.length})
               </button>
               {cohorts.map(c => (
                 <button key={c.id} onClick={() => setSelectedCohort(c.id)}
@@ -478,10 +467,10 @@ export default function MonitoringPageFull() {
                 <AlertTriangle size={18} style={{ color: 'oklch(0.65 0.22 25)', flexShrink: 0 }} />
                 <div>
                   <div className="text-sm font-semibold" style={{ color: 'oklch(0.65 0.22 25)' }}>
-                    {atRiskCount} étudiant{atRiskCount > 1 ? 's' : ''} en difficulté
+                    {atRiskCount} {t('common.students').toLowerCase()} {t('monitoring.atRisk').toLowerCase()}
                   </div>
                   <div className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>
-                    Score moyen &lt; 60% sur 2+ tentatives. Intervention recommandée.
+                    {t('monitoring.avgScore')} &lt; 60% · 2+ {t('common.attempts').toLowerCase()}
                   </div>
                 </div>
               </div>
@@ -492,27 +481,27 @@ export default function MonitoringPageFull() {
               {/* Table header */}
               <div className="grid gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 2fr 1.2fr', background: 'oklch(0.14 0.018 255)', color: 'oklch(0.45 0.010 255)' }}>
                 <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('name')}>
-                  Étudiant {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                  {t('monitoring.sortName')} {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
-                <div>Cohorte</div>
+                <div>{t('common.cohort')}</div>
                 <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('score')}>
-                  Score {sortKey === 'score' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                  {t('monitoring.sortScore')} {sortKey === 'score' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
                 <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('attempts')}>
-                  Tent. {sortKey === 'attempts' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                  {t('monitoring.sortAttempts').slice(0, 4)}. {sortKey === 'attempts' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
-                <div className="flex items-center gap-1"><Brain size={10} /> Diagnostic ERP</div>
-                <div className="cursor-pointer hover:text-white" onClick={() => toggleSort('risk')}>Statut</div>
+                <div className="flex items-center gap-1"><Brain size={10} /> {t('monitoring.erpDiagnostic')}</div>
+                <div className="cursor-pointer hover:text-white" onClick={() => toggleSort('risk')}>{t('common.status')}</div>
               </div>
 
               {/* Table rows */}
               {filtered.length === 0 ? (
                 <div className="py-12 text-center text-sm" style={{ color: 'oklch(0.45 0.010 255)', background: 'oklch(0.11 0.015 255)' }}>
-                  Aucun étudiant trouvé
+                  {t('monitoring.noStudents')}
                 </div>
               ) : (
                 filtered.map((summary, i) => {
-                  const { student, avgScore, totalAttempts, isAtRisk, learnerProfile, cohortName, trend } = summary;
+                  const { student, avgScore, totalAttempts, isAtRisk, cohortName, trend } = summary;
                   const scoreColor = avgScore >= 80 ? 'oklch(0.72 0.14 162)' : avgScore >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)';
                   const { confusionSignal } = summary;
                   return (
@@ -565,7 +554,7 @@ export default function MonitoringPageFull() {
                         )}
                       </div>
                       <div className="flex items-center">
-                        <TrendBadge trend={trend} />
+                        <TrendBadge trend={trend} t={t} />
                       </div>
                     </div>
                   );
@@ -583,28 +572,28 @@ export default function MonitoringPageFull() {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{cohort.name}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>
-                    {count} étudiant{count > 1 ? 's' : ''}
+                    {count} {t('common.students').toLowerCase()}
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
                     <div className="text-xl font-black" style={{ fontFamily: 'Space Grotesk', color: avg >= 70 ? 'oklch(0.72 0.14 162)' : 'oklch(0.78 0.14 70)' }}>{avg > 0 ? `${avg}%` : '—'}</div>
-                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Score moyen</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.avgScore')}</div>
                   </div>
                   <div>
                     <div className="text-xl font-black" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.72 0.14 162)' }}>{improving}</div>
-                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>En progression</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('common.improving')}</div>
                   </div>
                   <div>
                     <div className="text-xl font-black" style={{ fontFamily: 'Space Grotesk', color: atRisk > 0 ? 'oklch(0.65 0.22 25)' : 'oklch(0.72 0.14 162)' }}>{atRisk}</div>
-                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>En risque</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.atRisk')}</div>
                   </div>
                 </div>
               </div>
             ))}
             {cohortInsights.length === 0 && (
               <div className="col-span-2 py-12 text-center text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>
-                Aucune cohorte configurée
+                {t('cohorts.noCohort')}
               </div>
             )}
           </div>
@@ -613,7 +602,7 @@ export default function MonitoringPageFull() {
         {/* Insights tab */}
         {activeTab === 'insights' && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold" style={{ color: 'oklch(0.75 0.008 255)' }}>Difficulté par module</h3>
+            <h3 className="text-sm font-semibold" style={{ color: 'oklch(0.75 0.008 255)' }}>{t('monitoring.moduleDifficulty')}</h3>
             <div className="space-y-3">
               {moduleInsights.map(({ mod, attempts: cnt, avg, avgHints }) => (
                 <div key={mod.id} className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
@@ -622,7 +611,7 @@ export default function MonitoringPageFull() {
                       <div className="w-2 h-2 rounded-full" style={{ background: mod.color }} />
                       <span className="text-sm font-semibold" style={{ color: 'oklch(0.85 0.005 255)' }}>{mod.id.toUpperCase()} — {mod.name}</span>
                     </div>
-                    <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{cnt} tentative{cnt > 1 ? 's' : ''}</span>
+                    <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{cnt} {t('common.attempts').toLowerCase()}</span>
                   </div>
                   {avg !== null ? (
                     <div className="flex items-center gap-4">
@@ -632,54 +621,55 @@ export default function MonitoringPageFull() {
                         </div>
                       </div>
                       <span className="text-sm font-bold w-12 text-right" style={{ color: avg >= 70 ? 'oklch(0.72 0.14 162)' : avg >= 50 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' }}>{avg}%</span>
-                      <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>💡 {avgHints} indices/tentative</span>
+                      <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>💡 {avgHints} {t('monitoring.hintsPerAttempt')}</span>
                     </div>
                   ) : (
-                    <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>Aucune tentative enregistrée</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{t('monitoring.noAttempts')}</div>
                   )}
                 </div>
               ))}
             </div>
 
             {/* ERP confusion breakdown */}
-            <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>Diagnostic ERP — classe</h3>
+            <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>{t('monitoring.erpDiagnosticClass')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'Comprend le processus', color: 'oklch(0.72 0.14 162)', check: (s: StudentSummary) => !s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused && s.totalAttempts > 0 },
-                { label: 'Confond les noms ERP', color: 'oklch(0.78 0.14 70)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused },
-                { label: 'Confond le processus', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.processConfused && !s.confusionSignal.terminologyConfused },
-                { label: 'Double confusion', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && s.confusionSignal.processConfused },
-              ].map(({ label, color, check }) => {
+                { labelKey: 'monitoring.understands', color: 'oklch(0.72 0.14 162)', check: (s: StudentSummary) => !s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused && s.totalAttempts > 0 },
+                { labelKey: 'monitoring.confusesNames', color: 'oklch(0.78 0.14 70)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused },
+                { labelKey: 'monitoring.confusesProcess', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.processConfused && !s.confusionSignal.terminologyConfused },
+                { labelKey: 'monitoring.doubleConfusion', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && s.confusionSignal.processConfused },
+              ].map(({ labelKey, color, check }) => {
                 const count = summaries.filter(check).length;
                 return (
-                  <div key={label} className="p-3 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${color}20` }}>
+                  <div key={labelKey} className="p-3 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${color}20` }}>
                     <div className="text-xl font-black mb-1" style={{ fontFamily: 'Space Grotesk', color }}>{count}</div>
-                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{label}</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t(labelKey)}</div>
                   </div>
                 );
               })}
             </div>
             <p className="text-xs" style={{ color: 'oklch(0.38 0.010 255)' }}>
-              Cliquez sur un étudiant dans l'onglet « Étudiants » pour voir son diagnostic individuel.
+              {t('monitoring.clickForDiag')}
             </p>
 
             {/* Learner profile distribution */}
-            <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>Distribution des profils d'apprentissage</h3>
+            <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>{t('monitoring.profileDistrib')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: 'Exécuteur précis', icon: '🏆', color: 'oklch(0.72 0.14 162)' },
-                { label: 'Apprenant fiable', icon: '⭐', color: 'oklch(0.72 0.16 255)' },
-                { label: 'Rapide mais imprécis', icon: '⚡', color: 'oklch(0.78 0.14 70)' },
-                { label: 'Guidé en progression', icon: '📈', color: 'oklch(0.78 0.14 70)' },
-                { label: 'Nécessite du soutien', icon: '🆘', color: 'oklch(0.65 0.22 25)' },
+                { labelKey: 'profile.precise', icon: '🏆', color: 'oklch(0.72 0.14 162)' },
+                { labelKey: 'profile.reliable', icon: '⭐', color: 'oklch(0.72 0.16 255)' },
+                { labelKey: 'profile.fast', icon: '⚡', color: 'oklch(0.78 0.14 70)' },
+                { labelKey: 'profile.guided', icon: '📈', color: 'oklch(0.78 0.14 70)' },
+                { labelKey: 'profile.support', icon: '🆘', color: 'oklch(0.65 0.22 25)' },
               ].map(p => {
-                const count = summaries.filter(s => s.learnerProfile.label === p.label).length;
+                const label = t(p.labelKey);
+                const count = summaries.filter(s => s.learnerProfile.label === label).length;
                 return (
-                  <div key={p.label} className="p-4 rounded-xl flex items-center gap-3" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
+                  <div key={p.labelKey} className="p-4 rounded-xl flex items-center gap-3" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
                     <span className="text-2xl">{p.icon}</span>
                     <div>
                       <div className="text-lg font-black" style={{ fontFamily: 'Space Grotesk', color: p.color }}>{count}</div>
-                      <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{p.label}</div>
+                      <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{label}</div>
                     </div>
                   </div>
                 );
@@ -690,7 +680,7 @@ export default function MonitoringPageFull() {
 
         {/* Student detail panel */}
         {selectedSummary && (
-          <StudentDetailPanel summary={selectedSummary} onClose={() => setSelectedSummary(null)} />
+          <StudentDetailPanel summary={selectedSummary} onClose={() => setSelectedSummary(null)} t={t} />
         )}
       </div>
     </DashboardLayout>

@@ -95,4 +95,19 @@
 - [x] Python-style QA checklist (30 items: 24 PASS, 6 FAIL)
 - [x] Micro-learning note display extended from 600ms to 2000ms (FIXED)
 - [x] CohortsPage migrated from localStorage to tRPC database (FIXED)
-- [ ] Language support for 5 missing pages: Login, ModulesPageFull, MonitoringPageFull, CohortsPage, AssignmentsPage
+- [x] Language support for 5 missing pages: Login, ModulesPageFull, MonitoringPageFull, CohortsPage, AssignmentsPage — DONE
+
+## Language Consistency Sprint (2026-03-27)
+- [x] Audit all pages for FR/EN gaps
+- [x] Fix MonitoringPageFull — full EN translations added (698 lines rewritten)
+- [x] Fix CohortsPage — full EN translations added (bilingual v2.1)
+- [x] Fix AssignmentsPage — full EN translations added
+- [x] Fix LoginPage — full EN translations added
+- [x] Fix ModulesPageFull — full EN translations added
+- [x] Fix ModuleDetailPageFull — already had useLang, verified
+- [x] Fix ScenarioPageFull — already fully bilingual (83 useLang calls)
+- [x] Fix DashboardPage — already uses lang ternaries, verified
+- [x] Fix TeacherGuidePage — already fully bilingual (44 useLang calls)
+- [x] Fix shared components (DashboardLayout sidebar/topbar) — already bilingual
+- [x] Validate FR/EN switch end-to-end — all 11 pages PASS
+- [x] Produce Python-style QA checklist + final language report
