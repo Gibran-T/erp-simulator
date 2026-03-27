@@ -43,3 +43,8 @@
 ## Remaining Critical Issues (from QA report)
 - [ ] Migrate CohortsPage to use tRPC instead of localStorage (Issue #1)
 - [x] Add erpImpact + 3-ERP comparison notes to SD-01 (5 steps) and FI-01 (3 steps) — Issue #2 partially resolved
+
+## Pedagogical ERP Card Transformation
+- [x] Transform ERP brand cards into pedagogical entry points (real-world context, strengths, process equivalence, clickable links)
+- [x] Unify 3-ERP comparison panel visual identity in ScenarioPageFull to match dashboard brand cards
+- [x] Add "même processus, terminologie différente" equivalence message to all 3-ERP comparison panels
