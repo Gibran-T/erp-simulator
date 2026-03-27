@@ -3,6 +3,7 @@ import { ERP_MODULES } from '@/lib/erpData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'wouter';
 import { Layers, Package, ShoppingCart, DollarSign, Zap, BookOpen, Play, ChevronRight } from 'lucide-react';
+import { useLang } from '@/contexts/LanguageContext';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   'erp-arch': <Layers size={28} />,
@@ -13,17 +14,19 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function ModulesPageFull() {
+  const { t } = useLang();
   const { user } = useAuth();
+  void user;
 
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-            Modules ERP
+            {t('modules.title')}
           </h1>
           <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>
-            Programme 2 — 5 modules · 30 heures · SAP S/4HANA · Microsoft Dynamics 365 · Odoo
+            {t('modules.subtitle')}
           </p>
         </div>
 
@@ -52,8 +55,8 @@ export default function ModulesPageFull() {
             }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>Début du programme</span>
-            <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>ERP-SIM Simulation finale</span>
+            <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{t('modules.programStart')}</span>
+            <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{t('modules.programEnd')}</span>
           </div>
         </div>
 
@@ -92,11 +95,11 @@ export default function ModulesPageFull() {
                       <div className="flex flex-wrap gap-4 mb-4">
                         <div className="flex items-center gap-1.5">
                           <BookOpen size={14} style={{ color: mod.color }} />
-                          <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>{mod.slides.length} slides pédagogiques</span>
+                          <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>{mod.slides.length} {t('modules.slides')}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Play size={14} style={{ color: mod.color }} />
-                          <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>{mod.scenarios.length} scénarios de simulation</span>
+                          <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>{mod.scenarios.length} {t('modules.scenarios')}</span>
                         </div>
                       </div>
 
@@ -137,7 +140,7 @@ export default function ModulesPageFull() {
                         <div className="progress-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${mod.color}, ${mod.color}aa)` }} />
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{done}/{mod.scenarios.length} scénarios complétés</span>
+                        <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{done}/{mod.scenarios.length} {t('modules.scenariosCompleted')}</span>
                         <span className="text-xs font-semibold" style={{ color: mod.color }}>{pct}%</span>
                       </div>
                     </div>
@@ -147,13 +150,13 @@ export default function ModulesPageFull() {
                       <Link href={`/modules/${mod.id}`}>
                         <button className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
                           style={{ background: `${mod.color}20`, color: mod.color, border: `1px solid ${mod.color}40` }}>
-                          Voir les slides
+                          {t('modules.viewSlides')}
                         </button>
                       </Link>
                       <Link href={`/simulator/${mod.scenarios[0]?.id}`}>
                         <button className="px-4 py-2 rounded-lg text-xs font-semibold transition-all"
                           style={{ background: mod.color, color: 'white' }}>
-                          Simuler
+                          {t('modules.simulate')}
                         </button>
                       </Link>
                     </div>

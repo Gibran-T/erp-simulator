@@ -2,6 +2,7 @@
  * LoginPage — ERP Integrated Business Simulator
  * Dual login: student tab and teacher/admin tab.
  * Uses tRPC backend authentication.
+ * v2: Full FR/EN bilingual support via useLang
  */
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,10 +10,12 @@ import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { Layers, BookOpen, GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { useLang } from '@/contexts/LanguageContext';
 
 type LoginTab = 'student' | 'teacher';
 
 export default function LoginPage() {
+  const { t } = useLang();
   const { loginAsStudent, loginAsTeacher } = useAuth();
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<LoginTab>('student');
@@ -21,6 +24,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // suppress unused warning — trpc is imported for future use
+  void trpc;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +37,10 @@ export default function LoginPage() {
         ? await loginAsStudent(email, password)
         : await loginAsTeacher(email, password);
       if (result.success) {
-        toast.success('Connexion réussie !');
+        toast.success(t('login.successToast'));
         navigate('/dashboard');
       } else {
-        setError(result.error || 'Email ou mot de passe incorrect.');
+        setError(result.error || t('login.errorCredentials'));
       }
     } finally {
       setLoading(false);
@@ -84,7 +90,7 @@ export default function LoginPage() {
               }}
             >
               <BookOpen size={15} />
-              Étudiant
+              {t('login.tabStudent')}
             </button>
             <button
               onClick={() => { setTab('teacher'); setError(''); }}
@@ -95,7 +101,7 @@ export default function LoginPage() {
               }}
             >
               <GraduationCap size={15} />
-              Professeur
+              {t('login.tabTeacher')}
             </button>
           </div>
 
@@ -103,7 +109,7 @@ export default function LoginPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-1.5" style={{ color: 'oklch(0.75 0.01 255)' }}>
-                Adresse email
+                {t('login.emailLabel')}
               </label>
               <input
                 type="email"
@@ -125,7 +131,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-1.5" style={{ color: 'oklch(0.75 0.01 255)' }}>
-                Mot de passe
+                {t('login.passwordLabel')}
               </label>
               <div className="relative">
                 <input
@@ -177,14 +183,14 @@ export default function LoginPage() {
                 cursor: loading ? 'not-allowed' : 'pointer',
               }}
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
+              {loading ? t('login.connecting') : t('login.submit')}
             </button>
           </form>
 
           {/* Demo credentials hint */}
           <div className="mt-5 pt-4" style={{ borderTop: '1px solid oklch(0.15 0.015 255)' }}>
             <p className="text-xs text-center mb-2.5" style={{ color: 'oklch(0.35 0.008 255)' }}>
-              Remplissage automatique des identifiants de démo
+              {t('login.demoHint')}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -192,21 +198,21 @@ export default function LoginPage() {
                 className="px-3 py-1.5 rounded-lg text-xs transition-all"
                 style={{ background: 'oklch(0.10 0.010 255)', color: 'oklch(0.42 0.008 255)', border: '1px solid oklch(0.16 0.015 255)' }}
               >
-                Démo étudiant
+                {t('login.demoStudent')}
               </button>
               <button
                 onClick={() => { setTab('teacher'); setEmail('prof@laconcorde.ca'); setPassword('prof123'); }}
                 className="px-3 py-1.5 rounded-lg text-xs transition-all"
                 style={{ background: 'oklch(0.10 0.010 255)', color: 'oklch(0.42 0.008 255)', border: '1px solid oklch(0.16 0.015 255)' }}
               >
-                Démo professeur
+                {t('login.demoTeacher')}
               </button>
             </div>
           </div>
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: 'oklch(0.35 0.01 255)' }}>
-          Votre compte est créé par votre professeur.
+          {t('login.accountCreatedBy')}
         </p>
       </div>
     </div>

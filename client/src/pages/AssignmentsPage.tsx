@@ -1,5 +1,6 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { ERP_MODULES } from '@/lib/erpData';
+import { useLang } from '@/contexts/LanguageContext';
 import { ClipboardList, Calendar, CheckCircle2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,18 +13,20 @@ const ASSIGNMENTS = ERP_MODULES.flatMap(mod =>
 );
 
 export default function AssignmentsPage() {
+  const { t } = useLang();
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Travaux &amp; Devoirs</h1>
-          <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>Scénarios assignés — Programme 2 ERP</p>
+          <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>{t('assignments.title')}</h1>
+          <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>{t('assignments.subtitle')}</p>
         </div>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Total assignés', value: ASSIGNMENTS.length, color: 'oklch(0.60 0.20 255)' },
-            { label: 'Complétés', value: ASSIGNMENTS.filter(a => a.status === 'completed').length, color: 'oklch(0.72 0.16 162)' },
-            { label: 'En attente', value: ASSIGNMENTS.filter(a => a.status === 'pending').length, color: 'oklch(0.78 0.16 70)' },
+            { label: t('assignments.totalAssigned'), value: ASSIGNMENTS.length, color: 'oklch(0.60 0.20 255)' },
+            { label: t('assignments.completed'), value: ASSIGNMENTS.filter(a => a.status === 'completed').length, color: 'oklch(0.72 0.16 162)' },
+            { label: t('assignments.pending'), value: ASSIGNMENTS.filter(a => a.status === 'pending').length, color: 'oklch(0.78 0.16 70)' },
           ].map((s, i) => (
             <div key={i} className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <div className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: s.color }}>{s.value}</div>
@@ -47,18 +50,18 @@ export default function AssignmentsPage() {
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{a.module}</span>
                   <span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.45 0.010 255)' }}><Clock size={10} /> {a.duration}</span>
-                  <span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.45 0.010 255)' }}><Calendar size={10} /> Échéance: {a.dueDate}</span>
+                  <span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.45 0.010 255)' }}><Calendar size={10} /> {t('assignments.deadline')} {a.dueDate}</span>
                 </div>
               </div>
               <span className="text-xs px-2 py-1 rounded-full font-semibold shrink-0"
                 style={{ background: a.status === 'completed' ? 'oklch(0.72 0.16 162 / 20%)' : 'oklch(0.78 0.16 70 / 20%)', color: a.status === 'completed' ? 'oklch(0.72 0.14 162)' : 'oklch(0.78 0.14 70)' }}>
-                {a.status === 'completed' ? 'Complété' : 'En attente'}
+                {a.status === 'completed' ? t('assignments.statusCompleted') : t('assignments.statusPending')}
               </span>
               <button
-                onClick={() => toast.info(`Scénario ${a.code} — ${a.status === 'completed' ? 'Déjà complété' : 'Accédez via le Simulateur'}`)}
+                onClick={() => toast.info(`${a.code} — ${a.status === 'completed' ? t('assignments.toastCompleted') : t('assignments.toastAccess')}}`)}
                 className="text-xs px-3 py-1.5 rounded-lg shrink-0"
                 style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>
-                Voir
+                {t('common.view')}
               </button>
             </div>
           ))}

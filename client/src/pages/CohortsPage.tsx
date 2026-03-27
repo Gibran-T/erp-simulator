@@ -2,11 +2,13 @@
  * CohortsPage — ERP Integrated Business Simulator
  * Full student management: add/edit/remove students and cohorts
  * Uses tRPC + database (not localStorage)
+ * v2.1: Full FR/EN bilingual support via useLang
  */
 import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { useLang } from '@/contexts/LanguageContext';
 import {
   Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   BookOpen, X, Check, UserPlus, Mail, Search, AlertTriangle,
@@ -40,13 +42,14 @@ interface DbCohort {
 }
 
 // ─── StudentModal ─────────────────────────────────────────────────────────────
-function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving }: {
+function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving, t }: {
   cohortId: number | null;
   student?: DbStudent;
   cohorts: DbCohort[];
   onClose: () => void;
   onSave: (d: { name: string; email: string; password?: string; cohortId: number | null; status: 'active' | 'inactive'; notes?: string }) => void;
   isSaving: boolean;
+  t: (k: string) => string;
 }) {
   const [name, setName] = useState(student?.name ?? '');
   const [email, setEmail] = useState(student?.email ?? '');
@@ -58,10 +61,10 @@ function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving }:
 
   function submit() {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Le nom est requis';
-    if (!email.trim()) e.email = "L'email est requis";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Email invalide';
-    if (!student && password.length < 6) e.password = 'Mot de passe requis (min. 6 caractères)';
+    if (!name.trim()) e.name = t('cohorts.nameRequired');
+    if (!email.trim()) e.email = t('cohorts.emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('cohorts.emailInvalid');
+    if (!student && password.length < 6) e.password = t('cohorts.passwordRequired');
     if (Object.keys(e).length) { setErrors(e); return; }
     onSave({
       name: name.trim(),
@@ -78,19 +81,19 @@ function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving }:
       <div className="w-full max-w-md rounded-2xl p-6 space-y-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.20 255 / 30%)' }}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-            {student ? "Modifier l'étudiant" : 'Ajouter un étudiant'}
+            {student ? t('cohorts.editStudent') : t('cohorts.addStudent')}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.010 255)' }}><X size={18} /></button>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Nom complet *</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.fullName')} *</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="ex. Marie Dupont"
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: `1px solid ${errors.name ? 'oklch(0.65 0.22 25)' : 'oklch(0.25 0.018 255)'}`, color: 'oklch(0.88 0.005 255)' }} />
           {errors.name && <p className="text-xs mt-1" style={{ color: 'oklch(0.65 0.22 25)' }}>{errors.name}</p>}
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Adresse email *</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.emailAddress')} *</label>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="ex. marie.dupont@laconcorde.ca"
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: `1px solid ${errors.email ? 'oklch(0.65 0.22 25)' : 'oklch(0.25 0.018 255)'}`, color: 'oklch(0.88 0.005 255)' }} />
@@ -98,48 +101,48 @@ function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving }:
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>
-            {student ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe *'}
+            {student ? t('cohorts.newPasswordOptional') : `${t('cohorts.password')} *`}
           </label>
           <div className="relative">
             <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'oklch(0.45 0.010 255)' }} />
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder={student ? '••••••••' : 'Min. 6 caractères'}
+              placeholder={student ? '••••••••' : t('cohorts.passwordMin')}
               className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: 'oklch(0.11 0.015 255)', border: `1px solid ${errors.password ? 'oklch(0.65 0.22 25)' : 'oklch(0.25 0.018 255)'}`, color: 'oklch(0.88 0.005 255)' }} />
           </div>
           {errors.password && <p className="text-xs mt-1" style={{ color: 'oklch(0.65 0.22 25)' }}>{errors.password}</p>}
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Cohorte</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.cohort')}</label>
           <select value={selCohort ?? ''} onChange={e => setSelCohort(e.target.value ? Number(e.target.value) : null)}
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }}>
-            <option value="">— Aucune cohorte —</option>
+            <option value="">— {t('cohorts.noCohort')} —</option>
             {cohorts.map(c => <option key={c.id} value={c.id}>{c.name} — {c.description}</option>)}
           </select>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold" style={{ color: 'oklch(0.65 0.010 255)' }}>Statut</span>
+          <span className="text-xs font-semibold" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.status')}</span>
           <button onClick={() => setStatus(s => s === 'active' ? 'inactive' : 'active')}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
             style={{ background: status === 'active' ? 'oklch(0.72 0.16 162 / 20%)' : 'oklch(0.18 0.018 255)', color: status === 'active' ? 'oklch(0.72 0.14 162)' : 'oklch(0.45 0.010 255)' }}>
             {status === 'active' ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
-            {status === 'active' ? 'Actif' : 'Inactif'}
+            {status === 'active' ? t('cohorts.active') : t('cohorts.inactive')}
           </button>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Notes (optionnel)</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Remarques..."
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.notes')}</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder={t('cohorts.remarks')}
             className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }} />
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} disabled={isSaving} className="flex-1 py-2 rounded-lg text-sm font-semibold hover:bg-white/5"
-            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>Annuler</button>
+            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>{t('common.cancel')}</button>
           <button onClick={submit} disabled={isSaving} className="flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
             style={{ background: 'oklch(0.60 0.20 255)', color: 'white' }}>
             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
-            {student ? 'Enregistrer' : 'Ajouter'}
+            {student ? t('common.save') : t('common.add')}
           </button>
         </div>
       </div>
@@ -148,11 +151,12 @@ function StudentModal({ cohortId, student, cohorts, onClose, onSave, isSaving }:
 }
 
 // ─── CohortModal ──────────────────────────────────────────────────────────────
-function CohortModal({ cohort, onClose, onSave, isSaving }: {
+function CohortModal({ cohort, onClose, onSave, isSaving, t }: {
   cohort?: DbCohort;
   onClose: () => void;
   onSave: (d: { name: string; description?: string; program?: string; semester?: string; year?: number; status: 'active' | 'completed' | 'planned' }) => void;
   isSaving: boolean;
+  t: (k: string) => string;
 }) {
   const [name, setName] = useState(cohort?.name ?? '');
   const [description, setDescription] = useState(cohort?.description ?? '');
@@ -162,7 +166,7 @@ function CohortModal({ cohort, onClose, onSave, isSaving }: {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function submit() {
-    if (!name.trim()) { setErrors({ name: 'Le nom est requis' }); return; }
+    if (!name.trim()) { setErrors({ name: t('cohorts.nameRequired') }); return; }
     onSave({
       name: name.trim(),
       description: description.trim() || `${name.trim()} — ${semester} ${year}`,
@@ -178,57 +182,57 @@ function CohortModal({ cohort, onClose, onSave, isSaving }: {
       <div className="w-full max-w-md rounded-2xl p-6 space-y-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.20 255 / 30%)' }}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-            {cohort ? 'Modifier la cohorte' : 'Nouvelle cohorte'}
+            {cohort ? t('cohorts.editCohort') : t('cohorts.newCohort')}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.010 255)' }}><X size={18} /></button>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Nom *</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.cohortName')} *</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="ex. ERP-2026-C"
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: `1px solid ${errors.name ? 'oklch(0.65 0.22 25)' : 'oklch(0.25 0.018 255)'}`, color: 'oklch(0.88 0.005 255)' }} />
           {errors.name && <p className="text-xs mt-1" style={{ color: 'oklch(0.65 0.22 25)' }}>{errors.name}</p>}
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Description</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.description')}</label>
           <input value={description} onChange={e => setDescription(e.target.value)} placeholder="ex. Groupe C — Automne 2026"
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Semestre</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.semester')}</label>
             <select value={semester} onChange={e => setSemester(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }}>
-              <option value="Automne">Automne</option>
-              <option value="Hiver">Hiver</option>
-              <option value="Été">Été</option>
+              <option value="Automne">{t('cohorts.fall')}</option>
+              <option value="Hiver">{t('cohorts.winter')}</option>
+              <option value="Été">{t('cohorts.summer')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Année</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.year')}</label>
             <input type="number" value={year} onChange={e => setYear(Number(e.target.value))} min={2024} max={2030}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }} />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>Statut</label>
+          <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.status')}</label>
           <select value={status} onChange={e => setStatus(e.target.value as 'active' | 'completed' | 'planned')}
             className="w-full px-3 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }}>
-            <option value="active">Actif</option>
-            <option value="planned">Planifié</option>
-            <option value="completed">Complété</option>
+            <option value="active">{t('cohorts.active')}</option>
+            <option value="planned">{t('cohorts.planned')}</option>
+            <option value="completed">{t('cohorts.completed')}</option>
           </select>
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} disabled={isSaving} className="flex-1 py-2 rounded-lg text-sm font-semibold hover:bg-white/5"
-            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>Annuler</button>
+            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>{t('common.cancel')}</button>
           <button onClick={submit} disabled={isSaving} className="flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
             style={{ background: 'oklch(0.60 0.20 255)', color: 'white' }}>
             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
-            {cohort ? 'Enregistrer' : 'Créer'}
+            {cohort ? t('common.save') : t('common.create')}
           </button>
         </div>
       </div>
@@ -237,20 +241,20 @@ function CohortModal({ cohort, onClose, onSave, isSaving }: {
 }
 
 // ─── ConfirmModal ─────────────────────────────────────────────────────────────
-function ConfirmModal({ message, onConfirm, onClose }: { message: string; onConfirm: () => void; onClose: () => void }) {
+function ConfirmModal({ message, onConfirm, onClose, t }: { message: string; onConfirm: () => void; onClose: () => void; t: (k: string) => string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'oklch(0 0 0 / 70%)' }}>
       <div className="w-full max-w-sm rounded-2xl p-6 space-y-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.65 0.22 25 / 40%)' }}>
         <div className="flex items-center gap-3">
           <AlertTriangle size={22} style={{ color: 'oklch(0.78 0.16 70)' }} />
-          <h2 className="text-base font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Confirmer la suppression</h2>
+          <h2 className="text-base font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>{t('cohorts.confirmDelete')}</h2>
         </div>
         <p className="text-sm" style={{ color: 'oklch(0.60 0.010 255)' }}>{message}</p>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold hover:bg-white/5"
-            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>Annuler</button>
+            style={{ border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.55 0.010 255)' }}>{t('common.cancel')}</button>
           <button onClick={onConfirm} className="flex-1 py-2 rounded-lg text-sm font-bold"
-            style={{ background: 'oklch(0.55 0.22 25)', color: 'white' }}>Supprimer</button>
+            style={{ background: 'oklch(0.55 0.22 25)', color: 'white' }}>{t('common.delete')}</button>
         </div>
       </div>
     </div>
@@ -258,13 +262,15 @@ function ConfirmModal({ message, onConfirm, onClose }: { message: string; onConf
 }
 
 // ─── StudentRow ───────────────────────────────────────────────────────────────
-function StudentRow({ student, cohorts, onEdit, onRemove }: {
+function StudentRow({ student, cohorts, onEdit, onRemove, t }: {
   student: DbStudent; cohorts: DbCohort[];
   onEdit: (s: DbStudent) => void; onRemove: (s: DbStudent) => void;
+  t: (k: string) => string;
 }) {
+  void cohorts;
   const lastActiveStr = student.lastActive
     ? new Date(student.lastActive).toLocaleDateString('fr-CA', { month: 'short', day: 'numeric' })
-    : 'Jamais';
+    : t('common.never');
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
@@ -278,7 +284,7 @@ function StudentRow({ student, cohorts, onEdit, onRemove }: {
           <span className="text-sm font-semibold truncate" style={{ color: 'oklch(0.88 0.005 255)' }}>{student.name}</span>
           <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0"
             style={{ background: student.status === 'active' ? 'oklch(0.72 0.16 162 / 20%)' : 'oklch(0.18 0.018 255)', color: student.status === 'active' ? 'oklch(0.72 0.14 162)' : 'oklch(0.45 0.010 255)' }}>
-            {student.status === 'active' ? 'Actif' : 'Inactif'}
+            {student.status === 'active' ? t('cohorts.active') : t('cohorts.inactive')}
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs truncate" style={{ color: 'oklch(0.45 0.010 255)' }}>
@@ -287,11 +293,11 @@ function StudentRow({ student, cohorts, onEdit, onRemove }: {
       </div>
       <div className="hidden md:block text-center">
         <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{lastActiveStr}</div>
-        <div className="text-xs" style={{ color: 'oklch(0.35 0.010 255)' }}>dernière activité</div>
+        <div className="text-xs" style={{ color: 'oklch(0.35 0.010 255)' }}>{t('cohorts.lastActivity')}</div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={() => onEdit(student)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.60 0.20 255)' }} title="Modifier"><Pencil size={14} /></button>
-        <button onClick={() => onRemove(student)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.22 25)' }} title="Supprimer"><Trash2 size={14} /></button>
+        <button onClick={() => onEdit(student)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.60 0.20 255)' }} title={t('common.edit')}><Pencil size={14} /></button>
+        <button onClick={() => onRemove(student)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.22 25)' }} title={t('common.delete')}><Trash2 size={14} /></button>
       </div>
     </div>
   );
@@ -299,6 +305,7 @@ function StudentRow({ student, cohorts, onEdit, onRemove }: {
 
 // ─── Main CohortsPage ─────────────────────────────────────────────────────────
 export default function CohortsPage() {
+  const { t } = useLang();
   const utils = trpc.useUtils();
 
   // Queries
@@ -307,42 +314,42 @@ export default function CohortsPage() {
 
   // Cohort mutations
   const createCohort = trpc.cohorts.create.useMutation({
-    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success('Cohorte créée'); setShowCohort(false); setEditCohort(undefined); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de la création'),
+    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success(t('cohorts.toastCohortCreated')); setShowCohort(false); setEditCohort(undefined); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const updateCohort = trpc.cohorts.update.useMutation({
-    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success('Cohorte mise à jour'); setShowCohort(false); setEditCohort(undefined); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de la mise à jour'),
+    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success(t('cohorts.toastCohortUpdated')); setShowCohort(false); setEditCohort(undefined); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const deleteCohort = trpc.cohorts.delete.useMutation({
-    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success('Cohorte supprimée'); setConfirmDel(null); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de la suppression'),
+    onSuccess: () => { utils.cohorts.list.invalidate(); toast.success(t('cohorts.toastCohortDeleted')); setConfirmDel(null); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
 
   // Student mutations
   const createStudent = trpc.students.create.useMutation({
-    onSuccess: () => { utils.students.list.invalidate(); toast.success('Étudiant ajouté'); setShowStudent(false); setEditStudent(undefined); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de l\'ajout'),
+    onSuccess: () => { utils.students.list.invalidate(); toast.success(t('cohorts.toastStudentAdded')); setShowStudent(false); setEditStudent(undefined); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const updateStudent = trpc.students.update.useMutation({
-    onSuccess: () => { utils.students.list.invalidate(); toast.success('Étudiant mis à jour'); setShowStudent(false); setEditStudent(undefined); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de la mise à jour'),
+    onSuccess: () => { utils.students.list.invalidate(); toast.success(t('cohorts.toastStudentUpdated')); setShowStudent(false); setEditStudent(undefined); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const resetPassword = trpc.students.resetPassword.useMutation({
-    onSuccess: () => toast.success('Mot de passe mis à jour'),
-    onError: (e) => toast.error(e.message || 'Erreur lors du changement de mot de passe'),
+    onSuccess: () => toast.success(t('cohorts.toastPasswordUpdated')),
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const deleteStudent = trpc.students.delete.useMutation({
-    onSuccess: () => { utils.students.list.invalidate(); toast.success('Étudiant supprimé'); setConfirmDel(null); },
-    onError: (e) => toast.error(e.message || 'Erreur lors de la suppression'),
+    onSuccess: () => { utils.students.list.invalidate(); toast.success(t('cohorts.toastStudentDeleted')); setConfirmDel(null); },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
   const importBulk = trpc.students.importBulk.useMutation({
     onSuccess: (result) => {
       utils.students.list.invalidate();
-      toast.success(`${result.created} étudiant(s) importé(s)${result.skipped > 0 ? `, ${result.skipped} ignoré(s)` : ''}`);
+      toast.success(`${result.created} ${t('cohorts.toastImported')}${result.skipped > 0 ? `, ${result.skipped} ${t('cohorts.toastSkipped')}` : ''}`);
       setCsvPreview(null);
     },
-    onError: (e) => toast.error(e.message || 'Erreur lors de l\'import'),
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
 
   // UI state
@@ -381,9 +388,9 @@ export default function CohortsPage() {
         const matchedCohort = cohortName ? cohorts.find(c => c.name.toLowerCase() === cohortName.toLowerCase()) : null;
         const cohortId = matchedCohort?.id ?? defaultCohortId;
         let error: string | undefined;
-        if (!name) error = 'Nom manquant';
-        else if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) error = 'Email invalide';
-        else if (students.find(s => s.email.toLowerCase() === email.toLowerCase())) error = 'Email déjà existant';
+        if (!name) error = t('cohorts.csvErrorName');
+        else if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) error = t('cohorts.emailInvalid');
+        else if (students.find(s => s.email.toLowerCase() === email.toLowerCase())) error = t('cohorts.csvErrorDuplicate');
         return { name, email, cohortId, valid: !error, error };
       }).filter(r => r.name || r.email);
       setCsvPreview({ rows, fileName: file.name });
@@ -437,7 +444,7 @@ export default function CohortsPage() {
       deleteStudent.mutate({ id: confirmDel.id });
     } else {
       const cs = students.filter(s => s.cohortId === confirmDel.id);
-      if (cs.length > 0) { toast.error(`Impossible: ${cs.length} étudiant(s) dans cette cohorte`); setConfirmDel(null); return; }
+      if (cs.length > 0) { toast.error(`${t('cohorts.cannotDelete')}: ${cs.length} ${t('cohorts.studentsInCohort')}`); setConfirmDel(null); return; }
       deleteCohort.mutate({ id: confirmDel.id });
     }
   }
@@ -445,7 +452,7 @@ export default function CohortsPage() {
   const filtered = search ? students.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase())) : null;
   const sColor = (s: string) => s === 'active' ? 'oklch(0.72 0.14 162)' : s === 'planned' ? 'oklch(0.78 0.16 70)' : 'oklch(0.45 0.010 255)';
   const sBg = (s: string) => s === 'active' ? 'oklch(0.72 0.16 162 / 20%)' : s === 'planned' ? 'oklch(0.78 0.16 70 / 20%)' : 'oklch(0.18 0.018 255)';
-  const sLabel = (s: string) => s === 'active' ? 'Actif' : s === 'planned' ? 'Planifié' : 'Complété';
+  const sLabel = (s: string) => s === 'active' ? t('cohorts.active') : s === 'planned' ? t('cohorts.planned') : t('cohorts.completed');
 
   const isLoading = cohortsLoading || studentsLoading;
   const isSavingStudent = createStudent.isPending || updateStudent.isPending;
@@ -456,31 +463,31 @@ export default function CohortsPage() {
       <div className="p-6 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Gestion des cohortes</h1>
-            <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>Gérez vos groupes d'étudiants — Programme 2 ERP</p>
+            <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>{t('cohorts.title')}</h1>
+            <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>{t('cohorts.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <input ref={csvInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFile} />
             <button onClick={() => csvInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
               style={{ background: 'oklch(0.72 0.16 162 / 20%)', color: 'oklch(0.72 0.14 162)', border: '1px solid oklch(0.72 0.16 162 / 30%)' }}
-              title="Importer une liste d'étudiants depuis un fichier CSV">
-              <Upload size={16} /> Importer CSV
+              title={t('cohorts.importCsvHint')}>
+              <Upload size={16} /> {t('cohorts.importCsv')}
             </button>
             <button onClick={() => { setEditCohort(undefined); setShowCohort(true); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
               style={{ background: 'oklch(0.60 0.20 255)', color: 'white' }}>
-              <Plus size={16} /> Nouvelle cohorte
+              <Plus size={16} /> {t('cohorts.newCohort')}
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Cohortes actives', value: activeCohorts, color: 'oklch(0.72 0.16 162)' },
-            { label: 'Étudiants total', value: totalStudents, color: 'oklch(0.60 0.20 255)' },
-            { label: 'Étudiants actifs', value: activeStudents, color: 'oklch(0.78 0.16 70)' },
-            { label: 'Taux d\'activité', value: totalStudents > 0 ? `${Math.round(activeStudents / totalStudents * 100)}%` : '—', color: 'oklch(0.65 0.22 25)' },
+            { label: t('cohorts.activeCohorts'), value: activeCohorts, color: 'oklch(0.72 0.16 162)' },
+            { label: t('cohorts.totalStudents'), value: totalStudents, color: 'oklch(0.60 0.20 255)' },
+            { label: t('cohorts.activeStudents'), value: activeStudents, color: 'oklch(0.78 0.16 70)' },
+            { label: t('cohorts.activityRate'), value: totalStudents > 0 ? `${Math.round(activeStudents / totalStudents * 100)}%` : '—', color: 'oklch(0.65 0.22 25)' },
           ].map((s, i) => (
             <div key={i} className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <div className="text-2xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: s.color }}>{s.value}</div>
@@ -491,7 +498,7 @@ export default function CohortsPage() {
 
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'oklch(0.45 0.010 255)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un étudiant par nom ou email..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('cohorts.searchPlaceholder')}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none"
             style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 8%)', color: 'oklch(0.88 0.005 255)' }} />
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'oklch(0.45 0.010 255)' }}><X size={14} /></button>}
@@ -505,11 +512,11 @@ export default function CohortsPage() {
 
         {!isLoading && filtered && (
           <div className="rounded-xl p-4 space-y-2" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
-            <div className="text-xs font-semibold mb-2" style={{ color: 'oklch(0.55 0.010 255)' }}>{filtered.length} résultat(s) pour "{search}"</div>
+            <div className="text-xs font-semibold mb-2" style={{ color: 'oklch(0.55 0.010 255)' }}>{filtered.length} {t('cohorts.resultsFor')} "{search}"</div>
             {filtered.length === 0
-              ? <p className="text-sm text-center py-4" style={{ color: 'oklch(0.45 0.010 255)' }}>Aucun étudiant trouvé</p>
+              ? <p className="text-sm text-center py-4" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('cohorts.noStudentFound')}</p>
               : filtered.map(s => <StudentRow key={s.id} student={s} cohorts={cohorts} onEdit={openEditStudent}
-                onRemove={st => setConfirmDel({ type: 'student', id: st.id, name: st.name })} />)}
+                onRemove={st => setConfirmDel({ type: 'student', id: st.id, name: st.name })} t={t} />)}
           </div>
         )}
 
@@ -518,7 +525,7 @@ export default function CohortsPage() {
             {cohorts.length === 0 ? (
               <div className="rounded-xl p-10 text-center" style={{ background: 'oklch(0.14 0.018 255)', border: '1px dashed oklch(0.25 0.018 255)' }}>
                 <GraduationCap size={36} className="mx-auto mb-3" style={{ color: 'oklch(0.35 0.010 255)' }} />
-                <p className="text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>Aucune cohorte. Créez votre première cohorte.</p>
+                <p className="text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('cohorts.noCohortYet')}</p>
               </div>
             ) : cohorts.map(cohort => {
               const cs = students.filter(s => s.cohortId === cohort.id);
@@ -526,7 +533,7 @@ export default function CohortsPage() {
               const active = cs.filter(s => s.status === 'active').length;
               return (
                 <div key={cohort.id} className="rounded-xl overflow-hidden"
-                  style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${cohort.status === 'active' ? 'oklch(0.60 0.20 255 / 25%)' : 'oklch(1 0 0 / 6%)'}` }}>
+                  style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${cohort.status === 'active' ? 'oklch(0.60 0.20 255 / 20%)' : 'oklch(1 0 0 / 6%)'}` }}>
                   <div className="flex items-center gap-3 p-4">
                     <button onClick={() => toggle(cohort.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -549,17 +556,17 @@ export default function CohortsPage() {
                       <button onClick={() => openAddStudent(cohort.id)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
                         style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>
-                        <UserPlus size={13} /> Ajouter
+                        <UserPlus size={13} /> {t('common.add')}
                       </button>
-                      <button onClick={() => { setEditCohort(cohort); setShowCohort(true); }} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.60 0.20 255)' }} title="Modifier"><Pencil size={14} /></button>
-                      <button onClick={() => setConfirmDel({ type: 'cohort', id: cohort.id, name: cohort.name })} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.22 25)' }} title="Supprimer"><Trash2 size={14} /></button>
+                      <button onClick={() => { setEditCohort(cohort); setShowCohort(true); }} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.60 0.20 255)' }} title={t('common.edit')}><Pencil size={14} /></button>
+                      <button onClick={() => setConfirmDel({ type: 'cohort', id: cohort.id, name: cohort.name })} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.22 25)' }} title={t('common.delete')}><Trash2 size={14} /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 border-t" style={{ borderColor: 'oklch(1 0 0 / 5%)' }}>
                     {[
-                      { label: 'Étudiants', value: cs.length },
-                      { label: 'Actifs', value: active },
-                      { label: 'Inactifs', value: cs.length - active },
+                      { label: t('common.students'), value: cs.length },
+                      { label: t('cohorts.active'), value: active },
+                      { label: t('cohorts.inactive'), value: cs.length - active },
                     ].map((item, i) => (
                       <div key={i} className="text-center py-2.5 px-2" style={{ borderRight: i < 2 ? '1px solid oklch(1 0 0 / 5%)' : 'none' }}>
                         <div className="text-sm font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{item.value}</div>
@@ -572,14 +579,14 @@ export default function CohortsPage() {
                       {cs.length === 0 ? (
                         <div className="text-center py-6">
                           <UserPlus size={24} className="mx-auto mb-2" style={{ color: 'oklch(0.35 0.010 255)' }} />
-                          <p className="text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>Aucun étudiant dans cette cohorte.</p>
-                          <button onClick={() => openAddStudent(cohort.id)} className="mt-2 text-xs font-semibold" style={{ color: 'oklch(0.60 0.20 255)' }}>+ Ajouter le premier étudiant</button>
+                          <p className="text-sm" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('cohorts.noStudentsInCohort')}</p>
+                          <button onClick={() => openAddStudent(cohort.id)} className="mt-2 text-xs font-semibold" style={{ color: 'oklch(0.60 0.20 255)' }}>+ {t('cohorts.addFirstStudent')}</button>
                         </div>
                       ) : (
                         <>
-                          <div className="text-xs font-semibold mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{cs.length} étudiant{cs.length > 1 ? 's' : ''}</div>
+                          <div className="text-xs font-semibold mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{cs.length} {t('common.students').toLowerCase()}</div>
                           {cs.map(s => <StudentRow key={s.id} student={s} cohorts={cohorts} onEdit={openEditStudent}
-                            onRemove={st => setConfirmDel({ type: 'student', id: st.id, name: st.name })} />)}
+                            onRemove={st => setConfirmDel({ type: 'student', id: st.id, name: st.name })} t={t} />)}
                         </>
                       )}
                     </div>
@@ -598,12 +605,14 @@ export default function CohortsPage() {
         onClose={() => { setShowStudent(false); setEditStudent(undefined); }}
         onSave={saveStudent}
         isSaving={isSavingStudent}
+        t={t}
       />}
       {showCohort && <CohortModal
         cohort={editCohort}
         onClose={() => { setShowCohort(false); setEditCohort(undefined); }}
         onSave={saveCohort}
         isSaving={isSavingCohort}
+        t={t}
       />}
 
       {/* CSV Preview Modal */}
@@ -613,15 +622,15 @@ export default function CohortsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText size={18} style={{ color: 'oklch(0.72 0.14 162)' }} />
-                <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>Aperçu de l'import</h2>
+                <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>{t('cohorts.csvPreviewTitle')}</h2>
               </div>
               <button onClick={() => setCsvPreview(null)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.010 255)' }}><X size={18} /></button>
             </div>
             <p className="text-xs" style={{ color: 'oklch(0.50 0.010 255)' }}>
-              Fichier : <strong style={{ color: 'oklch(0.72 0.14 162)' }}>{csvPreview.fileName}</strong> — {csvPreview.rows.filter(r => r.valid).length} valide(s), {csvPreview.rows.filter(r => !r.valid).length} ignoré(s)
+              {t('cohorts.csvFile')} : <strong style={{ color: 'oklch(0.72 0.14 162)' }}>{csvPreview.fileName}</strong> — {csvPreview.rows.filter(r => r.valid).length} {t('cohorts.csvValid')}, {csvPreview.rows.filter(r => !r.valid).length} {t('cohorts.csvSkipped')}
             </p>
             <p className="text-xs" style={{ color: 'oklch(0.60 0.16 70)' }}>
-              Mot de passe par défaut : <code style={{ color: 'oklch(0.78 0.16 70)' }}>Concorde2026!</code> — à changer lors de la première connexion
+              {t('cohorts.csvDefaultPassword')} : <code style={{ color: 'oklch(0.78 0.16 70)' }}>Concorde2026!</code> — {t('cohorts.csvPasswordHint')}
             </p>
             <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
               {csvPreview.rows.map((row, i) => (
@@ -639,22 +648,22 @@ export default function CohortsPage() {
                   {!row.valid && <span className="text-xs shrink-0" style={{ color: 'oklch(0.65 0.22 25)' }}>{row.error}</span>}
                   {row.valid && (
                     <span className="text-xs shrink-0" style={{ color: 'oklch(0.50 0.010 255)' }}>
-                      {cohorts.find(c => c.id === row.cohortId)?.name || 'Cohorte par défaut'}
+                      {cohorts.find(c => c.id === row.cohortId)?.name || t('cohorts.defaultCohort')}
                     </span>
                   )}
                 </div>
               ))}
             </div>
-            <p className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Format attendu : <code style={{ color: 'oklch(0.72 0.14 162)' }}>nom,email</code> ou <code style={{ color: 'oklch(0.72 0.14 162)' }}>nom,email,cohorte</code> — une ligne par étudiant</p>
+            <p className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('cohorts.csvFormat')}</p>
             <div className="flex gap-3 pt-2">
               <button onClick={() => setCsvPreview(null)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>Annuler</button>
+                style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>{t('common.cancel')}</button>
               <button onClick={confirmCsvImport} disabled={csvPreview.rows.filter(r => r.valid).length === 0 || importBulk.isPending}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
                 style={{ background: 'oklch(0.72 0.16 162)', color: 'white' }}>
                 {importBulk.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
-                Importer {csvPreview.rows.filter(r => r.valid).length} étudiant(s)
+                {t('cohorts.importCount').replace('{n}', String(csvPreview.rows.filter(r => r.valid).length))}
               </button>
             </div>
           </div>
@@ -663,9 +672,9 @@ export default function CohortsPage() {
 
       {confirmDel && <ConfirmModal
         message={confirmDel.type === 'student'
-          ? `Supprimer l'étudiant "${confirmDel.name}" ? Cette action est irréversible.`
-          : `Supprimer la cohorte "${confirmDel.name}" ? Les étudiants associés ne seront pas supprimés.`}
-        onConfirm={doDelete} onClose={() => setConfirmDel(null)} />}
+          ? t('cohorts.confirmDeleteStudent').replace('{name}', confirmDel.name)
+          : t('cohorts.confirmDeleteCohort').replace('{name}', confirmDel.name)}
+        onConfirm={doDelete} onClose={() => setConfirmDel(null)} t={t} />}
     </DashboardLayout>
   );
 }
