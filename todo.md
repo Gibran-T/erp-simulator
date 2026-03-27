@@ -41,7 +41,7 @@
 - [x] Push to GitHub
 
 ## Remaining Critical Issues (from QA report)
-- [ ] Migrate CohortsPage to use tRPC instead of localStorage (Issue #1)
+- [x] Migrate CohortsPage to use tRPC instead of localStorage (Issue #1) — DONE
 - [x] Add erpImpact + 3-ERP comparison notes to SD-01 (5 steps) and FI-01 (3 steps) — Issue #2 partially resolved
 
 ## Pedagogical ERP Card Transformation
@@ -87,3 +87,12 @@
 
 ### Phase 10 — Final QA Validation
 - [x] Conducted real end-to-end QA test — 3 production bugs found and fixed, 16 vitest tests passing
+
+## E2E QA Simulation (2026-03-27)
+- [x] Student E2E simulation (42 min, 3 attempts MM-01, 100% final score)
+- [x] Teacher E2E simulation (8 min, monitoring + insights + diagnostic ERP)
+- [x] FR/EN switch QA across all 11 pages
+- [x] Python-style QA checklist (30 items: 24 PASS, 6 FAIL)
+- [x] Micro-learning note display extended from 600ms to 2000ms (FIXED)
+- [x] CohortsPage migrated from localStorage to tRPC database (FIXED)
+- [ ] Language support for 5 missing pages: Login, ModulesPageFull, MonitoringPageFull, CohortsPage, AssignmentsPage

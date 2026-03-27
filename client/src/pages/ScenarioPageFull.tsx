@@ -541,7 +541,7 @@ export default function ScenarioPageFull() {
         setCurrentStep(prev => prev + 1);
         setStepFeedback(null);
         setShowHint(false);
-      }, 600);
+      }, 2000);
     }
   }
 
