@@ -195,7 +195,7 @@ export default function LoginPage() {
                 Démo étudiant
               </button>
               <button
-                onClick={() => { setTab('teacher'); setEmail('prof.demo@laconcorde.ca'); setPassword('Demo2024!'); }}
+                onClick={() => { setTab('teacher'); setEmail('prof@laconcorde.ca'); setPassword('prof123'); }}
                 className="px-3 py-1.5 rounded-lg text-xs transition-all"
                 style={{ background: 'oklch(0.10 0.010 255)', color: 'oklch(0.42 0.008 255)', border: '1px solid oklch(0.16 0.015 255)' }}
               >

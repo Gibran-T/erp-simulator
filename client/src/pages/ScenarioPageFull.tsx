@@ -479,10 +479,11 @@ export default function ScenarioPageFull() {
   }
 
   function handleNextStep() {
+    // Clear any previous error feedback before re-validating (single-click Réessayer)
     if (stepFeedback && !stepFeedback.correct) {
       setStepFeedback(null);
       setShowHint(false);
-      return;
+      // fall through to re-validate immediately in the same click
     }
     const isCorrect = validateStep();
     if (!isCorrect) {

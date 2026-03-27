@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, name, role FROM erp_teachers LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, email, name, role FROM erp_teachers LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "prof@laconcorde.ca",
+      "name": "Prof. Marie Dupont",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tprof@laconcorde.ca\tProf. Marie Dupont\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

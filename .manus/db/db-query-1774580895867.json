@@ -1,0 +1,34 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "cohorts"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "erp_students"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "erp_teachers"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "quiz_scores"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "scenario_attempts"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "scenario_scores"
+    },
+    {
+      "Tables_in_h8ynqFBCEuYgutk3aFBMKE": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_h8ynqFBCEuYgutk3aFBMKE\n__drizzle_migrations\ncohorts\nerp_students\nerp_teachers\nquiz_scores\nscenario_attempts\nscenario_scores\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}
