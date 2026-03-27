@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, email, name, role, created_at FROM user WHERE email LIKE '%prof%' OR role = 'admin' LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, email, name, role, created_at FROM user WHERE email LIKE '%prof%' OR role = 'admin' LIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'h8ynqfbceuygutk3afbmke.user' doesn't exist"
+  ]
+}

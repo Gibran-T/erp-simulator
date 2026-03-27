@@ -1,0 +1,59 @@
+{
+  "query": "SELECT id, email, name, cohortId, status FROM erp_students; SELECT id, name, status FROM cohorts; DESCRIBE scenario_scores;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, email, name, cohortId, status FROM erp_students; SELECT id, name, status FROM cohorts; DESCRIBE scenario_scores;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "alexandre.tremblay@laconcorde.ca",
+      "name": "Alexandre Tremblay",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "2",
+      "email": "sophie.bergeron@laconcorde.ca",
+      "name": "Sophie Bergeron",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "3",
+      "email": "marc.leblanc@laconcorde.ca",
+      "name": "Marc Leblanc",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "4",
+      "email": "emma.cote@laconcorde.ca",
+      "name": "Emma Côté",
+      "cohortId": "1",
+      "status": "active"
+    },
+    {
+      "id": "5",
+      "email": "lucas.gagnon@laconcorde.ca",
+      "name": "Lucas Gagnon",
+      "cohortId": "1",
+      "status": "active"
+    }
+  ],
+  "messages": [
+    "id\tname\tstatus",
+    "1\tTI-2025-A\tactive",
+    "Field\tType\tNull\tKey\tDefault\tExtra",
+    "id\tint\tNO\tPRI\tNULL\tauto_increment",
+    "studentId\tint\tNO\t\tNULL\t",
+    "scenarioId\tvarchar(100)\tNO\t\tNULL\t",
+    "moduleId\tvarchar(50)\tNO\t\tNULL\t",
+    "score\tint\tNO\t\tNULL\t",
+    "maxScore\tint\tNO\t\t100\t",
+    "hintsUsed\tint\tNO\t\t0\t",
+    "wrongAttempts\tint\tNO\t\t0\t",
+    "examMode\ttinyint(1)\tNO\t\t0\t",
+    "completedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t"
+  ],
+  "stdout": "id\temail\tname\tcohortId\tstatus\n1\talexandre.tremblay@laconcorde.ca\tAlexandre Tremblay\t1\tactive\n2\tsophie.bergeron@laconcorde.ca\tSophie Bergeron\t1\tactive\n3\tmarc.leblanc@laconcorde.ca\tMarc Leblanc\t1\tactive\n4\temma.cote@laconcorde.ca\tEmma Côté\t1\tactive\n5\tlucas.gagnon@laconcorde.ca\tLucas Gagnon\t1\tactive\nid\tname\tstatus\n1\tTI-2025-A\tactive\nField\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nstudentId\tint\tNO\t\tNULL\t\nscenarioId\tvarchar(100)\tNO\t\tNULL\t\nmoduleId\tvarchar(50)\tNO\t\tNULL\t\nscore\tint\tNO\t\tNULL\t\nmaxScore\tint\tNO\t\t100\t\nhintsUsed\tint\tNO\t\t0\t\nwrongAttempts\tint\tNO\t\t0\t\nexamMode\ttinyint(1)\tNO\t\t0\t\ncompletedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\n",
+  "stderr": "",
+  "execution_time_ms": 160
+}

@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, email, name, role FROM users LIMIT 20; SELECT id, email, name FROM erp_teachers LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, email, name, role FROM users LIMIT 20; SELECT id, email, name FROM erp_teachers LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "gibranlog@gmail.com",
+      "name": "Thiago Gibran",
+      "role": "admin"
+    }
+  ],
+  "messages": [
+    "id\temail\tname",
+    "1\tprof@laconcorde.ca\tProf. Marie Dupont"
+  ],
+  "stdout": "id\temail\tname\trole\n1\tgibranlog@gmail.com\tThiago Gibran\tadmin\nid\temail\tname\n1\tprof@laconcorde.ca\tProf. Marie Dupont\n",
+  "stderr": "",
+  "execution_time_ms": 170
+}

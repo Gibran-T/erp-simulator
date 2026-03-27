@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, name, cohortId, status FROM erp_students; SELECT id, name, status FROM cohorts; SELECT student_id, scenario_id, score, completed_at FROM scenario_scores LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute SELECT id, email, name, cohortId, status FROM erp_students; SELECT id, name, status FROM cohorts; SELECT student_id, scenario_id, score, completed_at FROM scenario_scores LIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "id\temail\tname\tcohortId\tstatus",
+    "1\talexandre.tremblay@laconcorde.ca\tAlexandre Tremblay\t1\tactive",
+    "2\tsophie.bergeron@laconcorde.ca\tSophie Bergeron\t1\tactive",
+    "3\tmarc.leblanc@laconcorde.ca\tMarc Leblanc\t1\tactive",
+    "4\temma.cote@laconcorde.ca\tEmma Côté\t1\tactive",
+    "5\tlucas.gagnon@laconcorde.ca\tLucas Gagnon\t1\tactive",
+    "id\tname\tstatus",
+    "1\tTI-2025-A\tactive",
+    "ERROR 1054 (42S22) at line 1: Unknown column 'student_id' in 'field list'"
+  ]
+}
