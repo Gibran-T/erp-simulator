@@ -24,6 +24,39 @@ const SYSTEM_COLORS = {
   odoo: { bg: 'oklch(0.15 0.06 162 / 40%)', color: 'oklch(0.75 0.14 162)', border: 'oklch(0.55 0.16 162 / 30%)' },
 };
 
+// Official brand SVG logos (inline, no external dependency)
+const SapLogo = () => (
+  <svg viewBox="0 0 48 48" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="48" height="48" rx="8" fill="#0070F2"/>
+    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle"
+      fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="16" fill="white" letterSpacing="-0.5">
+      SAP
+    </text>
+  </svg>
+);
+
+const DynamicsLogo = () => (
+  <svg viewBox="0 0 48 48" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="48" height="48" rx="8" fill="#0078D4"/>
+    {/* Microsoft four-squares motif */}
+    <rect x="10" y="10" width="12" height="12" rx="1.5" fill="#F25022"/>
+    <rect x="26" y="10" width="12" height="12" rx="1.5" fill="#7FBA00"/>
+    <rect x="10" y="26" width="12" height="12" rx="1.5" fill="#00A4EF"/>
+    <rect x="26" y="26" width="12" height="12" rx="1.5" fill="#FFB900"/>
+  </svg>
+);
+
+const OdooLogo = () => (
+  <svg viewBox="0 0 48 48" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="48" height="48" rx="8" fill="#714B67"/>
+    {/* Odoo honeycomb dot motif */}
+    <circle cx="24" cy="14" r="5" fill="white" opacity="0.95"/>
+    <circle cx="14" cy="30" r="5" fill="white" opacity="0.75"/>
+    <circle cx="34" cy="30" r="5" fill="white" opacity="0.75"/>
+    <circle cx="24" cy="36" r="3" fill="white" opacity="0.50"/>
+  </svg>
+);
+
 const RECENT_ACTIVITIES = [
   { action: 'Scénario MM-01 complété', score: 95, time: 'Il y a 2h', module: 'mm' },
   { action: 'Slides ERP-ARCH consultées', score: null, time: 'Il y a 4h', module: 'erp-arch' },
@@ -123,23 +156,69 @@ export default function DashboardPage() {
 
           {/* Right column */}
           <div className="space-y-4">
-            {/* ERP Systems */}
+            {/* ERP Systems — Brand Identity Cards */}
             <div className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Systèmes ERP couverts</h3>
-              {[
-                { id: 'sap', name: 'SAP S/4HANA', desc: 'T-codes · Fiori · HANA DB', modules: 'MM, SD, FI, CO, PP' },
-                { id: 'dynamics', name: 'Microsoft Dynamics 365', desc: 'Power Platform · Azure · Power BI', modules: 'Finance, SCM, Sales' },
-                { id: 'odoo', name: 'Odoo ERP', desc: 'Open source · Python · PostgreSQL', modules: 'Achats, Ventes, Compta' },
-              ].map(sys => {
-                const c = SYSTEM_COLORS[sys.id as keyof typeof SYSTEM_COLORS];
-                return (
-                  <div key={sys.id} className="mb-3 last:mb-0 p-3 rounded-lg" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
-                    <div className="text-xs font-bold mb-0.5" style={{ color: c.color }}>{sys.name}</div>
-                    <div className="text-xs mb-1" style={{ color: 'oklch(0.55 0.010 255)' }}>{sys.desc}</div>
-                    <div className="text-xs font-mono" style={{ color: 'oklch(0.45 0.010 255)' }}>{sys.modules}</div>
+
+              {/* SAP S/4HANA */}
+              <div className="mb-3 p-3 rounded-xl" style={{
+                background: 'linear-gradient(135deg, oklch(0.14 0.04 240 / 80%), oklch(0.10 0.02 240 / 60%))',
+                border: '1px solid oklch(0.40 0.18 240 / 35%)'
+              }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <SapLogo />
+                  <div>
+                    <div className="text-sm font-bold leading-tight" style={{ color: '#5BB8FF', fontFamily: 'Space Grotesk' }}>SAP S/4HANA</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.50 0.010 255)' }}>Enterprise Resource Planning</div>
                   </div>
-                );
-              })}
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['ME21N', 'VA01', 'MIGO', 'MIRO', 'F-53'].map(tc => (
+                    <span key={tc} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.40 0.18 240 / 20%)', color: '#5BB8FF', border: '1px solid oklch(0.40 0.18 240 / 30%)' }}>{tc}</span>
+                  ))}
+                </div>
+                <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Fiori UI · HANA in-memory DB · 22% market share</div>
+              </div>
+
+              {/* Microsoft Dynamics 365 */}
+              <div className="mb-3 p-3 rounded-xl" style={{
+                background: 'linear-gradient(135deg, oklch(0.14 0.05 255 / 80%), oklch(0.10 0.03 255 / 60%))',
+                border: '1px solid oklch(0.45 0.20 255 / 35%)'
+              }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <DynamicsLogo />
+                  <div>
+                    <div className="text-sm font-bold leading-tight" style={{ color: '#5EA8FF', fontFamily: 'Space Grotesk' }}>Microsoft Dynamics 365</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.50 0.010 255)' }}>Business Applications Suite</div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['Finance', 'SCM', 'Sales', 'Power BI', 'Azure'].map(tag => (
+                    <span key={tag} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.45 0.20 255 / 20%)', color: '#5EA8FF', border: '1px solid oklch(0.45 0.20 255 / 30%)' }}>{tag}</span>
+                  ))}
+                </div>
+                <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Office 365 · Teams · Cloud Azure natif</div>
+              </div>
+
+              {/* Odoo */}
+              <div className="p-3 rounded-xl" style={{
+                background: 'linear-gradient(135deg, oklch(0.16 0.06 320 / 80%), oklch(0.11 0.04 320 / 60%))',
+                border: '1px solid oklch(0.45 0.18 320 / 35%)'
+              }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <OdooLogo />
+                  <div>
+                    <div className="text-sm font-bold leading-tight" style={{ color: '#C084FC', fontFamily: 'Space Grotesk' }}>Odoo ERP</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.50 0.010 255)' }}>Open Source · Modulaire</div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['Achats', 'Ventes', 'Stock', 'Compta', 'CRM'].map(mod => (
+                    <span key={mod} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.45 0.18 320 / 20%)', color: '#C084FC', border: '1px solid oklch(0.45 0.18 320 / 30%)' }}>{mod}</span>
+                  ))}
+                </div>
+                <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>Python · PostgreSQL · PME &amp; scale-up</div>
+              </div>
             </div>
 
             {/* Quick actions */}

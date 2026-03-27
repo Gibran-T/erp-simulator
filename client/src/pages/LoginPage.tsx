@@ -182,24 +182,24 @@ export default function LoginPage() {
           </form>
 
           {/* Demo credentials hint */}
-          <div className="mt-5 pt-4" style={{ borderTop: '1px solid oklch(0.18 0.02 255)' }}>
-            <p className="text-xs text-center mb-2" style={{ color: 'oklch(0.40 0.01 255)' }}>
-              Comptes de démonstration
+          <div className="mt-5 pt-4" style={{ borderTop: '1px solid oklch(0.15 0.015 255)' }}>
+            <p className="text-xs text-center mb-2.5" style={{ color: 'oklch(0.35 0.008 255)' }}>
+              Remplissage automatique des identifiants de démo
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => { setTab('teacher'); setEmail('prof@laconcorde.ca'); setPassword('prof123'); }}
-                className="px-3 py-2 rounded-lg text-xs transition-all"
-                style={{ background: 'oklch(0.15 0.02 255)', color: 'oklch(0.60 0.01 255)', border: '1px solid oklch(0.20 0.02 255)' }}
+                onClick={() => { setTab('student'); setEmail('alexandre.tremblay@laconcorde.ca'); setPassword('Student2024!'); }}
+                className="px-3 py-1.5 rounded-lg text-xs transition-all"
+                style={{ background: 'oklch(0.10 0.010 255)', color: 'oklch(0.42 0.008 255)', border: '1px solid oklch(0.16 0.015 255)' }}
               >
-                👩‍🏫 Professeur
+                Démo étudiant
               </button>
               <button
-                onClick={() => { setTab('student'); setEmail('student@laconcorde.ca'); setPassword('student123'); }}
-                className="px-3 py-2 rounded-lg text-xs transition-all"
-                style={{ background: 'oklch(0.15 0.02 255)', color: 'oklch(0.60 0.01 255)', border: '1px solid oklch(0.20 0.02 255)' }}
+                onClick={() => { setTab('teacher'); setEmail('prof.demo@laconcorde.ca'); setPassword('Demo2024!'); }}
+                className="px-3 py-1.5 rounded-lg text-xs transition-all"
+                style={{ background: 'oklch(0.10 0.010 255)', color: 'oklch(0.42 0.008 255)', border: '1px solid oklch(0.16 0.015 255)' }}
               >
-                🎓 Étudiant
+                Démo professeur
               </button>
             </div>
           </div>
