@@ -46,7 +46,7 @@ export default function ModulesPageFull() {
           </div>
           <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ background: 'oklch(0.20 0.018 255)' }}>
             <div className="h-full rounded-full" style={{
-              width: `${Math.round((Object.keys(user?.progress || {}).length / ERP_MODULES.reduce((a, m) => a + m.scenarios.length, 0)) * 100)}%`,
+              width: `${Math.round((Object.keys(({} as Record<string,number>)).length / ERP_MODULES.reduce((a, m) => a + m.scenarios.length, 0)) * 100)}%`,
               background: 'linear-gradient(90deg, oklch(0.65 0.22 295), oklch(0.72 0.15 200), oklch(0.72 0.16 162), oklch(0.78 0.16 70), oklch(0.65 0.22 25))',
               transition: 'width 0.5s ease'
             }} />
@@ -60,7 +60,7 @@ export default function ModulesPageFull() {
         {/* Module cards */}
         <div className="space-y-4">
           {ERP_MODULES.map(mod => {
-            const done = mod.scenarios.filter(s => (user?.progress || {})[s.id] !== undefined).length;
+            const done = mod.scenarios.filter(s => (({} as Record<string,number>))[s.id] !== undefined).length;
             const pct = mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
             return (
               <div key={mod.id} className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${mod.color}25` }}>
@@ -103,8 +103,8 @@ export default function ModulesPageFull() {
                       {/* Scenarios list */}
                       <div className="grid sm:grid-cols-2 gap-2 mb-4">
                         {mod.scenarios.map(sc => {
-                          const isCompleted = (user?.progress || {})[sc.id] !== undefined;
-                          const score = (user?.progress || {})[sc.id];
+                          const isCompleted = (({} as Record<string,number>))[sc.id] !== undefined;
+                          const score = (({} as Record<string,number>))[sc.id];
                           return (
                             <Link key={sc.id} href={`/simulator/${sc.id}`}>
                               <div className="flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-all"

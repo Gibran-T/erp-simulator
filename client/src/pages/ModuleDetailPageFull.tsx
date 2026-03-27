@@ -58,7 +58,7 @@ export default function ModuleDetailPageFull() {
   }
 
   const slide = mod.slides[slideIndex];
-  const done = mod.scenarios.filter(s => (user?.progress || {})[s.id] !== undefined).length;
+  const done = mod.scenarios.filter(s => (({} as Record<string,number>))[s.id] !== undefined).length;
   const pct = mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
   const isLastSlide = slideIndex === mod.slides.length - 1;
 
@@ -410,8 +410,8 @@ export default function ModuleDetailPageFull() {
         {activeTab === 'scenarios' && (
           <div className="space-y-4">
             {mod.scenarios.map(sc => {
-              const isCompleted = (user?.progress || {})[sc.id] !== undefined;
-              const score = (user?.progress || {})[sc.id];
+              const isCompleted = (({} as Record<string,number>))[sc.id] !== undefined;
+              const score = (({} as Record<string,number>))[sc.id];
               return (
                 <div key={sc.id} className="rounded-xl p-5" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${isCompleted ? mod.color + '30' : 'oklch(1 0 0 / 6%)'}` }}>
                   <div className="flex items-start gap-4">

@@ -32,6 +32,14 @@ export type TransactionField = {
   hint?: string;
 };
 
+export type ErpImpact = {
+  stockChange?: string;
+  accountingEntry?: string;
+  documentCreated?: string;
+  documentStatus?: string;
+  note?: string;
+};
+
 export type TransactionStep = {
   id: string;
   stepNumber: number;
@@ -45,6 +53,7 @@ export type TransactionStep = {
   validationMessage: string;
   errorMessage: string;
   points: number;
+  erpImpact?: ErpImpact;
 };
 
 export type Scenario = {
@@ -785,7 +794,12 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Bon de commande PO-2026-001 créé ! Montant total : 2 500,00 CAD. SAP : ME21N. Dynamics : PO confirmé. Odoo : BC envoyé au fournisseur FOURNISSEUR-MTL.',
           errorMessage: '❌ Vérifiez le fournisseur (FOURNISSEUR-MTL), le prix (25.00 CAD) et les conditions de paiement (Net 30 jours).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            documentCreated: 'Purchase Order PO-2026-001 — 100 × PROD-001 @ 25,00 CAD',
+            documentStatus: 'Ouvert — Envoyé au fournisseur FOURNISSEUR-MTL',
+            note: 'Le PO engage l\'entreprise pour 2 500 CAD. FI enregistre un engagement budgétaire (commitment).',
+          },
         },
         {
           id: 'mm-01-s3',
@@ -803,7 +817,14 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Réception GR-2026-001 enregistrée ! Stock mis à jour : +100 unités PROD-001. Écriture comptable générée automatiquement dans FI. SAP : MIGO Mvt 101 exécuté.',
           errorMessage: '❌ Vérifiez la quantité reçue (100) et le numéro de bon de livraison.',
-          points: 20
+          points: 20,
+          erpImpact: {
+            stockChange: '+100 unités PROD-001 → ZONE-A1',
+            accountingEntry: 'Dr Stocks marchandises 2 500 CAD / Cr Compte GR/IR 2 500 CAD',
+            documentCreated: 'Material Document GR-2026-001',
+            documentStatus: 'PO : Livré — Réception enregistrée',
+            note: 'Étape clé : le stock augmente et FI est mis à jour automatiquement. C\'est l\'intégration MM→FI.',
+          },
         },
         {
           id: 'mm-01-s4',
@@ -821,7 +842,13 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Facture IV-2026-001 vérifiée et approuvée ! Rapprochement 3 voies réussi : PO 2 500,00 = GR 2 500,00 = Facture 2 500,00. Prêt pour paiement.',
           errorMessage: '❌ Écart détecté ! Le montant doit correspondre au PO (2 500,00 CAD = 100 unités × 25,00 CAD). Vérifiez la facture.',
-          points: 20
+          points: 20,
+          erpImpact: {
+            accountingEntry: 'Dr Compte GR/IR 2 500 CAD / Cr Fournisseur FOURNISSEUR-MTL 2 500 CAD',
+            documentCreated: 'Accounting Document IV-2026-001',
+            documentStatus: 'Facture approuvée — Paiement à 30 jours',
+            note: 'Le compte GR/IR (intermédiaire) est soldé. La dette fournisseur apparaît dans FI.',
+          },
         },
         {
           id: 'mm-01-s5',

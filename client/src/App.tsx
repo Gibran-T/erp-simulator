@@ -21,19 +21,27 @@ import TeacherGuidePage from "./pages/TeacherGuidePage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from './pages/NotFound';
 import PausePage from './pages/PausePage';
-
 function AppRouter() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
-
-  if (!isAuthenticated && location !== '/login') {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'oklch(0.08 0.015 255)' }}>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm" style={{ color: 'oklch(0.55 0.01 255)' }}>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!isAuthenticated && location !== '/login' && location !== '/pause') {
+    return <LoginPage />;
+  }
+  if (!isAuthenticated && location === '/login') {
     return <LoginPage />;
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={DashboardPage} />

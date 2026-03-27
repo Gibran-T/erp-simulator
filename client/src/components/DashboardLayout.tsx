@@ -153,7 +153,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {user?.name}
               </div>
               <div className="text-xs" style={{ color: roleColor, fontSize: '10px' }}>
-                {roleLabel} {user?.cohort ? `· ${user.cohort}` : ''}
+                {roleLabel}
               </div>
             </div>
           </div>
