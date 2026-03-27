@@ -2,6 +2,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLang } from '@/contexts/LanguageContext';
 import { ERP_MODULES } from '@/lib/erpData';
+import { trpc } from '@/lib/trpc';
 import { Link } from 'wouter';
 import {
   Layers, Package, ShoppingCart, DollarSign, Zap,
@@ -57,21 +58,46 @@ const OdooLogo = () => (
   </svg>
 );
 
-const RECENT_ACTIVITIES = [
-  { action: 'Scénario MM-01 complété', score: 95, time: 'Il y a 2h', module: 'mm' },
-  { action: 'Slides ERP-ARCH consultées', score: null, time: 'Il y a 4h', module: 'erp-arch' },
-  { action: 'Scénario ERP-ARCH-01 complété', score: 88, time: 'Hier', module: 'erp-arch' },
-];
+function timeAgo(ts: number, lang: string): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return lang === 'fr' ? `Il y a ${mins}min` : `${mins}min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return lang === 'fr' ? `Il y a ${hrs}h` : `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return lang === 'fr' ? `Il y a ${days}j` : `${days}d ago`;
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { lang, t } = useLang();
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
-  const completedScenarios = Object.keys(({} as Record<string,number>)).length;
-  const avgScore = Object.values(({} as Record<string,number>)).length > 0
-    ? Math.round(Object.values(({} as Record<string,number>)).reduce((a, b) => a + b, 0) / Object.values(({} as Record<string,number>)).length)
+  const { data: myHistory } = trpc.attempts.myHistory.useQuery(undefined, { enabled: !isTeacher });
+  const completedScenarios = myHistory ? new Set(myHistory.map((a: { scenarioId: string }) => a.scenarioId)).size : 0;
+  const avgScore = myHistory && myHistory.length > 0
+    ? Math.round(myHistory.reduce((a: number, b: { score: number }) => a + b.score, 0) / myHistory.length)
     : 0;
+  const recentActivities = myHistory ? [...myHistory].reverse().slice(0, 5) : [];
+  // Real per-module completion from attempt history
+  const completedByModule = myHistory
+    ? myHistory.reduce((acc: Record<string, Set<string>>, a: { scenarioId: string; moduleId: string }) => {
+        if (!acc[a.moduleId]) acc[a.moduleId] = new Set();
+        acc[a.moduleId].add(a.scenarioId);
+        return acc;
+      }, {})
+    : {};
+  // Best score per scenario
+  const bestScoreByScenario = myHistory
+    ? myHistory.reduce((acc: Record<string, number>, a: { scenarioId: string; score: number }) => {
+        acc[a.scenarioId] = Math.max(acc[a.scenarioId] ?? 0, a.score);
+        return acc;
+      }, {})
+    : {};
+  // Next recommended scenario (first not yet passed with score >= 80)
+  const nextScenario = ERP_MODULES
+    .flatMap(m => m.scenarios.map(s => ({ ...s, moduleId: m.id, moduleName: m.name, moduleColor: m.color })))
+    .find(s => !bestScoreByScenario[s.id] || bestScoreByScenario[s.id] < 80);
 
   return (
     <DashboardLayout>
@@ -122,7 +148,7 @@ export default function DashboardPage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               {ERP_MODULES.map(mod => {
-                const done = mod.scenarios.filter(s => (({} as Record<string,number>))[s.id] !== undefined).length;
+                const done = completedByModule[mod.id] ? completedByModule[mod.id].size : 0;
                 const pct = mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
                 return (
                   <Link key={mod.id} href={`/modules/${mod.id}`}>
@@ -187,6 +213,27 @@ export default function DashboardPage() {
               ))}
             </div>
 
+            {/* Recommended next step */}
+            {!isTeacher && nextScenario && (
+              <Link href={`/simulator/${nextScenario.id}`}>
+                <div className="card-hover rounded-xl p-4 cursor-pointer" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${nextScenario.moduleColor}40` }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Play size={13} style={{ color: nextScenario.moduleColor }} />
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: nextScenario.moduleColor }}>
+                      {lang === 'fr' ? 'Prochaine étape recommandée' : 'Recommended next step'}
+                    </span>
+                  </div>
+                  <div className="text-sm font-bold mb-0.5" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.90 0.005 255)' }}>{nextScenario.code} — {nextScenario.title}</div>
+                  <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{nextScenario.moduleName} · {nextScenario.duration} · {nextScenario.difficulty}</div>
+                  {bestScoreByScenario[nextScenario.id] > 0 && (
+                    <div className="mt-1.5 text-xs" style={{ color: 'oklch(0.78 0.14 70)' }}>
+                      {lang === 'fr' ? `Meilleur score : ${bestScoreByScenario[nextScenario.id]}% — à améliorer` : `Best score: ${bestScoreByScenario[nextScenario.id]}% — improve it`}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            )}
+
             {/* Quick actions */}
             <div className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Accès rapide</h3>
@@ -216,20 +263,28 @@ export default function DashboardPage() {
 
             {/* Activity */}
             <div className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Activité récente</h3>
+              <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>
+                {lang === 'fr' ? 'Activité récente' : 'Recent Activity'}
+              </h3>
               <div className="space-y-3">
-                {RECENT_ACTIVITIES.map((act, i) => {
-                  const mod = ERP_MODULES.find(m => m.id === act.module);
+                {recentActivities.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
+                    {lang === 'fr' ? 'Aucune activité pour l’instant. Lancez votre premier scénario !' : 'No activity yet. Start your first scenario!'}
+                  </p>
+                ) : recentActivities.map((act: { id: number; scenarioId: string; moduleId: string; score: number; createdAt: number }) => {
+                  const mod = ERP_MODULES.find(m => m.id === act.moduleId);
                   return (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: `${mod?.color}20`, color: mod?.color }}>
-                        {MODULE_ICONS[act.module]}
+                    <div key={act.id} className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: `${mod?.color ?? 'oklch(0.60 0.20 255)'}20`, color: mod?.color ?? 'oklch(0.60 0.20 255)' }}>
+                        {MODULE_ICONS[act.moduleId] ?? <Zap size={14} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium" style={{ color: 'oklch(0.75 0.008 255)' }}>{act.action}</div>
+                        <div className="text-xs font-medium" style={{ color: 'oklch(0.75 0.008 255)' }}>
+                          {lang === 'fr' ? `Scénario ${act.scenarioId.toUpperCase()} complété` : `Scenario ${act.scenarioId.toUpperCase()} completed`}
+                        </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{act.time}</span>
-                          {act.score && <span className="text-xs font-semibold" style={{ color: 'oklch(0.72 0.16 162)' }}>{act.score}%</span>}
+                          <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(act.createdAt, lang)}</span>
+                          <span className="text-xs font-semibold" style={{ color: act.score >= 80 ? 'oklch(0.72 0.16 162)' : act.score >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' }}>{act.score}%</span>
                         </div>
                       </div>
                     </div>

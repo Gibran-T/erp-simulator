@@ -37,8 +37,8 @@
 
 ## Final
 - [x] TypeScript check (0 errors)
-- [ ] Save checkpoint
-- [ ] Push to GitHub
+- [x] Save checkpoint
+- [x] Push to GitHub
 
 ## Remaining Critical Issues (from QA report)
 - [ ] Migrate CohortsPage to use tRPC instead of localStorage (Issue #1)
@@ -56,3 +56,34 @@
 - [x] Add micro-learning feedback sentence after each correct step
 - [x] Add terminology confusion tracking field to erpData step notes (derived from wrongAttempts + hintsUsed)
 - [x] Expose terminology confusion analytics in teacher monitoring dashboard (Diagnostic ERP panel + class breakdown)
+
+## 10-Phase Professional Educational System Transformation
+
+### Phase 2 — Critical UX Fixes
+- [x] Replace native <select> with shadcn/ui Select components (visible selection confirmation)
+- [x] Add explanatory feedback sentence to quiz after wrong answers (improved visibility)
+- [x] Remove hardcoded fake activity data from student dashboard (replaced with real tRPC data)
+
+### Phase 3 — Complete Micro-Learning
+- [x] Add erpImpact.note to all 5 MM-01 steps
+
+### Phase 4 — Reflection Questions
+- [x] Add 2–3 reflection questions after each scenario completion screen
+- [x] Questions test conceptual understanding (not just execution recall)
+
+### Phase 7 — Teacher Dashboard Upgrade
+- [x] Add confusion signal column directly in student list table (no click required)
+- [x] Add teacher action buttons: "Revoir les slides", "Retry guidé", "Envoyer feedback"
+- [ ] Add step-level execution tracking (OK / ERROR / HINT per step per attempt) — deferred
+- [ ] Add error classification (sequence / concept / terminology) — deferred
+
+### Phase 8 — ERP Impact Completion
+- [x] Add erpImpact.note to all MM-01 steps (micro-learning feedback)
+- [x] Add erpImpact.note to all ERP-SIM-01 and ERP-SIM-02 steps
+
+### Phase 9 — Student Dashboard Improvement
+- [x] Replace fake activity with real progress per module (% completion, last activity)
+- [x] Add recommended next step card per student (first scenario with score < 80)
+
+### Phase 10 — Final QA Validation
+- [x] Conducted real end-to-end QA test — 3 production bugs found and fixed, 16 vitest tests passing

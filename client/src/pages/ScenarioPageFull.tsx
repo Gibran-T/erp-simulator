@@ -4,11 +4,12 @@
  * rich post-scenario result screen, AI QA feedback, exam mode
  */
 import { useState, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useParams, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLang } from '@/contexts/LanguageContext';
-import { ERP_MODULES, TransactionField, TransactionStep } from '@/lib/erpData';
+import { ERP_MODULES, TransactionField, TransactionStep, ReflectionQuestion } from '@/lib/erpData';
 import { trpc } from '@/lib/trpc';
 import {
   ChevronLeft, ChevronRight, Award, RotateCcw, BookOpen, Play,
@@ -163,7 +164,7 @@ interface ResultScreenProps {
   wrongAttempts: number;
   elapsedTime: number;
   examMode: boolean;
-  scenario: { code: string; title: string; difficulty: string; steps: TransactionStep[] };
+  scenario: { code: string; title: string; difficulty: string; steps: TransactionStep[]; reflectionQuestions?: ReflectionQuestion[] };
   mod: { color: string; code: string; id: string };
   selectedSystem: SystemKey;
   attemptNumber: number;
@@ -361,6 +362,36 @@ function ResultScreen({
         </div>
       </div>
 
+      {/* Reflection questions */}
+      {scenario.reflectionQuestions && scenario.reflectionQuestions.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.16 255 / 25%)' }}>
+          <div className="px-4 py-3 flex items-center gap-2" style={{ background: 'oklch(0.60 0.16 255 / 8%)', borderBottom: '1px solid oklch(0.60 0.16 255 / 15%)' }}>
+            <Brain size={14} style={{ color: 'oklch(0.72 0.16 255)' }} />
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'oklch(0.72 0.16 255)' }}>
+              {isFr ? 'Questions de réflexion' : 'Reflection Questions'}
+            </span>
+            <span className="text-xs ml-auto" style={{ color: 'oklch(0.40 0.010 255)' }}>
+              {isFr ? 'Pas de bonne réponse unique — réfléchissez et discutez' : 'No single right answer — think and discuss'}
+            </span>
+          </div>
+          <div className="divide-y" style={{ borderColor: 'oklch(1 0 0 / 5%)' }}>
+            {scenario.reflectionQuestions.map((rq, idx) => (
+              <div key={rq.id} className="px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-bold mt-0.5 shrink-0" style={{ color: 'oklch(0.60 0.16 255)' }}>{idx + 1}.</span>
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'oklch(0.85 0.005 255)' }}>{rq.question}</p>
+                    <p className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
+                      <span style={{ color: 'oklch(0.60 0.16 255)' }}>{isFr ? 'Piste : ' : 'Hint: '}</span>
+                      {rq.hint}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-3 pb-4">
         <button onClick={onRetry}
@@ -886,18 +917,23 @@ export default function ScenarioPageFull() {
                           {field.required && <span style={{ color: 'oklch(0.65 0.22 25)' }}>*</span>}
                         </label>
                         {field.type === 'select' ? (
-                          <select
+                          <Select
                             value={stepInputs[currentStep]?.[field.id] || ''}
-                            onChange={e => handleInputChange(currentStep, field.id, e.target.value)}
-                            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                            style={{
+                            onValueChange={val => handleInputChange(currentStep, field.id, val)}>
+                            <SelectTrigger className="w-full" style={{
                               background: 'oklch(0.11 0.015 255)',
-                              border: `1px solid ${stepErrors[currentStep] ? 'oklch(0.65 0.22 25 / 50%)' : 'oklch(1 0 0 / 10%)'}`,
-                              color: 'oklch(0.85 0.005 255)'
+                              border: `1px solid ${stepErrors[currentStep] ? 'oklch(0.65 0.22 25 / 50%)' : 'oklch(1 0 0 / 15%)'}`,
+                              color: 'oklch(0.85 0.005 255)',
+                              height: '42px'
                             }}>
-                            <option value="">{isFr ? '— Sélectionner —' : '— Select —'}</option>
-                            {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
+                              <SelectValue placeholder={isFr ? '— Sélectionner —' : '— Select —'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options?.map((opt: string) => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <input
                             type={field.type || 'text'}

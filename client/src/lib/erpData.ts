@@ -56,6 +56,12 @@ export type TransactionStep = {
   erpImpact?: ErpImpact;
 };
 
+export type ReflectionQuestion = {
+  id: string;
+  question: string;
+  hint: string;
+};
+
 export type Scenario = {
   id: string;
   code: string;
@@ -66,6 +72,7 @@ export type Scenario = {
   steps: TransactionStep[];
   totalPoints: number;
   learningObjective: string;
+  reflectionQuestions?: ReflectionQuestion[];
 };
 
 export type QuizQuestion = {
@@ -757,6 +764,11 @@ const moduleMM: ERPModule = {
       duration: '35 min',
       learningObjective: 'Exécuter les 5 étapes du cycle P2P de bout en bout dans un contexte réel.',
       totalPoints: 100,
+      reflectionQuestions: [
+        { id: 'mm01-r1', question: 'Pourquoi la Demande d\'Achat (PR) ne crée-t-elle pas de dette fournisseur dans la comptabilité ?', hint: 'Pensez à la différence entre une demande interne et un engagement contractuel.' },
+        { id: 'mm01-r2', question: 'Qu\'est-ce que le rapprochement à 3 voies (3-way match) et pourquoi est-il obligatoire avant le paiement ?', hint: 'PO + GR + Facture : chaque document confirme une étape différente de la transaction.' },
+        { id: 'mm01-r3', question: 'Dans SAP, Dynamics 365 et Odoo, le processus P2P est identique. Qu\'est-ce qui diffère vraiment entre ces systèmes ?', hint: 'Comparez ME21N, Purchase Order et Bon de commande : même action, noms différents.' },
+      ],
       steps: [
         {
           id: 'mm-01-s1',
@@ -775,7 +787,12 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Demande d\'achat PR-2026-001 créée avec succès ! SAP : ME51N exécuté. Dynamics : Requisition soumise. Odoo : Demande créée. Statut : En attente d\'approbation.',
           errorMessage: '❌ Vérifiez le code article (PROD-001), la quantité (100) et le centre de coûts (CC-ENTREPOT).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            documentCreated: 'Purchase Requisition PR-2026-001',
+            documentStatus: 'En attente d\'approbation',
+            note: 'La PR n\'engage aucune dépense — c\'est une demande interne. Dans les 3 systèmes, elle déclenche un flux d\'approbation avant de devenir un bon de commande.',
+          },
         },
         {
           id: 'mm-01-s2',
@@ -866,7 +883,13 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Paiement PAY-2026-001 enregistré ! 2 500,00 CAD virés à FOURNISSEUR-MTL. Cycle P2P complété avec succès ! Score : 100/100. Écriture comptable finale générée dans FI.',
           errorMessage: '❌ Vérifiez le montant (2 500,00 CAD) et le mode de paiement (Virement bancaire).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            accountingEntry: 'Dr Fournisseur FOURNISSEUR-MTL 2 500 CAD / Cr Banque 2 500 CAD',
+            documentCreated: 'Payment Document PAY-2026-001',
+            documentStatus: 'Cycle P2P complété',
+            note: 'Le cycle P2P est terminé. Dans les 3 systèmes, le paiement solde la dette fournisseur et met à jour la trésorerie automatiquement.',
+          },
         }
       ]
     },
@@ -1252,6 +1275,11 @@ const moduleSD: ERPModule = {
       duration: '35 min',
       learningObjective: 'Exécuter les 5 étapes du cycle O2C de bout en bout.',
       totalPoints: 100,
+      reflectionQuestions: [
+        { id: 'sd01-r1', question: 'Pourquoi la livraison (GI) est-elle une étape distincte de la facturation dans le cycle O2C ?', hint: 'La livraison est un événement physique, la facturation est un événement financier — ils peuvent se produire à des moments différents.' },
+        { id: 'sd01-r2', question: 'Qu\'est-ce que le Goods Issue (GI) déclenche automatiquement dans le module FI ?', hint: 'Pensez au COGS (coût des marchandises vendues) et à la variation de stock.' },
+        { id: 'sd01-r3', question: 'Dans SAP, Dynamics 365 et Odoo, la commande client porte des noms différents. Quel est le processus sous-jacent commun à tous ?', hint: 'VA01, Sales Order, Commande de vente : même cycle O2C, même logique métier.' },
+      ],
       steps: [
         {
           id: 'sd-01-s1',
@@ -1744,6 +1772,11 @@ const moduleFI: ERPModule = {
       duration: '30 min',
       learningObjective: 'Comprendre et enregistrer les écritures comptables générées automatiquement par les transactions MM.',
       totalPoints: 100,
+      reflectionQuestions: [
+        { id: 'fi01-r1', question: 'Pourquoi le compte GR/IR est-il un compte intermédiaire ? Que se passe-t-il si la facture fournisseur n\'arrive jamais ?', hint: 'GR/IR = Goods Receipt / Invoice Receipt. Il sert de pont entre la réception physique et la réception comptable.' },
+        { id: 'fi01-r2', question: 'Quelle est la différence entre une écriture générée automatiquement par l\'ERP et une écriture manuelle ?', hint: 'L\'intégration MM→FI élimine les erreurs humaines et garantit la cohérence entre les modules.' },
+        { id: 'fi01-r3', question: 'Dans les 3 systèmes, le principe comptable de la partie double est identique. Qu\'est-ce qui change entre SAP, Dynamics et Odoo pour les écritures de stock ?', hint: 'Les comptes BSX/WRX dans SAP, les Vouchers dans Dynamics, les écritures de stock dans Odoo suivent tous la même logique débit/crédit.' },
+      ],
       steps: [
         {
           id: 'fi-01-s1',
@@ -2170,7 +2203,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Commande SIM-SO-001 créée ! 80 × 299,00 = 23 920,00 CAD. ATP Check en cours... Stock disponible : 50 unités. Manque : 30 unités. Action requise !',
           errorMessage: '❌ Vérifiez le client (ElectroMTL), le produit (TABLET-PRO-10), la quantité (80) et le prix (299,00 CAD).',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Sales Order SIM-SO-001',
+            accountingEntry: null,
+            stockMovement: null,
+            note: 'L\'ATP Check (Available-to-Promise) est identique dans les 3 systèmes : l\'ERP vérifie le stock disponible avant de confirmer la livraison. Résultat : 50 unités en stock, 30 manquantes — le cycle P2P est déclenché automatiquement.'
+          }
         },
         {
           id: 'sim-01-s2',
@@ -2188,7 +2227,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ PO-SIM-001 créé ! 30 × 180,00 = 5 400,00 CAD. Envoyé à TechSupply Inc. Livraison confirmée : 2 jours. Stock total après réception : 80 unités.',
           errorMessage: '❌ Commandez 30 unités à TechSupply Inc. au prix de 180,00 CAD/unité.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Purchase Order PO-SIM-001',
+            accountingEntry: 'Engagement budgétaire : 5 400,00 CAD (commitment)',
+            stockMovement: null,
+            note: 'Le cycle ERP intégré se déclenche ici : une commande client insuffisante en stock génère automatiquement un besoin d\'achat. C\'est l\'intégration SD→MM. Dans SAP : ME51N, D365 : Purchase Requisition, Odoo : Demande d\'achat.'
+          }
         },
         {
           id: 'sim-01-s3',
@@ -2205,7 +2250,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Réception SIM-GR-001 ! 30 tablettes reçues. Stock mis à jour : 80 unités disponibles. Écriture FI : Débit Stock 5 400,00 / Crédit GR-IR 5 400,00.',
           errorMessage: '❌ Réceptionnez 30 unités. Stock total = 50 + 30 = 80 unités.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Goods Receipt SIM-GR-001',
+            accountingEntry: 'Débit Stock 5 400,00 / Crédit GR-IR 5 400,00',
+            stockMovement: '+30 unités (stock : 50 → 80)',
+            note: 'Intégration MM→FI : la réception physique génère automatiquement une écriture comptable. Même logique dans les 3 systèmes — seul le nom change : MIGO Mvt 101 / Product Receipt / Réception validée.'
+          }
         },
         {
           id: 'sim-01-s4',
@@ -2222,7 +2273,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Livraison SIM-DEL-001 ! 80 tablettes expédiées via Purolator Express. Stock réduit à 0. COGS enregistré dans FI : 80 × 180,00 = 14 400,00 CAD.',
           errorMessage: '❌ Expédiez 80 unités via Purolator Express.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Delivery SIM-DEL-001 + Goods Issue',
+            accountingEntry: 'Débit COGS 14 400,00 / Crédit Stock 14 400,00',
+            stockMovement: '-80 unités (stock : 80 → 0)',
+            note: 'Intégration SD→FI : la sortie de stock (PGI) génère automatiquement l\'écriture COGS. C\'est le même principe dans les 3 systèmes — le coût des marchandises vendues est enregistré au moment de l\'expédition, pas de la facturation.'
+          }
         },
         {
           id: 'sim-01-s5',
@@ -2239,7 +2296,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Facture SIM-INV-001 ! 23 920,00 CAD. Écriture FI : Débit Clients 23 920,00 / Crédit Ventes 23 920,00. Créance ouverte. Échéance : 30 jours.',
           errorMessage: '❌ Le montant est 23 920,00 CAD (80 × 299,00).',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Customer Invoice SIM-INV-001',
+            accountingEntry: 'Débit Clients 23 920,00 / Crédit Ventes 23 920,00',
+            stockMovement: null,
+            note: 'La facturation crée la créance client dans FI. SAP : VF01 génère automatiquement l\'écriture AR. D365 : Customer Invoice postée dans Accounts Receivable. Odoo : Facture confirmée, créance ouverte.'
+          }
         },
         {
           id: 'sim-01-s6',
@@ -2255,7 +2318,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Paiement SIM-PAY-001 ! 5 400,00 CAD virés à TechSupply Inc. Écriture FI : Débit Fournisseur 5 400,00 / Crédit Banque 5 400,00.',
           errorMessage: '❌ Le paiement fournisseur est de 5 400,00 CAD (30 × 180,00).',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Vendor Payment SIM-PAY-001',
+            accountingEntry: 'Débit Fournisseur 5 400,00 / Crédit Banque 5 400,00',
+            stockMovement: null,
+            note: 'Le cycle P2P est soldé : la dette fournisseur est éteinte et la trésorerie réduite. SAP : F-53, D365 : Vendor Payment Journal, Odoo : Paiement fournisseur. Même logique, noms différents.'
+          }
         },
         {
           id: 'sim-01-s7',
@@ -2273,7 +2342,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ SIMULATION COMPLÈTE ! CA : 23 920,00 | COGS : 14 400,00 | Marge brute : 9 520,00 CAD (39,8%). Cycle ERP complet réussi ! Tous les modules intégrés avec succès. Score final calculé.',
           errorMessage: '❌ CA = 23 920,00 | COGS = 14 400,00 | Marge = 9 520,00 CAD.',
-           points: 50
+          points: 50,
+          erpImpact: {
+            document: 'Profitability Report KE30',
+            accountingEntry: null,
+            stockMovement: null,
+            note: 'L\'analyse de rentabilité est identique dans les 3 systèmes : CA - COGS = Marge brute. SAP KE30, D365 Profitability Analysis, Odoo Rapport de rentabilité — tous lisent les mêmes données FI générées automatiquement pendant le cycle.'
+          }
         }
       ]
     },
@@ -2304,7 +2379,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Commande SIM2-SO-001 créée ! 40 × 899,00 = 35 960,00 CAD. ATP Check : Stock disponible = 40 unités. Livraison confirmée — aucun réapprovisionnement nécessaire.',
           errorMessage: '❌ Vérifiez le client (InfoTech Solutions), le produit (LAPTOP-PRO-15), la quantité (40) et le prix (899,00 CAD).',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Sales Order SIM2-SO-001',
+            accountingEntry: null,
+            stockMovement: null,
+            note: 'Contrairement à ERP-SIM-01, l\'ATP Check réussit ici : 40 unités disponibles pour 40 commandées. Aucun cycle P2P nécessaire. L\'ERP passe directement à la livraison — c\'est le cycle O2C pur.'
+          }
         },
         {
           id: 'sim-02-s2',
@@ -2321,7 +2402,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Livraison SIM2-DEL-001 ! 40 ordinateurs expédiés via FedEx Priority. Écriture FI automatique : Débit COGS 22 000,00 / Crédit Stock 22 000,00 CAD.',
           errorMessage: '❌ Expédiez 40 unités via FedEx Priority.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Delivery SIM2-DEL-001 + Goods Issue',
+            accountingEntry: 'Débit COGS 22 000,00 / Crédit Stock 22 000,00',
+            stockMovement: '-40 unités (stock : 40 → 0)',
+            note: 'Le PGI (Post Goods Issue) est l\'étape clé du cycle O2C : elle réduit le stock et génère le COGS automatiquement. SAP : VL02N PGI, D365 : Ship, Odoo : Valider la livraison.'
+          }
         },
         {
           id: 'sim-02-s3',
@@ -2338,7 +2425,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Facture SIM2-INV-001 ! 35 960,00 CAD. Écriture FI : Débit Clients 35 960,00 / Crédit Ventes 35 960,00. Escompte possible : 719,20 CAD si paiement sous 10 jours.',
           errorMessage: '❌ Le montant est 35 960,00 CAD (40 × 899,00). Conditions : 2/10 Net 30.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Customer Invoice SIM2-INV-001',
+            accountingEntry: 'Débit Clients 35 960,00 / Crédit Ventes 35 960,00',
+            stockMovement: null,
+            note: 'La condition 2/10 Net 30 signifie : 2% d\'escompte si paiement sous 10 jours, sinon net à 30 jours. Cette logique est identique dans SAP, D365 et Odoo — seule la configuration des conditions de paiement diffère.'
+          }
         },
         {
           id: 'sim-02-s4',
@@ -2356,7 +2449,13 @@ const moduleERPSIM: ERPModule = {
           ],
           validationMessage: '✅ Cycle O2C complété ! CA : 35 960,00 | COGS : 22 000,00 | Marge brute : 13 960,00 CAD (38,8%). Excellent résultat ! Vous êtes prêt pour ERP-SIM-01.',
           errorMessage: '❌ CA = 35 960,00 | COGS = 22 000,00 (40 × 550,00) | Marge = 13 960,00 CAD.',
-          points: 25
+          points: 25,
+          erpImpact: {
+            document: 'Profitability Report KE30',
+            accountingEntry: null,
+            stockMovement: null,
+            note: 'Marge brute 38,8% : résultat solide. Le taux de marge est calculé de la même façon dans les 3 systèmes : (CA - COGS) / CA. Vous êtes maintenant prêt pour la simulation intégrée ERP-SIM-01 qui combine MM + SD + FI.'
+          }
         }
       ]
     }

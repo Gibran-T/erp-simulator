@@ -245,7 +245,7 @@ export default function QuizModal({
                     }
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed" style={{ color: 'oklch(0.68 0.010 255)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.85 0.008 255)', lineHeight: '1.65' }}>
                   {explanation}
                 </p>
               </div>
