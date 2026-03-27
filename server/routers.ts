@@ -12,6 +12,7 @@ import {
   getAllTeachers, getTeacherByEmail, createTeacher, updateTeacherById,
   saveScenarioScore, getScenarioScoresByStudent, getAllScenarioScores,
   saveQuizScore, getQuizScoresByStudent, getAllQuizScores,
+  saveScenarioAttempt, getAttemptsByStudent, getAttemptsByScenario, getAllAttempts,
 } from "./db";
 
 const ERP_JWT_SECRET = new TextEncoder().encode(
@@ -236,6 +237,57 @@ const seedRouter = router({
     }),
 });
 
+
+const attemptsRouter = router({
+  submit: publicProcedure
+    .input(z.object({
+      scenarioId: z.string(),
+      moduleId: z.string(),
+      score: z.number().min(0).max(100),
+      hintsUsed: z.number().default(0),
+      wrongAttempts: z.number().default(0),
+      examMode: z.boolean().default(false),
+      durationSeconds: z.number().default(0),
+      stepBreakdown: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.[ERP_COOKIE];
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const payload = await verifyErpToken(token);
+      if (!payload || payload.role !== "student") throw new TRPCError({ code: "FORBIDDEN" });
+      await saveScenarioAttempt({
+        studentId: payload.id,
+        scenarioId: input.scenarioId,
+        moduleId: input.moduleId,
+        score: input.score,
+        hintsUsed: input.hintsUsed,
+        wrongAttempts: input.wrongAttempts,
+        examMode: input.examMode,
+        durationSeconds: input.durationSeconds,
+        stepBreakdown: input.stepBreakdown,
+      });
+      await updateStudentById(payload.id, { lastActive: new Date() });
+      return { success: true };
+    }),
+  myHistory: publicProcedure.query(async ({ ctx }) => {
+    const token = ctx.req.cookies?.[ERP_COOKIE];
+    if (!token) return [];
+    const payload = await verifyErpToken(token);
+    if (!payload) return [];
+    return getAttemptsByStudent(payload.id);
+  }),
+  allHistory: publicProcedure.query(async ({ ctx }) => {
+    await requireTeacher(ctx);
+    return getAllAttempts();
+  }),
+  byScenario: publicProcedure
+    .input(z.object({ scenarioId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      await requireTeacher(ctx);
+      return getAttemptsByScenario(input.scenarioId);
+    }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -251,6 +303,7 @@ export const appRouter = router({
   students: studentsRouter,
   scores: scoresRouter,
   seed: seedRouter,
+  attempts: attemptsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -7,6 +7,7 @@ import {
   erpTeachers, InsertErpTeacher,
   scenarioScores, InsertScenarioScore,
   quizScores, InsertQuizScore,
+  scenarioAttempts,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -226,4 +227,43 @@ export async function getAllQuizScores() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(quizScores).orderBy(desc(quizScores.completedAt));
+}
+
+// ─── Scenario Attempts ────────────────────────────────────────
+export async function saveScenarioAttempt(data: {
+  studentId: number;
+  scenarioId: string;
+  moduleId: string;
+  score: number;
+  hintsUsed: number;
+  wrongAttempts: number;
+  examMode: boolean;
+  durationSeconds: number;
+  stepBreakdown?: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(scenarioAttempts).values(data);
+}
+
+export async function getAttemptsByStudent(studentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scenarioAttempts)
+    .where(eq(scenarioAttempts.studentId, studentId))
+    .orderBy(desc(scenarioAttempts.completedAt));
+}
+
+export async function getAttemptsByScenario(scenarioId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scenarioAttempts)
+    .where(eq(scenarioAttempts.scenarioId, scenarioId))
+    .orderBy(desc(scenarioAttempts.completedAt));
+}
+
+export async function getAllAttempts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scenarioAttempts).orderBy(desc(scenarioAttempts.completedAt));
 }

@@ -24,6 +24,23 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+
+export const scenarioAttempts = mysqlTable("scenario_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("studentId").notNull(),
+  scenarioId: varchar("scenarioId", { length: 64 }).notNull(),
+  moduleId: varchar("moduleId", { length: 64 }).notNull(),
+  score: int("score").notNull().default(0),
+  hintsUsed: int("hintsUsed").notNull().default(0),
+  wrongAttempts: int("wrongAttempts").notNull().default(0),
+  examMode: boolean("examMode").notNull().default(false),
+  durationSeconds: int("durationSeconds").notNull().default(0),
+  stepBreakdown: text("stepBreakdown"), // JSON: [{stepId, correct, hintsUsed, wrongAttempts}]
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+export type ScenarioAttempt = typeof scenarioAttempts.$inferSelect;
+export type InsertScenarioAttempt = typeof scenarioAttempts.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
