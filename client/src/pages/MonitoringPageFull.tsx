@@ -10,7 +10,7 @@ import { ERP_MODULES } from '@/lib/erpData';
 import {
   BarChart3, Users, TrendingUp, Award, AlertTriangle, CheckCircle2,
   Clock, X, ChevronDown, ChevronUp, Brain, Zap, Target,
-  RefreshCw, Download, Filter, Eye
+  RefreshCw, Download, Filter, Eye, BookOpen, RotateCcw
 } from 'lucide-react';
 
 const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
@@ -277,6 +277,44 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
             )}
           </div>
 
+          {/* Teacher actions */}
+          {totalAttempts > 0 && (
+            <div className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>Actions professeur</div>
+              <div className="space-y-2">
+                {confusionSignal.processConfused && (
+                  <a href={`/modules/${attempts[0]?.moduleId || 'mm'}`}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                    style={{ background: 'oklch(0.72 0.16 255 / 15%)', color: 'oklch(0.72 0.16 255)', border: '1px solid oklch(0.72 0.16 255 / 25%)' }}>
+                    <BookOpen size={12} />
+                    Revoir les slides du module
+                    <span className="ml-auto text-xs opacity-60">Recommandé</span>
+                  </a>
+                )}
+                {(confusionSignal.terminologyConfused || confusionSignal.processConfused) && (
+                  <a href={`/simulator/${attempts[0]?.scenarioId || 'mm-01'}`}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                    style={{ background: 'oklch(0.78 0.14 70 / 15%)', color: 'oklch(0.78 0.14 70)', border: '1px solid oklch(0.78 0.14 70 / 25%)' }}>
+                    <RotateCcw size={12} />
+                    Retenter en mode guidé
+                  </a>
+                )}
+                {!confusionSignal.terminologyConfused && !confusionSignal.processConfused && avgScore >= 80 && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'oklch(0.72 0.14 162 / 10%)', color: 'oklch(0.72 0.14 162)', border: '1px solid oklch(0.72 0.14 162 / 20%)' }}>
+                    <CheckCircle2 size={12} />
+                    Aucune intervention nécessaire — étudiant autonome
+                  </div>
+                )}
+                {avgScore < 60 && totalAttempts >= 2 && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs" style={{ background: 'oklch(0.65 0.22 25 / 10%)', color: 'oklch(0.65 0.22 25)', border: '1px solid oklch(0.65 0.22 25 / 20%)' }}>
+                    <AlertTriangle size={12} />
+                    Session individuelle recommandée avant de continuer
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Last active */}
           <div className="text-xs text-center" style={{ color: 'oklch(0.40 0.010 255)' }}>
             Dernière activité : {timeAgo(student.lastActive)}
@@ -452,19 +490,19 @@ export default function MonitoringPageFull() {
             {/* Table */}
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 6%)' }}>
               {/* Table header */}
-              <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider" style={{ background: 'oklch(0.14 0.018 255)', color: 'oklch(0.45 0.010 255)' }}>
-                <div className="col-span-3 cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('name')}>
+              <div className="grid gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 2fr 1.2fr', background: 'oklch(0.14 0.018 255)', color: 'oklch(0.45 0.010 255)' }}>
+                <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('name')}>
                   Étudiant {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
-                <div className="col-span-2">Cohorte</div>
-                <div className="col-span-2 cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('score')}>
-                  Score moy. {sortKey === 'score' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                <div>Cohorte</div>
+                <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('score')}>
+                  Score {sortKey === 'score' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
-                <div className="col-span-2 cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('attempts')}>
-                  Tentatives {sortKey === 'attempts' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('attempts')}>
+                  Tent. {sortKey === 'attempts' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
-                <div className="col-span-2">Profil</div>
-                <div className="col-span-1 cursor-pointer hover:text-white" onClick={() => toggleSort('risk')}>Statut</div>
+                <div className="flex items-center gap-1"><Brain size={10} /> Diagnostic ERP</div>
+                <div className="cursor-pointer hover:text-white" onClick={() => toggleSort('risk')}>Statut</div>
               </div>
 
               {/* Table rows */}
@@ -476,16 +514,18 @@ export default function MonitoringPageFull() {
                 filtered.map((summary, i) => {
                   const { student, avgScore, totalAttempts, isAtRisk, learnerProfile, cohortName, trend } = summary;
                   const scoreColor = avgScore >= 80 ? 'oklch(0.72 0.14 162)' : avgScore >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)';
+                  const { confusionSignal } = summary;
                   return (
                     <div key={student.id}
-                      className="grid grid-cols-12 gap-2 px-4 py-3 cursor-pointer transition-all hover:bg-white/5"
+                      className="grid gap-2 px-4 py-3 cursor-pointer transition-all hover:bg-white/5"
                       style={{
+                        gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 2fr 1.2fr',
                         background: i % 2 === 0 ? 'oklch(0.11 0.015 255)' : 'oklch(0.12 0.018 255)',
                         borderTop: '1px solid oklch(1 0 0 / 4%)',
                         borderLeft: isAtRisk ? '3px solid oklch(0.65 0.22 25)' : '3px solid transparent',
                       }}
                       onClick={() => setSelectedSummary(summary)}>
-                      <div className="col-span-3 flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                           style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>
                           {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -495,31 +535,36 @@ export default function MonitoringPageFull() {
                           <div className="text-xs truncate" style={{ color: 'oklch(0.40 0.010 255)' }}>{student.email}</div>
                         </div>
                       </div>
-                      <div className="col-span-2 flex items-center">
+                      <div className="flex items-center">
                         <span className="text-xs truncate" style={{ color: 'oklch(0.55 0.010 255)' }}>{cohortName}</span>
                       </div>
-                      <div className="col-span-2 flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         {totalAttempts > 0 ? (
                           <>
                             <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'oklch(0.20 0.018 255)' }}>
                               <div className="h-full rounded-full" style={{ width: `${avgScore}%`, background: scoreColor }} />
                             </div>
-                            <span className="text-xs font-bold w-8 text-right" style={{ color: scoreColor }}>{avgScore}%</span>
+                            <span className="text-xs font-bold w-7 text-right shrink-0" style={{ color: scoreColor }}>{avgScore}%</span>
                           </>
                         ) : (
                           <span className="text-xs" style={{ color: 'oklch(0.35 0.010 255)' }}>—</span>
                         )}
                       </div>
-                      <div className="col-span-2 flex items-center">
+                      <div className="flex items-center">
                         <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>
-                          {totalAttempts > 0 ? `${totalAttempts} tentative${totalAttempts > 1 ? 's' : ''}` : 'Aucune'}
+                          {totalAttempts > 0 ? `${totalAttempts}` : '—'}
                         </span>
                       </div>
-                      <div className="col-span-2 flex items-center gap-1">
-                        <span className="text-sm">{learnerProfile.icon}</span>
-                        <span className="text-xs truncate" style={{ color: learnerProfile.color }}>{learnerProfile.label.split(' ')[0]}</span>
+                      <div className="flex items-center min-w-0">
+                        {totalAttempts > 0 ? (
+                          <span className="text-xs px-1.5 py-0.5 rounded-md font-medium truncate" style={{ background: `${confusionSignal.color}18`, color: confusionSignal.color, border: `1px solid ${confusionSignal.color}30`, maxWidth: '100%' }}>
+                            {confusionSignal.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs" style={{ color: 'oklch(0.35 0.010 255)' }}>—</span>
+                        )}
                       </div>
-                      <div className="col-span-1 flex items-center">
+                      <div className="flex items-center">
                         <TrendBadge trend={trend} />
                       </div>
                     </div>
