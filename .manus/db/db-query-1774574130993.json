@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE erp_students SET passwordHash = '$2b$10$mlMwd1xMywW1WovWwzGu1.aGYbsmmTQJd.qya49A2fk1ZPoS1kME6' WHERE id IN (1,2,3,4,5);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.028d0e63a962 --database h8ynqFBCEuYgutk3aFBMKE --execute UPDATE erp_students SET passwordHash = '$2b$10$mlMwd1xMywW1WovWwzGu1.aGYbsmmTQJd.qya49A2fk1ZPoS1kME6' WHERE id IN (1,2,3,4,5);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 67
+}
