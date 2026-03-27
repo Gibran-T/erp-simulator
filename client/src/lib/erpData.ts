@@ -1270,7 +1270,12 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Commande SO-2026-001 créée ! Montant : 2 250,00 CAD. ATP Check : 100 unités disponibles. Confirmation envoyée à CLIENT-MTL. SAP : VA01 exécuté.',
           errorMessage: '❌ Vérifiez le client (CLIENT-MTL), l\'article (PROD-001), la quantité (50) et le prix (45,00 CAD).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            documentCreated: 'Sales Order SO-2026-001 — 50 × PROD-001 @ 45,00 CAD',
+            documentStatus: 'Ouvert — Confirmation envoyée à CLIENT-MTL',
+            note: 'SAP VA01 : réservation automatique du stock. D365 : Sales Order créé dans le module Sales. Odoo : Commande confirmée, stock réservé.',
+          },
         },
         {
           id: 'sd-01-s2',
@@ -1288,7 +1293,12 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Bon de livraison DEL-2026-001 créé ! Picking assigné à ZONE-A1. Transporteur : Purolator. Documents d\'expédition générés.',
           errorMessage: '❌ Vérifiez le transporteur (Purolator) et la zone de picking (ZONE-A1).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            documentCreated: 'Delivery Order DEL-2026-001 — Picking déclenché ZONE-A1',
+            documentStatus: 'En préparation — Picking en cours',
+            note: 'SAP VL01N : bon de livraison créé, picking list générée. D365 : Outbound Shipment créé. Odoo : Bon de livraison en attente de validation.',
+          },
         },
         {
           id: 'sd-01-s3',
@@ -1305,7 +1315,14 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Sortie de stock GI-2026-001 comptabilisée ! Stock réduit de 50 unités. COGS enregistré dans FI. Marchandises en transit vers CLIENT-MTL.',
           errorMessage: '❌ Vérifiez la quantité expédiée (50) et le numéro de tracking.',
-          points: 20
+          points: 20,
+          erpImpact: {
+            stockChange: '-50 unités PROD-001 (sortie entrepôt)',
+            accountingEntry: 'Dr COGS (Coût des ventes) 1 250 CAD / Cr Stocks marchandises 1 250 CAD',
+            documentCreated: 'Goods Issue GI-2026-001 — Transfert de propriété au client',
+            documentStatus: 'Expédié — En transit Purolator #PUR-2026-789456',
+            note: 'Étape clé : le stock diminue et FI enregistre automatiquement le COGS. C\'est l\'intégration SD→FI.',
+          },
         },
         {
           id: 'sd-01-s4',
@@ -1323,7 +1340,13 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Facture INV-2026-001 générée et envoyée ! 2 250,00 CAD. Écriture comptable : Débit Clients 2 250,00 / Crédit Ventes 2 250,00. Créance ouverte dans FI.',
           errorMessage: '❌ Le montant doit être 2 250,00 CAD (50 × 45,00).',
-          points: 20
+          points: 20,
+          erpImpact: {
+            accountingEntry: 'Dr Clients (AR) 2 250 CAD / Cr Chiffre d\'affaires (Ventes) 2 250 CAD',
+            documentCreated: 'Customer Invoice INV-2026-001 — Envoyée à CLIENT-MTL',
+            documentStatus: 'Ouverte — Échéance Net 30 jours',
+            note: 'SAP VF01 : facture créée, écriture FI automatique. D365 : Customer Invoice postée dans AR. Odoo : Facture client confirmée, créance ouverte.',
+          },
         },
         {
           id: 'sd-01-s5',
@@ -1340,7 +1363,12 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Paiement 2 250,00 CAD reçu et rapproché ! Créance CLIENT-MTL soldée. Cycle O2C complété avec succès ! Score : 100/100. Chiffre d\'affaires réalisé.',
           errorMessage: '❌ Vérifiez le montant reçu (2 250,00 CAD) et le mode de paiement.',
-          points: 20
+          points: 20,
+          erpImpact: {
+            accountingEntry: 'Dr Banque 2 250 CAD / Cr Clients (AR) 2 250 CAD',
+            documentStatus: 'Cycle O2C clôturé — Créance soldée',
+            note: 'SAP F-28 : paiement rapproché automatiquement. D365 : Customer Payment appliqué à la facture. Odoo : Paiement enregistré, facture marquée Payée.',
+          },
         }
       ]
     },
@@ -1733,7 +1761,14 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Écriture GR correcte ! Débit Stock 2 500,00 / Crédit GR-IR 2 500,00. Le stock augmente de 2 500,00 CAD. Compte transitoire GR-IR en attente de la facture.',
           errorMessage: '❌ Lors d\'une réception GR : Débit Stock (augmentation) / Crédit GR-IR (compte transitoire). Montant : 2 500,00 CAD.',
-          points: 34
+          points: 34,
+          erpImpact: {
+            stockChange: '+100 unités PROD-001 — Stock valorisé à 2 500 CAD',
+            accountingEntry: 'Dr Stocks marchandises 2 500 CAD / Cr Compte GR-IR (transitoire) 2 500 CAD',
+            documentCreated: 'Material Document GR — Mouvement 101 (SAP)',
+            documentStatus: 'GR complété — En attente facture fournisseur',
+            note: 'SAP MIGO Mvt 101 : écriture BSX/WRX automatique. D365 : Product Receipt Voucher posté. Odoo : Écriture de stock générée automatiquement.',
+          },
         },
         {
           id: 'fi-01-s2',
@@ -1750,7 +1785,13 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Écriture IV correcte ! Débit GR-IR 2 500,00 / Crédit Fournisseur 2 500,00. Le compte transitoire est soldé. La dette fournisseur est créée dans AP.',
           errorMessage: '❌ Lors de la vérification facture : Débit GR-IR (solde le transitoire) / Crédit Fournisseur (crée la dette).',
-          points: 33
+          points: 33,
+          erpImpact: {
+            accountingEntry: 'Dr Compte GR-IR 2 500 CAD / Cr Fournisseur FOURNISSEUR-MTL (AP) 2 500 CAD',
+            documentCreated: 'Accounting Document IV — Facture fournisseur enregistrée',
+            documentStatus: 'Dette fournisseur créée — Échéance Net 30 jours',
+            note: 'SAP MIRO : écriture KBS/WRX, compte transitoire soldé. D365 : Vendor Invoice Posting dans AP. Odoo : Facture fournisseur validée, dette créée.',
+          },
         },
         {
           id: 'fi-01-s3',
@@ -1767,7 +1808,12 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Écriture paiement correcte ! Débit Fournisseur 2 500,00 / Crédit Banque 2 500,00. Dette soldée. Cash réduit. Cycle P2P comptablement complet !',
           errorMessage: '❌ Lors du paiement : Débit Fournisseur (solde la dette) / Crédit Banque (sortie de cash).',
-          points: 33
+          points: 33,
+          erpImpact: {
+            accountingEntry: 'Dr Fournisseur FOURNISSEUR-MTL (AP) 2 500 CAD / Cr Banque 2 500 CAD',
+            documentStatus: 'Cycle P2P clôturé — Dette soldée, cash sorti',
+            note: 'SAP F-53 : paiement manuel, écriture finale. D365 : Vendor Payment Journal posté. Odoo : Paiement fournisseur enregistré, facture marquée Payée.',
+          },
         }
       ]
     },

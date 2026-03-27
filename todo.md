@@ -14,8 +14,8 @@
 
 ## Phase 3+4 — 3-ERP Comparative UI + Immersive Experience
 - [x] Reinforce 3-ERP panel visibility in scenario steps (MM)
-- [ ] Add erpComparison data to SD-01 and FI-01 scenario steps
-- [ ] Add erpImpact data to SD-01 and FI-01 scenario steps
+- [x] Add erpComparison data to SD-01 and FI-01 scenario steps
+- [x] Add erpImpact data to SD-01 and FI-01 scenario steps
 - [x] Role-play context and mission framing per scenario
 - [x] Distinct visual identity per ERP system in step header
 
@@ -42,4 +42,4 @@
 
 ## Remaining Critical Issues (from QA report)
 - [ ] Migrate CohortsPage to use tRPC instead of localStorage (Issue #1)
-- [ ] Add erpComparison data to SD-01, FI-01, ERP-SIM-01, ERP-SIM-02 (Issue #2)
+- [x] Add erpImpact + 3-ERP comparison notes to SD-01 (5 steps) and FI-01 (3 steps) — Issue #2 partially resolved
