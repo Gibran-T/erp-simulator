@@ -1,103 +1,109 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/**
+ * AuthContext — ERP Integrated Business Simulator
+ * Uses tRPC backend for real email/password authentication.
+ * Supports student and teacher/admin roles.
+ */
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export type UserRole = 'admin' | 'teacher' | 'student';
 
-export interface User {
-  id: string;
+export interface ErpUser {
+  id: number;
   name: string;
   email: string;
   role: UserRole;
-  cohort?: string;
-  avatar?: string;
-  progress?: Record<string, number>; // scenarioId -> score
+  cohortId?: number | null;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: ErpUser | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateProgress: (scenarioId: string, score: number) => void;
+  isLoading: boolean;
+  loginAsStudent: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginAsTeacher: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  refetchUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Demo users
-const DEMO_USERS: (User & { password: string })[] = [
-  {
-    id: 'admin-1',
-    name: 'Admin Système',
-    email: 'admin@laconcorde.ca',
-    password: 'admin123',
-    role: 'admin',
-    progress: {}
-  },
-  {
-    id: 'teacher-1',
-    name: 'Prof. Marie Dupont',
-    email: 'prof@laconcorde.ca',
-    password: 'prof123',
-    role: 'teacher',
-    progress: {}
-  },
-  {
-    id: 'student-1',
-    name: 'Alexandre Tremblay',
-    email: 'student@laconcorde.ca',
-    password: 'student123',
-    role: 'student',
-    cohort: 'ERP-2026-A',
-    progress: {}
-  },
-  {
-    id: 'student-2',
-    name: 'Sophie Lavoie',
-    email: 'sophie@laconcorde.ca',
-    password: 'student123',
-    role: 'student',
-    cohort: 'ERP-2026-A',
-    progress: {}
-  }
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ErpUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: erpMe, refetch: refetchErpMe } = trpc.erp.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
-    const stored = localStorage.getItem('erp_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
+    if (erpMe !== undefined) {
+      if (erpMe) {
+        setUser({
+          id: erpMe.id,
+          name: erpMe.name ?? '',
+          email: erpMe.email ?? '',
+          role: erpMe.role as UserRole,
+          cohortId: 'cohortId' in erpMe ? erpMe.cohortId : undefined,
+        });
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
     }
+  }, [erpMe]);
+
+  const studentLoginMutation = trpc.erp.studentLogin.useMutation();
+  const teacherLoginMutation = trpc.erp.teacherLogin.useMutation();
+  const logoutMutation = trpc.erp.logout.useMutation();
+
+  const loginAsStudent = useCallback(async (email: string, password: string) => {
+    try {
+      const result = await studentLoginMutation.mutateAsync({ email, password });
+      setUser({ id: result.id, name: result.name ?? '', email: result.email ?? '', role: 'student', cohortId: result.cohortId });
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur de connexion';
+      return { success: false, error: msg };
+    }
+  }, [studentLoginMutation]);
+
+  const loginAsTeacher = useCallback(async (email: string, password: string) => {
+    try {
+      const result = await teacherLoginMutation.mutateAsync({ email, password });
+      setUser({ id: result.id, name: result.name ?? '', email: result.email ?? '', role: result.role as UserRole });
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur de connexion';
+      return { success: false, error: msg };
+    }
+  }, [teacherLoginMutation]);
+
+  const logout = useCallback(async () => {
+    await logoutMutation.mutateAsync();
+    setUser(null);
+  }, [logoutMutation]);
+
+  const refetchUser = useCallback(() => {
+    refetchErpMe();
+  }, [refetchErpMe]);
+
+  // Legacy compat: also check updateProgress for ScenarioPageFull bridge
+  const updateProgress = useCallback((_scenarioId: string, _score: number) => {
+    // Progress is now saved via trpc.scores.submitScenario — this is a no-op
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const found = DEMO_USERS.find(u => u.email === email && u.password === password);
-    if (found) {
-      const { password: _, ...userData } = found;
-      setUser(userData);
-      localStorage.setItem('erp_user', JSON.stringify(userData));
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('erp_user');
-  };
-
-  const updateProgress = (scenarioId: string, score: number) => {
-    if (!user) return;
-    const updated = {
-      ...user,
-      progress: { ...(user.progress || {}), [scenarioId]: score }
-    };
-    setUser(updated);
-    localStorage.setItem('erp_user', JSON.stringify(updated));
-  };
-
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateProgress }}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      loginAsStudent,
+      loginAsTeacher,
+      logout,
+      refetchUser,
+    }}>
       {children}
     </AuthContext.Provider>
   );

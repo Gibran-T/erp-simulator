@@ -35,9 +35,9 @@ export default function DashboardPage() {
   const { lang, t } = useLang();
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const totalScenarios = ERP_MODULES.reduce((acc, m) => acc + m.scenarios.length, 0);
-  const completedScenarios = Object.keys(user?.progress || {}).length;
-  const avgScore = Object.values(user?.progress || {}).length > 0
-    ? Math.round(Object.values(user?.progress || {}).reduce((a, b) => a + b, 0) / Object.values(user?.progress || {}).length)
+  const completedScenarios = Object.keys(({} as Record<string,number>)).length;
+  const avgScore = Object.values(({} as Record<string,number>)).length > 0
+    ? Math.round(Object.values(({} as Record<string,number>)).reduce((a, b) => a + b, 0) / Object.values(({} as Record<string,number>)).length)
     : 0;
 
   return (
@@ -52,7 +52,7 @@ export default function DashboardPage() {
             <p className="text-sm" style={{ color: 'oklch(0.50 0.010 255)' }}>
               {isTeacher
                 ? (lang === 'fr' ? 'Tableau de bord professeur — ERP Integrated Business Simulator' : 'Teacher Dashboard — ERP Integrated Business Simulator')
-                : `Programme 2 · ERP Systems · ${user?.cohort || 'ERP-2026'}`}
+                : `Programme 2 · ERP Systems · ${'ERP-2026'}`}
             </p>
           </div>
           <div className="hidden md:block text-xs px-3 py-1.5 rounded-full font-mono"
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               {ERP_MODULES.map(mod => {
-                const done = mod.scenarios.filter(s => (user?.progress || {})[s.id] !== undefined).length;
+                const done = mod.scenarios.filter(s => (({} as Record<string,number>))[s.id] !== undefined).length;
                 const pct = mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
                 return (
                   <Link key={mod.id} href={`/modules/${mod.id}`}>

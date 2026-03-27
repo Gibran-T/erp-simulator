@@ -3,6 +3,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { getScenarioById, type TransactionStep, type TransactionField } from '@/lib/erpData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudents } from '@/contexts/StudentsContext';
+import { trpc } from '@/lib/trpc';
 import { useParams, useLocation } from 'wouter';
 import {
   ChevronRight, ChevronLeft, CheckCircle2, XCircle, AlertCircle,
@@ -31,9 +32,12 @@ export default function ScenarioPageFull() {
   const params = useParams<{ scenarioId: string }>();
   const scenarioId = params.scenarioId || '';
   const result = getScenarioById(scenarioId);
-  const { user, updateProgress } = useAuth();
+  const { user } = useAuth();
   const { students, updateStudent } = useStudents();
+  const submitScenarioScore = trpc.scores.submitScenario.useMutation();
   const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [examMode, setExamMode] = useState(false);
   const [, navigate] = useLocation();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -124,8 +128,11 @@ export default function ScenarioPageFull() {
   const handleNextStep = () => {
     if (!validateStep(currentStep)) return;
 
-    // If there's feedback showing an error, allow retry
-    if (stepFeedback && !stepFeedback.correct) return;
+    // If there's feedback showing an error, count wrong attempt and allow retry
+    if (stepFeedback && !stepFeedback.correct) {
+      setWrongAttempts(w => w + 1);
+      return;
+    }
 
     const newStatuses = [...stepStatuses] as StepStatus[];
     newStatuses[currentStep] = 'completed';
@@ -143,13 +150,24 @@ export default function ScenarioPageFull() {
         if (!s.fields || s.fields.length === 0) return true;
         return s.fields.every(f => !f.correctValue || inputs[f.id]?.trim() === f.correctValue);
       }).length;
-      const hintPenalty = hintsUsed.size * 10;
+      const hintPenalty = hintsUsed.size * 5;
+      const wrongPenalty = wrongAttempts * 10;
       const rawScore = Math.round((correctSteps / totalSteps) * 100);
-      const finalScore = Math.max(0, Math.min(100, rawScore - hintPenalty));
+      const finalScore = Math.max(0, Math.min(100, rawScore - hintPenalty - wrongPenalty));
       setScore(finalScore);
       setFinished(true);
       setTimerActive(false);
-      updateProgress(scenarioId, finalScore);
+      // Submit to backend if student is authenticated
+      if (user?.role === 'student' && mod) {
+        submitScenarioScore.mutate({
+          scenarioId,
+          moduleId: mod.id,
+          score: finalScore,
+          hintsUsed: hintsUsed.size,
+          wrongAttempts,
+          examMode,
+        });
+      }
       // Bridge: update the student record in StudentsContext so monitoring reflects real activity
       if (user?.email) {
         const matched = students.find(s => s.email.toLowerCase() === user.email.toLowerCase());
@@ -189,6 +207,7 @@ export default function ScenarioPageFull() {
     setTimerActive(false);
     setScore(0);
     setStepFeedback(null);
+    setWrongAttempts(0);
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
@@ -446,6 +465,45 @@ export default function ScenarioPageFull() {
                   </div>
                 )}
 
+                {/* ERP Impact Panel — shown after correct validation */}
+                {stepFeedback?.correct && step.erpImpact && (
+                  <div className="mb-4 p-4 rounded-lg" style={{ background: 'oklch(0.60 0.20 255 / 8%)', border: '1px solid oklch(0.60 0.20 255 / 25%)' }}>
+                    <div className="text-xs font-bold mb-3 flex items-center gap-2" style={{ color: 'oklch(0.75 0.16 255)' }}>
+                      <Zap size={13} /> Impact ERP — Ce qui vient de se passer dans le système
+                    </div>
+                    <div className="space-y-2">
+                      {step.erpImpact.documentCreated && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold w-28 shrink-0" style={{ color: 'oklch(0.65 0.22 295)' }}>Document créé</span>
+                          <span className="text-xs" style={{ color: 'oklch(0.75 0.008 255)' }}>{step.erpImpact.documentCreated}</span>
+                        </div>
+                      )}
+                      {step.erpImpact.documentStatus && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold w-28 shrink-0" style={{ color: 'oklch(0.78 0.16 70)' }}>Statut</span>
+                          <span className="text-xs" style={{ color: 'oklch(0.75 0.008 255)' }}>{step.erpImpact.documentStatus}</span>
+                        </div>
+                      )}
+                      {step.erpImpact.stockChange && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold w-28 shrink-0" style={{ color: 'oklch(0.72 0.16 162)' }}>Stock</span>
+                          <span className="text-xs font-mono" style={{ color: 'oklch(0.72 0.14 162)' }}>{step.erpImpact.stockChange}</span>
+                        </div>
+                      )}
+                      {step.erpImpact.accountingEntry && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold w-28 shrink-0" style={{ color: 'oklch(0.78 0.16 70)' }}>Écriture FI</span>
+                          <span className="text-xs font-mono" style={{ color: 'oklch(0.80 0.12 70)' }}>{step.erpImpact.accountingEntry}</span>
+                        </div>
+                      )}
+                      {step.erpImpact.note && (
+                        <div className="mt-2 pt-2" style={{ borderTop: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
+                          <span className="text-xs italic" style={{ color: 'oklch(0.55 0.010 255)' }}>{step.erpImpact.note}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Error */}
                 {stepErrors[currentStep] && (
                   <div className="mb-4 p-3 rounded-lg flex items-start gap-2"

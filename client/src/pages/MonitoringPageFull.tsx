@@ -319,7 +319,7 @@ export default function MonitoringPageFull() {
                 return (
                   <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all hover:bg-white/5"
                     onClick={() => setSelectedStudent(student)}
-                    style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(1 0 0 / 5%)' }}>
+                    style={{ background: avg > 0 && avg < 50 ? 'oklch(0.65 0.22 25 / 6%)' : 'oklch(0.11 0.015 255)', border: avg > 0 && avg < 50 ? '1px solid oklch(0.65 0.22 25 / 35%)' : '1px solid oklch(1 0 0 / 5%)' }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
                       style={{ background: student.status === 'active' ? 'oklch(0.60 0.20 255 / 20%)' : 'oklch(0.18 0.018 255)', color: student.status === 'active' ? 'oklch(0.72 0.16 255)' : 'oklch(0.45 0.010 255)' }}>
                       {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}

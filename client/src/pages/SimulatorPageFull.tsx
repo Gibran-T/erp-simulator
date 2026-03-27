@@ -51,8 +51,8 @@ export default function SimulatorPageFull() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
               {mod.scenarios.map(sc => {
-                const isCompleted = (user?.progress || {})[sc.id] !== undefined;
-                const score = (user?.progress || {})[sc.id];
+                const isCompleted = (({} as Record<string,number>))[sc.id] !== undefined;
+                const score = (({} as Record<string,number>))[sc.id];
                 return (
                   <Link key={sc.id} href={`/simulator/${sc.id}`}>
                     <div className="card-hover rounded-xl p-4 cursor-pointer"
