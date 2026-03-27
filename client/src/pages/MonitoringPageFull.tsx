@@ -37,6 +37,30 @@ function classifyLearner(avgScore: number, totalHints: number, totalWrong: numbe
   return { label: 'Nécessite du soutien', color: 'oklch(0.65 0.22 25)', icon: '🆘' };
 }
 
+/**
+ * Terminology confusion signal:
+ * A student who retries many times (wrongAttempts) but scores low likely confuses
+ * ERP-specific terms (T-codes, menu names) rather than misunderstanding the process.
+ * A student with high hints + low score likely needs process understanding, not just terminology.
+ */
+function detectConfusionType(avgScore: number, totalHints: number, totalWrong: number, totalAttempts: number): {
+  terminologyConfused: boolean;
+  processConfused: boolean;
+  label: string;
+  color: string;
+} {
+  if (totalAttempts === 0) return { terminologyConfused: false, processConfused: false, label: 'Pas de données', color: 'oklch(0.40 0.010 255)' };
+  const wrongPerAttempt = totalAttempts > 0 ? totalWrong / totalAttempts : 0;
+  const hintsPerAttempt = totalAttempts > 0 ? totalHints / totalAttempts : 0;
+  // Many wrong answers but eventually succeeds = terminology confusion (knows the process, wrong names)
+  if (wrongPerAttempt >= 2 && avgScore >= 60) return { terminologyConfused: true, processConfused: false, label: 'Confond les noms ERP', color: 'oklch(0.78 0.14 70)' };
+  // Many hints + low score = process confusion (doesn't understand the business logic)
+  if (hintsPerAttempt >= 1.5 && avgScore < 65) return { terminologyConfused: false, processConfused: true, label: 'Confond le processus', color: 'oklch(0.65 0.22 25)' };
+  // Both signals = deep confusion
+  if (wrongPerAttempt >= 2 && hintsPerAttempt >= 1.5 && avgScore < 60) return { terminologyConfused: true, processConfused: true, label: 'Confusion terminologie + processus', color: 'oklch(0.65 0.22 25)' };
+  return { terminologyConfused: false, processConfused: false, label: 'Comprend le processus', color: 'oklch(0.72 0.14 162)' };
+}
+
 type AttemptRow = {
   id: number;
   studentId: number;
@@ -73,6 +97,7 @@ type StudentSummary = {
   trend: 'up' | 'down' | 'stable' | 'new';
   learnerProfile: { label: string; color: string; icon: string };
   cohortName: string;
+  confusionSignal: { terminologyConfused: boolean; processConfused: boolean; label: string; color: string };
 };
 
 function buildSummaries(
@@ -118,6 +143,7 @@ function buildSummaries(
       trend,
       learnerProfile: classifyLearner(avgScore, totalHints, totalWrong),
       cohortName: cohort?.name || '—',
+      confusionSignal: detectConfusionType(avgScore, totalHints, totalWrong, sa.length),
     };
   });
 }
@@ -130,7 +156,7 @@ function TrendBadge({ trend }: { trend: 'up' | 'down' | 'stable' | 'new' }) {
 }
 
 function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onClose: () => void }) {
-  const { student, attempts, avgScore, bestScore, totalAttempts, totalHints, totalWrong, learnerProfile, cohortName } = summary;
+  const { student, attempts, avgScore, bestScore, totalAttempts, totalHints, totalWrong, learnerProfile, cohortName, confusionSignal } = summary;
 
   // Group attempts by scenario
   const byScenario: Record<string, AttemptRow[]> = {};
@@ -181,6 +207,32 @@ function StudentDetailPanel({ summary, onClose }: { summary: StudentSummary; onC
               <TrendBadge trend={summary.trend} />
             </div>
           </div>
+
+          {/* ERP confusion signal */}
+          {totalAttempts > 0 && (
+            <div className="p-4 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${confusionSignal.color}25` }}>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>Diagnostic ERP</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full" style={{ background: confusionSignal.color }} />
+                <span className="text-sm font-semibold" style={{ color: confusionSignal.color }}>{confusionSignal.label}</span>
+              </div>
+              <div className="text-xs leading-relaxed" style={{ color: 'oklch(0.50 0.010 255)' }}>
+                {confusionSignal.terminologyConfused && !confusionSignal.processConfused &&
+                  'Cet étudiant commet beaucoup d’erreurs mais finit par réussir. Il comprend le processus métier mais confond les noms ERP (T-codes, menus). Recommandation : exercices de mémorisation de la terminologie.'}
+                {confusionSignal.processConfused && !confusionSignal.terminologyConfused &&
+                  'Cet étudiant utilise beaucoup d’indices et obtient un score faible. Il ne comprend pas encore la logique du processus métier. Recommandation : revoir les slides du module et refaire le scénario en mode guidé.'}
+                {confusionSignal.terminologyConfused && confusionSignal.processConfused &&
+                  'Double confusion : terminologie ERP et logique de processus. Recommandation : session individuelle avec le professeur avant de continuer.'}
+                {!confusionSignal.terminologyConfused && !confusionSignal.processConfused && totalAttempts > 0 &&
+                  'L’étudiant distingue correctement le processus métier de la terminologie ERP. Aucune intervention nécessaire.'}
+              </div>
+              <div className="mt-2 flex gap-3 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
+                <span>{totalWrong} erreur{totalWrong > 1 ? 's' : ''} totales</span>
+                <span>·</span>
+                <span>{totalHints} indice{totalHints > 1 ? 's' : ''} utilisé{totalHints > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          )}
 
           {/* Attempt history by scenario */}
           <div>
@@ -543,6 +595,28 @@ export default function MonitoringPageFull() {
                 </div>
               ))}
             </div>
+
+            {/* ERP confusion breakdown */}
+            <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>Diagnostic ERP — classe</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Comprend le processus', color: 'oklch(0.72 0.14 162)', check: (s: StudentSummary) => !s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused && s.totalAttempts > 0 },
+                { label: 'Confond les noms ERP', color: 'oklch(0.78 0.14 70)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && !s.confusionSignal.processConfused },
+                { label: 'Confond le processus', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.processConfused && !s.confusionSignal.terminologyConfused },
+                { label: 'Double confusion', color: 'oklch(0.65 0.22 25)', check: (s: StudentSummary) => s.confusionSignal.terminologyConfused && s.confusionSignal.processConfused },
+              ].map(({ label, color, check }) => {
+                const count = summaries.filter(check).length;
+                return (
+                  <div key={label} className="p-3 rounded-xl" style={{ background: 'oklch(0.14 0.018 255)', border: `1px solid ${color}20` }}>
+                    <div className="text-xl font-black mb-1" style={{ fontFamily: 'Space Grotesk', color }}>{count}</div>
+                    <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{label}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs" style={{ color: 'oklch(0.38 0.010 255)' }}>
+              Cliquez sur un étudiant dans l'onglet « Étudiants » pour voir son diagnostic individuel.
+            </p>
 
             {/* Learner profile distribution */}
             <h3 className="text-sm font-semibold pt-2" style={{ color: 'oklch(0.75 0.008 255)' }}>Distribution des profils d'apprentissage</h3>

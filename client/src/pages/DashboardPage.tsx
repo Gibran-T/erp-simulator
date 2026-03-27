@@ -157,129 +157,34 @@ export default function DashboardPage() {
           {/* Right column */}
           <div className="space-y-4">
 
-            {/* Pedagogical principle banner */}
-            <div className="rounded-xl px-4 py-3" style={{
-              background: 'linear-gradient(135deg, oklch(0.18 0.04 255 / 60%), oklch(0.14 0.02 255 / 80%))',
-              border: '1px solid oklch(0.55 0.18 255 / 30%)'
-            }}>
-              <div className="flex items-start gap-2">
-                <span style={{ color: 'oklch(0.72 0.18 255)', flexShrink: 0, marginTop: '1px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                </span>
-                <p className="text-xs leading-relaxed" style={{ color: 'oklch(0.72 0.010 255)' }}>
-                  {lang === 'fr'
-                    ? <><strong style={{ color: 'oklch(0.85 0.010 255)' }}>Principe fondamental :</strong> SAP, Dynamics 365 et Odoo exécutent le <strong style={{ color: 'oklch(0.85 0.010 255)' }}>même processus métier</strong>. Seuls la terminologie et l’interface changent.</>
-                    : <><strong style={{ color: 'oklch(0.85 0.010 255)' }}>Core principle:</strong> SAP, Dynamics 365 and Odoo execute the <strong style={{ color: 'oklch(0.85 0.010 255)' }}>same business process</strong>. Only the terminology and interface differ.</>
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* ERP Systems — Pedagogical Entry Points */}
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 6%)' }}>
-              <div className="px-4 pt-4 pb-2" style={{ background: 'oklch(0.14 0.018 255)' }}>
-                <h3 className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>
-                  {lang === 'fr' ? 'Systèmes ERP étudiés' : 'ERP Systems Studied'}
+            {/* ERP Systems — Compact pedagogical entry points */}
+            <div className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
+              <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'oklch(0.45 0.010 255)' }}>
+                  {lang === 'fr' ? 'Systèmes étudiés' : 'Systems studied'}
                 </h3>
-                <p className="text-xs mt-0.5" style={{ color: 'oklch(0.40 0.010 255)' }}>
-                  {lang === 'fr' ? 'Cliquez pour explorer chaque système' : 'Click to explore each system'}
-                </p>
+                <span className="text-xs" style={{ color: 'oklch(0.38 0.010 255)' }}>
+                  {lang === 'fr' ? 'Même processus, noms différents' : 'Same process, different names'}
+                </span>
               </div>
 
-              {/* SAP S/4HANA */}
-              <Link href="/modules/erp-arch">
-                <div className="card-hover px-4 py-3 cursor-pointer" style={{
-                  background: 'linear-gradient(135deg, oklch(0.13 0.04 240 / 90%), oklch(0.10 0.02 240 / 70%))',
-                  borderTop: '1px solid oklch(0.40 0.18 240 / 25%)'
-                }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <SapLogo />
+              {([
+                { Logo: SapLogo, name: 'SAP S/4HANA', color: '#5BB8FF', bg: 'oklch(0.13 0.04 240 / 80%)', border: 'oklch(0.40 0.18 240 / 20%)', key: lang === 'fr' ? 'T-codes (VA01, ME21N, MIGO)' : 'T-codes (VA01, ME21N, MIGO)' },
+                { Logo: DynamicsLogo, name: 'Dynamics 365', color: '#5EA8FF', bg: 'oklch(0.13 0.05 255 / 80%)', border: 'oklch(0.45 0.20 255 / 20%)', key: lang === 'fr' ? 'Menus (Sales Order, Purchase Order)' : 'Menus (Sales Order, Purchase Order)' },
+                { Logo: OdooLogo, name: 'Odoo', color: '#C084FC', bg: 'oklch(0.14 0.06 320 / 80%)', border: 'oklch(0.45 0.18 320 / 20%)', key: lang === 'fr' ? 'Modules (Ventes, Achats, Stock)' : 'Modules (Sales, Purchase, Stock)' },
+              ] as const).map(({ Logo, name, color, bg, border, key }, idx, arr) => (
+                <Link key={name} href="/modules/erp-arch">
+                  <div className="card-hover px-4 py-2.5 cursor-pointer flex items-center gap-3"
+                    style={{ background: bg, borderTop: `1px solid ${border}`, borderBottomLeftRadius: idx === arr.length - 1 ? '0.75rem' : 0, borderBottomRightRadius: idx === arr.length - 1 ? '0.75rem' : 0 }}>
+                    <Logo />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold" style={{ color: '#5BB8FF', fontFamily: 'Space Grotesk' }}>SAP S/4HANA</span>
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.40 0.18 240 / 20%)', color: '#5BB8FF' }}>22% marché</span>
-                      </div>
-                      <div className="text-xs" style={{ color: 'oklch(0.48 0.010 255)' }}>
-                        {lang === 'fr' ? 'Leader mondial — grandes entreprises' : 'Global leader — large enterprises'}
-                      </div>
+                      <div className="text-sm font-bold" style={{ color, fontFamily: 'Space Grotesk' }}>{name}</div>
+                      <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{key}</div>
                     </div>
+                    <ChevronRight size={14} style={{ color: 'oklch(0.35 0.010 255)', flexShrink: 0 }} />
                   </div>
-                  <p className="text-xs mb-2 leading-relaxed" style={{ color: 'oklch(0.58 0.008 255)' }}>
-                    {lang === 'fr'
-                      ? 'Utilisé par 92% des entreprises du Fortune 500. Chaque action est un T-code : VA01 crée une commande, MIGO valide une livraison. La logique métier est universelle.'
-                      : 'Used by 92% of Fortune 500 companies. Every action is a T-code: VA01 creates an order, MIGO validates a delivery. The business logic is universal.'}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {['ME21N → P2P', 'VA01 → O2C', 'MIGO → GR/GI', 'MIRO → Invoice', 'F-53 → Payment'].map(tc => (
-                      <span key={tc} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.40 0.18 240 / 15%)', color: '#5BB8FF', border: '1px solid oklch(0.40 0.18 240 / 25%)' }}>{tc}</span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-
-              {/* Microsoft Dynamics 365 */}
-              <Link href="/modules/erp-arch">
-                <div className="card-hover px-4 py-3 cursor-pointer" style={{
-                  background: 'linear-gradient(135deg, oklch(0.13 0.05 255 / 90%), oklch(0.10 0.03 255 / 70%))',
-                  borderTop: '1px solid oklch(0.45 0.20 255 / 25%)'
-                }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <DynamicsLogo />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold" style={{ color: '#5EA8FF', fontFamily: 'Space Grotesk' }}>Microsoft Dynamics 365</span>
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.45 0.20 255 / 20%)', color: '#5EA8FF' }}>18% marché</span>
-                      </div>
-                      <div className="text-xs" style={{ color: 'oklch(0.48 0.010 255)' }}>
-                        {lang === 'fr' ? 'Suite Microsoft — PME et mid-market' : 'Microsoft suite — SME and mid-market'}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs mb-2 leading-relaxed" style={{ color: 'oklch(0.58 0.008 255)' }}>
-                    {lang === 'fr'
-                      ? 'Intégré nativement avec Office 365, Teams et Power BI. Les mêmes étapes P2P et O2C qu’en SAP, mais nommées « Purchase Order », « Sales Order », « Invoice ».'
-                      : 'Natively integrated with Office 365, Teams and Power BI. The same P2P and O2C steps as SAP, but named “Purchase Order”, “Sales Order”, “Invoice”.'}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {['Purchase Order → P2P', 'Sales Order → O2C', 'Product Receipt → GR', 'Vendor Invoice → FI', 'Customer Payment → FI'].map(tc => (
-                      <span key={tc} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.45 0.20 255 / 15%)', color: '#5EA8FF', border: '1px solid oklch(0.45 0.20 255 / 25%)' }}>{tc}</span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-
-              {/* Odoo */}
-              <Link href="/modules/erp-arch">
-                <div className="card-hover px-4 py-3 cursor-pointer" style={{
-                  background: 'linear-gradient(135deg, oklch(0.14 0.06 320 / 90%), oklch(0.10 0.04 320 / 70%))',
-                  borderTop: '1px solid oklch(0.45 0.18 320 / 25%)',
-                  borderBottomLeftRadius: '0.75rem',
-                  borderBottomRightRadius: '0.75rem'
-                }}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <OdooLogo />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold" style={{ color: '#C084FC', fontFamily: 'Space Grotesk' }}>Odoo ERP</span>
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: 'oklch(0.45 0.18 320 / 20%)', color: '#C084FC' }}>Open source</span>
-                      </div>
-                      <div className="text-xs" style={{ color: 'oklch(0.48 0.010 255)' }}>
-                        {lang === 'fr' ? 'Modulaire — start-ups et PME' : 'Modular — start-ups and SMEs'}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs mb-2 leading-relaxed" style={{ color: 'oklch(0.58 0.008 255)' }}>
-                    {lang === 'fr'
-                      ? 'Solution open source en Python/PostgreSQL. Les processus P2P et O2C sont identiques à SAP et Dynamics — seul le vocabulaire diffère : « Bon de commande », « Livraison », « Facture client ».'
-                      : 'Open source solution in Python/PostgreSQL. P2P and O2C processes are identical to SAP and Dynamics — only the vocabulary differs: “Purchase Order”, “Delivery”, “Customer Invoice”.'}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {['Bon de commande → P2P', 'Commande client → O2C', 'Réception → GR', 'Facture fournisseur → FI', 'Paiement → FI'].map(tc => (
-                      <span key={tc} className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: 'oklch(0.45 0.18 320 / 15%)', color: '#C084FC', border: '1px solid oklch(0.45 0.18 320 / 25%)' }}>{tc}</span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              ))}
             </div>
 
             {/* Quick actions */}

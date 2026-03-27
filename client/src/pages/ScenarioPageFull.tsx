@@ -287,64 +287,35 @@ function ResultScreen({
         </div>
       </div>
 
-      {/* 3-ERP comparison reminder — pedagogical equivalence */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 8%)' }}>
-        {/* Equivalence principle header */}
-        <div className="px-5 py-3 flex items-start gap-3" style={{
-          background: 'linear-gradient(135deg, oklch(0.18 0.04 255 / 60%), oklch(0.13 0.02 255 / 80%))',
-          borderBottom: '1px solid oklch(0.55 0.18 255 / 20%)'
-        }}>
-          <Zap size={15} style={{ color: mod.color, flexShrink: 0, marginTop: '1px' }} />
-          <div>
-            <div className="text-xs font-semibold mb-0.5" style={{ color: 'oklch(0.85 0.008 255)' }}>
-              {isFr ? 'Même processus — terminologie différente' : 'Same process — different terminology'}
-            </div>
-            <p className="text-xs" style={{ color: 'oklch(0.55 0.008 255)' }}>
-              {isFr
-                ? `Le scénario ${scenario.code} exécute les mêmes étapes métier dans les 3 systèmes. Seuls les noms changent.`
-                : `Scenario ${scenario.code} executes the same business steps across all 3 systems. Only the names change.`}
-            </p>
-          </div>
+      {/* 3-ERP overview — one key idea: same steps, 3 names */}
+      <div className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.13 0.018 255)', border: '1px solid oklch(1 0 0 / 7%)' }}>
+        <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid oklch(1 0 0 / 6%)' }}>
+          <span className="text-xs font-semibold" style={{ color: 'oklch(0.75 0.008 255)' }}>
+            {isFr ? 'Même processus — 3 systèmes' : 'Same process — 3 systems'}
+          </span>
+          <span className="text-xs" style={{ color: 'oklch(0.38 0.010 255)' }}>
+            {isFr ? 'Seuls les noms changent' : 'Only the names change'}
+          </span>
         </div>
-        {/* Per-system step codes with brand identity */}
-        <div className="grid grid-cols-3" style={{ background: 'oklch(0.12 0.018 255)' }}>
+        <div className="grid grid-cols-3">
           {(['sap', 'dynamics', 'odoo'] as SystemKey[]).map((sys, idx) => {
             const cfg = SYSTEM_CONFIG[sys];
-            const stepCodes = scenario.steps.map(s => getSystemCode(s, sys)).filter(Boolean);
+            const codes = scenario.steps.map(s => getSystemCode(s, sys)).filter(Boolean);
             return (
-              <div key={sys} className="p-3" style={{
-                borderRight: idx < 2 ? `1px solid oklch(1 0 0 / 6%)` : 'none'
-              }}>
-                <div className="flex items-center gap-2 mb-2">
+              <div key={sys} className="px-3 py-2.5" style={{ borderRight: idx < 2 ? '1px solid oklch(1 0 0 / 6%)' : 'none' }}>
+                <div className="flex items-center gap-1.5 mb-2">
                   <SysLogo sys={sys} />
-                  <div>
-                    <div className="text-xs font-bold leading-tight" style={{ color: cfg.hexColor }}>{cfg.shortLabel}</div>
-                    <div className="text-xs" style={{ color: 'oklch(0.38 0.008 255)', fontSize: '10px' }}>{cfg.market}</div>
-                  </div>
+                  <span className="text-xs font-bold" style={{ color: cfg.hexColor }}>{cfg.shortLabel}</span>
                 </div>
-                <div className="space-y-1">
-                  {stepCodes.slice(0, 4).map((code, i) => (
-                    <div key={i} className="text-xs font-mono px-1.5 py-0.5 rounded" style={{
-                      background: `${cfg.accent}12`,
-                      color: cfg.hexColor,
-                      border: `1px solid ${cfg.accent}20`
-                    }}>{code}</div>
+                <div className="space-y-0.5">
+                  {codes.slice(0, 3).map((code, i) => (
+                    <div key={i} className="text-xs font-mono" style={{ color: 'oklch(0.58 0.008 255)' }}>{code}</div>
                   ))}
-                  {stepCodes.length > 4 && (
-                    <div className="text-xs" style={{ color: 'oklch(0.38 0.008 255)' }}>+{stepCodes.length - 4} {isFr ? 'de plus' : 'more'}</div>
-                  )}
+                  {codes.length > 3 && <div className="text-xs" style={{ color: 'oklch(0.35 0.008 255)' }}>+{codes.length - 3}</div>}
                 </div>
               </div>
             );
           })}
-        </div>
-        {/* Equivalence footer */}
-        <div className="px-4 py-2 text-center" style={{ background: 'oklch(0.11 0.015 255)', borderTop: '1px solid oklch(1 0 0 / 5%)' }}>
-          <span className="text-xs" style={{ color: 'oklch(0.42 0.010 255)' }}>
-            {isFr
-              ? '⭐ Objectif : comprendre que le processus est universel — l’ERP ne fait que le nommer différemment'
-              : '⭐ Goal: understand that the process is universal — the ERP only names it differently'}
-          </span>
         </div>
       </div>
 
@@ -879,41 +850,28 @@ export default function ScenarioPageFull() {
                   <p className="text-sm" style={{ color: 'oklch(0.62 0.010 255)', lineHeight: '1.6' }}>{step.objective}</p>
                 </div>
 
-                {/* 3-ERP name comparison for this step — equivalence panel */}
+                {/* 3-ERP step equivalence — one key idea per step */}
                 {(step.sapCode || step.dynamicsName || step.odooName) && (
-                  <div className="mb-4 rounded-xl overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 8%)' }}>
-                    {/* Equivalence label */}
-                    <div className="px-3 py-1.5 flex items-center gap-2" style={{
-                      background: 'oklch(0.11 0.02 255 / 80%)',
-                      borderBottom: '1px solid oklch(1 0 0 / 6%)'
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="oklch(0.55 0.18 255)" strokeWidth="2.5"><path d="M5 12h14M5 8h14M5 16h14"/></svg>
-                      <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>
-                        {isFr ? 'Même étape — 3 systèmes — 3 noms' : 'Same step — 3 systems — 3 names'}
-                      </span>
-                    </div>
-                    {/* Three columns */}
-                    <div className="grid grid-cols-3">
-                      {([
-                        { sys: 'sap' as SystemKey, value: step.sapCode || step.code },
-                        { sys: 'dynamics' as SystemKey, value: step.dynamicsName || step.name },
-                        { sys: 'odoo' as SystemKey, value: step.odooName || step.name },
-                      ]).map((item, idx) => {
-                        const cfg = SYSTEM_CONFIG[item.sys];
-                        return (
-                          <div key={item.sys} className="px-2 py-2" style={{
-                            background: cfg.bg,
-                            borderRight: idx < 2 ? `1px solid oklch(1 0 0 / 6%)` : 'none'
-                          }}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <SysLogo sys={item.sys} />
-                              <span className="text-xs font-bold" style={{ color: cfg.hexColor }}>{cfg.shortLabel}</span>
-                            </div>
-                            <div className="text-xs font-mono leading-snug" style={{ color: 'oklch(0.72 0.008 255)' }}>{item.value}</div>
+                  <div className="mb-4 grid grid-cols-3 gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 8%)' }}>
+                    {([
+                      { sys: 'sap' as SystemKey, value: step.sapCode || step.code },
+                      { sys: 'dynamics' as SystemKey, value: step.dynamicsName || step.name },
+                      { sys: 'odoo' as SystemKey, value: step.odooName || step.name },
+                    ]).map((item, idx) => {
+                      const cfg = SYSTEM_CONFIG[item.sys];
+                      return (
+                        <div key={item.sys} className="px-2.5 py-2" style={{
+                          background: cfg.bg,
+                          borderRight: idx < 2 ? '1px solid oklch(1 0 0 / 6%)' : 'none'
+                        }}>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <SysLogo sys={item.sys} />
+                            <span className="text-xs font-bold" style={{ color: cfg.hexColor }}>{cfg.shortLabel}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="text-xs font-mono" style={{ color: 'oklch(0.65 0.008 255)' }}>{item.value}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -976,6 +934,19 @@ export default function ScenarioPageFull() {
                         {stepFeedback.message}
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {/* Micro-learning feedback — one sentence after correct step */}
+                {stepFeedback?.correct && step.erpImpact?.note && (
+                  <div className="mb-3 px-3 py-2 rounded-lg flex items-start gap-2" style={{
+                    background: 'oklch(0.72 0.14 162 / 6%)',
+                    border: '1px solid oklch(0.72 0.14 162 / 20%)'
+                  }}>
+                    <Brain size={13} style={{ color: 'oklch(0.72 0.14 162)', flexShrink: 0, marginTop: '2px' }} />
+                    <p className="text-xs leading-relaxed" style={{ color: 'oklch(0.65 0.010 255)' }}>
+                      {step.erpImpact.note}
+                    </p>
                   </div>
                 )}
 
