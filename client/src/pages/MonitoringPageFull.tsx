@@ -95,6 +95,7 @@ type AttemptRow = {
   stepBreakdown?: string; // JSON: [{stepId, correct, hintsUsed, wrongAttempts}]
 };
 type StepBreakdownItem = { stepId: string; correct: boolean; hintsUsed: boolean; wrongAttempts: number };
+type StepExecutionRow = { id: number; attemptId: number; studentId: number; scenarioId: string; stepId: string; stepNumber: number; result: 'ok' | 'error' | 'hint'; wrongAttempts: number; hintUsed: boolean; durationSeconds: number; executedAt: Date | string };
 
 type StudentRow = {
   id: number;
@@ -184,6 +185,30 @@ function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; 
     byScenario[a.scenarioId].push(a);
   }
 
+  // Fetch per-step execution data for this student from DB
+  const { data: stepExecRaw = [] } = trpc.attempts.stepsByStudent.useQuery(
+    { studentId: student.id },
+    { enabled: student.id > 0 }
+  );
+  const stepExecs = stepExecRaw as StepExecutionRow[];
+  // Group step executions by attemptId for O(1) lookup
+  const stepsByAttempt = stepExecs.reduce<Record<number, StepExecutionRow[]>>((acc, se) => {
+    if (!acc[se.attemptId]) acc[se.attemptId] = [];
+    acc[se.attemptId].push(se);
+    return acc;
+  }, {});
+  // Compute most failed step across all attempts (from live DB data)
+  const stepFailCounts: Record<string, number> = {};
+  for (const se of stepExecs) {
+    if (se.result !== 'ok') {
+      stepFailCounts[se.stepId] = (stepFailCounts[se.stepId] || 0) + 1;
+    }
+  }
+  const mostFailedStepId = Object.keys(stepFailCounts).length > 0
+    ? Object.entries(stepFailCounts).sort((a, b) => b[1] - a[1])[0][0]
+    : null;
+  const isFrPanel = t('monitoring.title').includes('Contrôle') || t('monitoring.title').includes('tour');
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end" style={{ background: 'oklch(0 0 0 / 65%)' }} onClick={onClose}>
       <div className="w-full max-w-lg h-full overflow-y-auto" style={{ background: 'oklch(0.12 0.018 255)', borderLeft: '1px solid oklch(1 0 0 / 8%)' }} onClick={e => e.stopPropagation()}>
@@ -249,6 +274,24 @@ function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; 
             </div>
           )}
 
+          {/* Most failed step summary */}
+          {mostFailedStepId && (
+            <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'oklch(0.65 0.22 25 / 8%)', border: '1px solid oklch(0.65 0.22 25 / 20%)' }}>
+              <span className="text-base">⚠</span>
+              <div>
+                <div className="text-xs font-semibold" style={{ color: 'oklch(0.65 0.22 25)' }}>
+                  {isFrPanel ? 'Étape la plus échouée' : 'Most failed step'}:
+                  <span className="ml-1 font-mono">{mostFailedStepId}</span>
+                  <span className="ml-1 font-normal opacity-70">({stepFailCounts[mostFailedStepId]}×)</span>
+                </div>
+                {(() => {
+                  const scenario = ERP_MODULES.flatMap(m => m.scenarios).find(s => s.steps.some(st => st.id === mostFailedStepId));
+                  const step = scenario?.steps.find(st => st.id === mostFailedStepId);
+                  return step ? <div className="text-xs mt-0.5" style={{ color: 'oklch(0.50 0.010 255)' }}>{step.name}</div> : null;
+                })()}
+              </div>
+            </div>
+          )}
           {/* Attempt history by scenario */}
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'oklch(0.45 0.010 255)' }}>{t('monitoring.attemptHistory')}</div>
@@ -287,25 +330,69 @@ function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; 
                                 <span className="text-xs w-20 text-right" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(a.completedAt, t)}</span>
                                 {a.examMode ? <span className="text-xs px-1 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>Exam</span> : null}
                               </div>
-                              {breakdown.length > 0 && (
-                                <div className="px-4 pb-2.5">
-                                  <div className="flex gap-1 mb-1.5">
-                                    {breakdown.map((step, si) => (
-                                      <div key={si} title={`${step.stepId}: ${step.correct ? '✓' : '✗'}${step.hintsUsed ? ' (hint)' : ''}${step.wrongAttempts > 0 ? ` (${step.wrongAttempts}x wrong)` : ''}`}
-                                        className="flex-1 h-2 rounded-sm"
-                                        style={{ background: step.correct ? 'oklch(0.72 0.14 162)' : 'oklch(0.65 0.22 25)', opacity: step.hintsUsed ? 0.7 : 1 }} />
-                                    ))}
-                                  </div>
-                                  <div className="flex items-center gap-3 text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
-                                    <span style={{ color: 'oklch(0.72 0.14 162)' }}>✓ {correctSteps}/{breakdown.length}</span>
-                                    {failedSteps.length > 0 && (
-                                      <span style={{ color: 'oklch(0.65 0.22 25)' }}>✗ {failedSteps.map(s => s.stepId.split('-').pop()).join(', ')}</span>
-                                    )}
-                                    {a.hintsUsed > 0 && <span>💡 {a.hintsUsed} hint{a.hintsUsed > 1 ? 's' : ''}</span>}
-                                    {a.durationSeconds > 0 && <span>⏱ {Math.floor(a.durationSeconds / 60)}m{a.durationSeconds % 60}s</span>}
-                                  </div>
-                                </div>
-                              )}
+                              {(() => {
+                                // Prefer live stepExecutions data; fall back to stepBreakdown JSON
+                                const liveSteps = (stepsByAttempt[a.id] || []).sort((x, y) => x.stepNumber - y.stepNumber);
+                                if (liveSteps.length > 0) {
+                                  return (
+                                    <div className="px-4 pb-3">
+                                      <div className="space-y-1">
+                                        {liveSteps.map((se) => {
+                                          const isOk = se.result === 'ok';
+                                          const isHint = se.result === 'hint';
+                                          const isError = se.result === 'error';
+                                          const stepLabel = se.stepId.split('-').slice(-1)[0]?.toUpperCase() || `S${se.stepNumber}`;
+                                          const scenario = ERP_MODULES.flatMap(m => m.scenarios).find(s => s.id === se.scenarioId);
+                                          const stepName = scenario?.steps[se.stepNumber - 1]?.name || se.stepId;
+                                          return (
+                                            <div key={se.id} className="flex items-center gap-2 rounded-md px-2 py-1"
+                                              style={{ background: isOk ? 'oklch(0.72 0.14 162 / 8%)' : isHint ? 'oklch(0.78 0.14 70 / 8%)' : 'oklch(0.65 0.22 25 / 8%)' }}>
+                                              <span className="text-xs font-mono w-6 shrink-0 font-bold"
+                                                style={{ color: isOk ? 'oklch(0.72 0.14 162)' : isHint ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' }}>
+                                                {stepLabel}
+                                              </span>
+                                              <span className="text-xs flex-1 truncate" style={{ color: 'oklch(0.72 0.010 255)' }}>{stepName}</span>
+                                              <span className="text-xs font-bold shrink-0"
+                                                style={{ color: isOk ? 'oklch(0.72 0.14 162)' : isHint ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)' }}>
+                                                {isOk ? '✓ OK' : isHint ? '💡 HINT' : '✗ ERROR'}
+                                              </span>
+                                              {se.wrongAttempts > 0 && (
+                                                <span className="text-xs shrink-0" style={{ color: 'oklch(0.65 0.22 25)' }}>{se.wrongAttempts}×</span>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      {a.durationSeconds > 0 && (
+                                        <div className="mt-1.5 text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>⏱ {Math.floor(a.durationSeconds / 60)}m{a.durationSeconds % 60}s</div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                // Fallback: color-bar from stepBreakdown JSON
+                                if (breakdown.length > 0) {
+                                  return (
+                                    <div className="px-4 pb-2.5">
+                                      <div className="flex gap-1 mb-1.5">
+                                        {breakdown.map((step, si) => (
+                                          <div key={si} title={`${step.stepId}: ${step.correct ? '✓' : '✗'}${step.hintsUsed ? ' (hint)' : ''}${step.wrongAttempts > 0 ? ` (${step.wrongAttempts}x wrong)` : ''}`}
+                                            className="flex-1 h-2 rounded-sm"
+                                            style={{ background: step.correct ? 'oklch(0.72 0.14 162)' : 'oklch(0.65 0.22 25)', opacity: step.hintsUsed ? 0.7 : 1 }} />
+                                        ))}
+                                      </div>
+                                      <div className="flex items-center gap-3 text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
+                                        <span style={{ color: 'oklch(0.72 0.14 162)' }}>✓ {correctSteps}/{breakdown.length}</span>
+                                        {failedSteps.length > 0 && (
+                                          <span style={{ color: 'oklch(0.65 0.22 25)' }}>✗ {failedSteps.map(s => s.stepId.split('-').pop()).join(', ')}</span>
+                                        )}
+                                        {a.hintsUsed > 0 && <span>💡 {a.hintsUsed} hint{a.hintsUsed > 1 ? 's' : ''}</span>}
+                                        {a.durationSeconds > 0 && <span>⏱ {Math.floor(a.durationSeconds / 60)}m{a.durationSeconds % 60}s</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           );
                         })}
