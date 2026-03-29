@@ -13,7 +13,7 @@ import {
   saveScenarioScore, getScenarioScoresByStudent, getAllScenarioScores,
   saveQuizScore, getQuizScoresByStudent, getAllQuizScores,
   saveScenarioAttempt, getAttemptsByStudent, getAttemptsByScenario, getAllAttempts,
-  saveStepExecutions, getLastAttemptId,
+  saveStepExecutions, getLastAttemptId, getStepExecutionsByStudent,
   saveReflectionAnswer, getReflectionAnswersByStudent, getAllReflectionAnswers,
 } from "./db";
 
@@ -287,6 +287,12 @@ const attemptsRouter = router({
     .query(async ({ input, ctx }) => {
       await requireTeacher(ctx);
       return getAttemptsByScenario(input.scenarioId);
+    }),
+  stepsByStudent: publicProcedure
+    .input(z.object({ studentId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      await requireTeacher(ctx);
+      return getStepExecutionsByStudent(input.studentId);
     }),
 });
 
