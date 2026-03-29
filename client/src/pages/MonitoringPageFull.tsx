@@ -72,7 +72,9 @@ type AttemptRow = {
   examMode: boolean | number;
   durationSeconds: number;
   completedAt: Date | string;
+  stepBreakdown?: string; // JSON: [{stepId, correct, hintsUsed, wrongAttempts}]
 };
+type StepBreakdownItem = { stepId: string; correct: boolean; hintsUsed: boolean; wrongAttempts: number };
 
 type StudentRow = {
   id: number;
@@ -246,17 +248,42 @@ function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; 
                         {scenAttempts.map((a, i) => {
                           const sc = a.score;
                           const scColor = sc >= 80 ? 'oklch(0.72 0.14 162)' : sc >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)';
+                          let breakdown: StepBreakdownItem[] = [];
+                          try { if (a.stepBreakdown) { const parsed = JSON.parse(a.stepBreakdown); breakdown = Array.isArray(parsed) ? parsed : []; } } catch {}
+                          const correctSteps = breakdown.filter(s => s.correct).length;
+                          const failedSteps = breakdown.filter(s => !s.correct);
                           return (
-                            <div key={a.id} className="flex items-center gap-3 px-4 py-2.5" style={{ background: 'oklch(0.11 0.015 255)' }}>
-                              <span className="text-xs w-16" style={{ color: 'oklch(0.45 0.010 255)' }}>#{i + 1}</span>
-                              <div className="flex-1">
-                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'oklch(0.20 0.018 255)' }}>
-                                  <div className="h-full rounded-full" style={{ width: `${sc}%`, background: scColor }} />
+                            <div key={a.id} style={{ background: 'oklch(0.11 0.015 255)' }}>
+                              <div className="flex items-center gap-3 px-4 py-2.5">
+                                <span className="text-xs w-16" style={{ color: 'oklch(0.45 0.010 255)' }}>#{i + 1}</span>
+                                <div className="flex-1">
+                                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'oklch(0.20 0.018 255)' }}>
+                                    <div className="h-full rounded-full" style={{ width: `${sc}%`, background: scColor }} />
+                                  </div>
                                 </div>
+                                <span className="text-sm font-bold w-10 text-right" style={{ color: scColor }}>{sc}%</span>
+                                <span className="text-xs w-20 text-right" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(a.completedAt, t)}</span>
+                                {a.examMode ? <span className="text-xs px-1 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>Exam</span> : null}
                               </div>
-                              <span className="text-sm font-bold w-10 text-right" style={{ color: scColor }}>{sc}%</span>
-                              <span className="text-xs w-20 text-right" style={{ color: 'oklch(0.40 0.010 255)' }}>{timeAgo(a.completedAt, t)}</span>
-                              {a.examMode ? <span className="text-xs px-1 rounded" style={{ background: 'oklch(0.65 0.22 25 / 15%)', color: 'oklch(0.65 0.22 25)' }}>Exam</span> : null}
+                              {breakdown.length > 0 && (
+                                <div className="px-4 pb-2.5">
+                                  <div className="flex gap-1 mb-1.5">
+                                    {breakdown.map((step, si) => (
+                                      <div key={si} title={`${step.stepId}: ${step.correct ? '✓' : '✗'}${step.hintsUsed ? ' (hint)' : ''}${step.wrongAttempts > 0 ? ` (${step.wrongAttempts}x wrong)` : ''}`}
+                                        className="flex-1 h-2 rounded-sm"
+                                        style={{ background: step.correct ? 'oklch(0.72 0.14 162)' : 'oklch(0.65 0.22 25)', opacity: step.hintsUsed ? 0.7 : 1 }} />
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
+                                    <span style={{ color: 'oklch(0.72 0.14 162)' }}>✓ {correctSteps}/{breakdown.length}</span>
+                                    {failedSteps.length > 0 && (
+                                      <span style={{ color: 'oklch(0.65 0.22 25)' }}>✗ {failedSteps.map(s => s.stepId.split('-').pop()).join(', ')}</span>
+                                    )}
+                                    {a.hintsUsed > 0 && <span>💡 {a.hintsUsed} hint{a.hintsUsed > 1 ? 's' : ''}</span>}
+                                    {a.durationSeconds > 0 && <span>⏱ {Math.floor(a.durationSeconds / 60)}m{a.durationSeconds % 60}s</span>}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}

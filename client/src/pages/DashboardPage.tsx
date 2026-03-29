@@ -123,10 +123,10 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Modules ERP', value: '5', sub: 'ERP-ARCH, MM, SD, FI, SIM', icon: <BookOpen size={18} />, color: 'oklch(0.60 0.20 255)' },
-            { label: 'Scénarios', value: `${completedScenarios}/${totalScenarios}`, sub: 'complétés', icon: <CheckCircle2 size={18} />, color: 'oklch(0.72 0.16 162)' },
-            { label: 'Score moyen', value: avgScore > 0 ? `${avgScore}%` : '—', sub: 'sur les simulations', icon: <Award size={18} />, color: 'oklch(0.78 0.16 70)' },
-            { label: 'Durée totale', value: '30h', sub: '5 modules · 14 scénarios', icon: <Clock size={18} />, color: 'oklch(0.65 0.22 295)' },
+            { label: lang === 'fr' ? 'Modules ERP' : 'ERP Modules', value: '5', sub: 'ERP-ARCH, MM, SD, FI, SIM', icon: <BookOpen size={18} />, color: 'oklch(0.60 0.20 255)' },
+            { label: lang === 'fr' ? 'Scénarios' : 'Scenarios', value: `${completedScenarios}/${totalScenarios}`, sub: lang === 'fr' ? 'complétés' : 'completed', icon: <CheckCircle2 size={18} />, color: 'oklch(0.72 0.16 162)' },
+            { label: lang === 'fr' ? 'Score moyen' : 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '—', sub: lang === 'fr' ? 'sur les simulations' : 'across simulations', icon: <Award size={18} />, color: 'oklch(0.78 0.16 70)' },
+            { label: lang === 'fr' ? 'Durée totale' : 'Total Duration', value: '30h', sub: lang === 'fr' ? '5 modules · 14 scénarios' : '5 modules · 14 scenarios', icon: <Clock size={18} />, color: 'oklch(0.65 0.22 295)' },
           ].map((stat, i) => (
             <div key={i} className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
               <div className="flex items-center justify-between mb-3">
@@ -143,8 +143,8 @@ export default function DashboardPage() {
           {/* Modules */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Modules ERP</h2>
-              <Link href="/modules"><span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.60 0.16 255)' }}>Voir tout <ChevronRight size={12} /></span></Link>
+              <h2 className="text-base font-semibold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{lang === 'fr' ? 'Modules ERP' : 'ERP Modules'}</h2>
+              <Link href="/modules"><span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.60 0.16 255)' }}>{lang === 'fr' ? 'Voir tout' : 'View all'} <ChevronRight size={12} /></span></Link>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               {ERP_MODULES.map(mod => {
@@ -164,13 +164,13 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="text-sm font-semibold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.88 0.005 255)' }}>{mod.name}</div>
-                      <div className="text-xs mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{mod.duration} · {mod.scenarios.length} scénarios · {mod.slides.length} slides</div>
+                      <div className="text-xs mb-2" style={{ color: 'oklch(0.45 0.010 255)' }}>{mod.duration} · {mod.scenarios.length} {lang === 'fr' ? 'scénarios' : 'scenarios'} · {mod.slides.length} slides</div>
                       {mod.process && <div className="text-xs font-mono mb-3" style={{ color: mod.color }}>{mod.process}</div>}
                       <div className="progress-bar">
                         <div className="progress-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${mod.color}, ${mod.color}aa)` }} />
                       </div>
                       <div className="flex justify-between mt-1.5">
-                        <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{done}/{mod.scenarios.length} scénarios</span>
+                        <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{done}/{mod.scenarios.length} {lang === 'fr' ? 'scénarios' : 'scenarios'}</span>
                         <span className="text-xs font-semibold" style={{ color: mod.color }}>{pct}%</span>
                       </div>
                     </div>
@@ -236,25 +236,25 @@ export default function DashboardPage() {
 
             {/* Quick actions */}
             <div className="rounded-xl p-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Accès rapide</h3>
+              <h3 className="text-sm font-semibold mb-3" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{lang === 'fr' ? 'Accès rapide' : 'Quick Access'}</h3>
               <div className="space-y-2">
                 <Link href="/simulator">
                   <div className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer" style={{ background: 'oklch(0.60 0.20 255 / 10%)', border: '1px solid oklch(0.60 0.20 255 / 20%)' }}>
                     <Play size={16} style={{ color: 'oklch(0.72 0.16 255)' }} />
-                    <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.10 255)' }}>Lancer une simulation</span>
+                    <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.10 255)' }}>{lang === 'fr' ? 'Lancer une simulation' : 'Start a Simulation'}</span>
                   </div>
                 </Link>
                 <Link href="/modules/erp-sim">
                   <div className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer" style={{ background: 'oklch(0.65 0.22 25 / 10%)', border: '1px solid oklch(0.65 0.22 25 / 20%)' }}>
                     <Zap size={16} style={{ color: 'oklch(0.72 0.18 25)' }} />
-                    <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.12 25)' }}>Simulation intégrée ERP-SIM</span>
+                    <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.12 25)' }}>{lang === 'fr' ? 'Simulation intégrée ERP-SIM' : 'Integrated ERP-SIM Simulation'}</span>
                   </div>
                 </Link>
                 {isTeacher && (
                   <Link href="/monitoring">
                     <div className="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer" style={{ background: 'oklch(0.72 0.16 162 / 10%)', border: '1px solid oklch(0.72 0.16 162 / 20%)' }}>
                       <Users size={16} style={{ color: 'oklch(0.72 0.14 162)' }} />
-                      <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.10 162)' }}>Suivi des étudiants</span>
+                      <span className="text-sm font-medium" style={{ color: 'oklch(0.80 0.10 162)' }}>{lang === 'fr' ? 'Suivi des étudiants' : 'Student Monitoring'}</span>
                     </div>
                   </Link>
                 )}
@@ -297,12 +297,12 @@ export default function DashboardPage() {
 
         {/* Assessment */}
         <div className="rounded-xl p-5" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
-          <h2 className="text-base font-semibold mb-4" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>Structure d'évaluation — Programme 2</h2>
+          <h2 className="text-base font-semibold mb-4" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.85 0.005 255)' }}>{lang === 'fr' ? "Structure d'évaluation — Programme 2" : 'Assessment Structure — Programme 2'}</h2>
           <div className="grid sm:grid-cols-3 gap-4">
             {[
-              { label: 'Transactions simulées', pct: 30, color: 'oklch(0.72 0.15 200)', desc: 'Cycles P2P et O2C' },
-              { label: 'Quiz & concepts', pct: 20, color: 'oklch(0.65 0.22 295)', desc: 'ERP-ARCH et FI' },
-              { label: 'Simulation finale', pct: 50, color: 'oklch(0.65 0.22 25)', desc: 'ERP-SIM-01 intégré' },
+              { label: lang === 'fr' ? 'Transactions simulées' : 'Simulated Transactions', pct: 30, color: 'oklch(0.72 0.15 200)', desc: lang === 'fr' ? 'Cycles P2P et O2C' : 'P2P and O2C Cycles' },
+              { label: 'Quiz & concepts', pct: 20, color: 'oklch(0.65 0.22 295)', desc: lang === 'fr' ? 'ERP-ARCH et FI' : 'ERP-ARCH and FI' },
+              { label: lang === 'fr' ? 'Simulation finale' : 'Final Simulation', pct: 50, color: 'oklch(0.65 0.22 25)', desc: lang === 'fr' ? 'ERP-SIM-01 intégré' : 'ERP-SIM-01 integrated' },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4 p-3 rounded-lg"
                 style={{ background: `${item.color}10`, border: `1px solid ${item.color}25` }}>

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getModuleById } from '@/lib/erpData';
+import { useErpTranslations } from '@/hooks/useErpTranslations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLang } from '@/contexts/LanguageContext';
 import { Link, useParams } from 'wouter';
@@ -29,6 +30,7 @@ export default function ModuleDetailPageFull() {
   const mod = getModuleById(moduleId);
   const { user } = useAuth();
   const { lang } = useLang();
+  const { tScenario, tDifficulty } = useErpTranslations();
   const [activeTab, setActiveTab] = useState<'slides' | 'scenarios'>('slides');
   const [slideIndex, setSlideIndex] = useState(0);
   const [presentationMode, setPresentationMode] = useState(false);
@@ -257,10 +259,10 @@ export default function ModuleDetailPageFull() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-mono" style={{ color: mod.color }}>{i + 1}</span>
                     <span className="text-xs font-semibold truncate" style={{ color: i === slideIndex ? 'oklch(0.88 0.005 255)' : 'oklch(0.65 0.010 255)' }}>
-                      {s.title}
+                      {lang === 'en' && s.titleEn ? s.titleEn : s.title}
                     </span>
                   </div>
-                  <div className="text-xs truncate" style={{ color: 'oklch(0.40 0.010 255)' }}>{s.subtitle}</div>
+                  <div className="text-xs truncate" style={{ color: 'oklch(0.40 0.010 255)' }}>{lang === 'en' && s.subtitleEn ? s.subtitleEn : s.subtitle}</div>
                 </button>
               ))}
 
@@ -323,13 +325,15 @@ export default function ModuleDetailPageFull() {
                 </div>
 
                 <h2 className="text-xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>
-                  {slide.title}
+                  {lang === 'en' && slide.titleEn ? slide.titleEn : slide.title}
                 </h2>
-                {slide.subtitle && (
-                  <p className="text-sm mb-4" style={{ color: mod.color }}>{slide.subtitle}</p>
+                {(slide.subtitle || slide.subtitleEn) && (
+                  <p className="text-sm mb-4" style={{ color: mod.color }}>
+                    {lang === 'en' && slide.subtitleEn ? slide.subtitleEn : slide.subtitle}
+                  </p>
                 )}
                 <p className="text-sm mb-5" style={{ color: 'oklch(0.70 0.008 255)', lineHeight: '1.7' }}>
-                  {slide.content}
+                  {lang === 'en' && slide.contentEn ? slide.contentEn : slide.content}
                 </p>
 
                 {/* Key points */}
@@ -339,7 +343,7 @@ export default function ModuleDetailPageFull() {
                       {lang === 'fr' ? 'Points clés' : 'Key Points'}
                     </div>
                     <div className="space-y-2">
-                      {slide.keyPoints.map((pt, i) => (
+                      {(lang === 'en' && slide.keyPointsEn ? slide.keyPointsEn : slide.keyPoints)!.map((pt, i) => (
                         <div key={i} className="flex items-start gap-3">
                           <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
                             style={{ background: `${mod.color}20`, color: mod.color }}>
@@ -409,7 +413,8 @@ export default function ModuleDetailPageFull() {
         {/* Scenarios tab */}
         {activeTab === 'scenarios' && (
           <div className="space-y-4">
-            {mod.scenarios.map(sc => {
+            {mod.scenarios.map(rawSc => {
+              const sc = tScenario(rawSc);
               const isCompleted = (({} as Record<string,number>))[sc.id] !== undefined;
               const score = (({} as Record<string,number>))[sc.id];
               return (
@@ -427,7 +432,7 @@ export default function ModuleDetailPageFull() {
                             background: sc.difficulty === 'Débutant' ? 'oklch(0.72 0.16 162 / 20%)' : sc.difficulty === 'Intermédiaire' ? 'oklch(0.78 0.16 70 / 20%)' : 'oklch(0.65 0.22 25 / 20%)',
                             color: sc.difficulty === 'Débutant' ? 'oklch(0.72 0.14 162)' : sc.difficulty === 'Intermédiaire' ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.20 25)'
                           }}>
-                          {sc.difficulty}
+                          {tDifficulty(sc)}
                         </span>
                         <span className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{sc.duration}</span>
                         {isCompleted && score !== undefined && (
@@ -444,7 +449,7 @@ export default function ModuleDetailPageFull() {
                         <span className="font-semibold" style={{ color: mod.color }}>
                           {lang === 'fr' ? 'Objectif : ' : 'Objective: '}
                         </span>
-                        {sc.learningObjective}
+                        {sc.learningObjective ?? rawSc.learningObjective}
                       </div>
                     </div>
                     <div className="shrink-0">

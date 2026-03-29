@@ -288,6 +288,42 @@ const attemptsRouter = router({
     }),
 });
 
+
+const reflectionRouter = router({
+  submit: publicProcedure
+    .input(z.object({
+      scenarioId: z.string(),
+      questionId: z.string(),
+      answer: z.string().min(1).max(2000),
+      lang: z.string().default('fr'),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.[ERP_COOKIE];
+      if (!token) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const payload = await verifyErpToken(token);
+      if (!payload || payload.role !== "student") throw new TRPCError({ code: "FORBIDDEN" });
+      await saveReflectionAnswer({
+        studentId: payload.id,
+        scenarioId: input.scenarioId,
+        questionId: input.questionId,
+        answer: input.answer,
+        lang: input.lang,
+      });
+      return { success: true };
+    }),
+  allAnswers: publicProcedure.query(async ({ ctx }) => {
+    await requireTeacher(ctx);
+    return getAllReflectionAnswers();
+  }),
+  myAnswers: publicProcedure.query(async ({ ctx }) => {
+    const token = ctx.req.cookies?.[ERP_COOKIE];
+    if (!token) return [];
+    const payload = await verifyErpToken(token);
+    if (!payload) return [];
+    return getReflectionAnswersByStudent(payload.id);
+  }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -304,6 +340,7 @@ export const appRouter = router({
   scores: scoresRouter,
   seed: seedRouter,
   attempts: attemptsRouter,
+  reflection: reflectionRouter,
 });
 
 export type AppRouter = typeof appRouter;

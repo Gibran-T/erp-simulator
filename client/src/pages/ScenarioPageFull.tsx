@@ -3,13 +3,14 @@
  * Phase 3+4+6+7: 3-ERP comparative UI, role-play context, attempt history,
  * rich post-scenario result screen, AI QA feedback, exam mode
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useParams, useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLang } from '@/contexts/LanguageContext';
 import { ERP_MODULES, TransactionField, TransactionStep, ReflectionQuestion } from '@/lib/erpData';
+import { useErpTranslations } from '@/hooks/useErpTranslations';
 import { trpc } from '@/lib/trpc';
 import {
   ChevronLeft, ChevronRight, Award, RotateCcw, BookOpen, Play,
@@ -454,8 +455,14 @@ export default function ScenarioPageFull() {
   const [stepFeedback, setStepFeedback] = useState<{ correct: boolean; message: string } | null>(null);
   const [stepBreakdown, setStepBreakdown] = useState<Array<{ stepId: string; correct: boolean; hintsUsed: boolean; wrongAttempts: number }>>([]);
 
+  const { tScenario, isEn } = useErpTranslations();
   const mod = result?.module;
-  const scenario = result?.scenario;
+  // useMemo prevents new object reference on every render (avoids infinite loop in useEffect([scenario]))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scenario = useMemo(
+    () => result?.scenario ? tScenario(result.scenario) : undefined,
+    [result?.scenario?.id, isEn] // only re-compute when scenario ID or language changes
+  );
 
   // Count previous attempts for this scenario
   const attemptNumber = (myHistory?.filter((a: { scenarioId: string }) => a.scenarioId === scenarioId).length ?? 0) + 1;
