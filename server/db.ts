@@ -8,6 +8,7 @@ import {
   scenarioScores, InsertScenarioScore,
   quizScores, InsertQuizScore,
   scenarioAttempts,
+  reflectionAnswers,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -266,4 +267,40 @@ export async function getAllAttempts() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(scenarioAttempts).orderBy(desc(scenarioAttempts.completedAt));
+}
+
+// --- Reflection Answers ---
+export async function saveReflectionAnswer(data: {
+  studentId: number;
+  scenarioId: string;
+  questionId: string;
+  answer: string;
+  lang: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(reflectionAnswers).values(data);
+}
+
+export async function getReflectionAnswersByScenario(scenarioId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reflectionAnswers)
+    .where(eq(reflectionAnswers.scenarioId, scenarioId))
+    .orderBy(desc(reflectionAnswers.submittedAt));
+}
+
+export async function getReflectionAnswersByStudent(studentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reflectionAnswers)
+    .where(eq(reflectionAnswers.studentId, studentId))
+    .orderBy(desc(reflectionAnswers.submittedAt));
+}
+
+export async function getAllReflectionAnswers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reflectionAnswers)
+    .orderBy(desc(reflectionAnswers.submittedAt));
 }

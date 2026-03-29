@@ -14,9 +14,13 @@ export type SystemRef = {
 export type SlideContent = {
   id: string;
   title: string;
+  titleEn?: string;
   subtitle?: string;
+  subtitleEn?: string;
   content: string;
+  contentEn?: string;
   keyPoints?: string[];
+  keyPointsEn?: string[];
   systemRef?: SystemRef;
   type: 'concept' | 'process' | 'comparison' | 'diagram' | 'summary';
 };
@@ -24,20 +28,29 @@ export type SlideContent = {
 export type TransactionField = {
   id: string;
   label: string;
+  labelEn?: string;
   type: 'text' | 'number' | 'select' | 'date';
   placeholder?: string;
+  placeholderEn?: string;
   options?: string[];
+  optionsEn?: string[];
   required: boolean;
   correctValue?: string;
   hint?: string;
+  hintEn?: string;
 };
 
 export type ErpImpact = {
   stockChange?: string;
+  stockChangeEn?: string;
   accountingEntry?: string;
+  accountingEntryEn?: string;
   documentCreated?: string;
+  documentCreatedEn?: string;
   documentStatus?: string;
+  documentStatusEn?: string;
   note?: string;
+  noteEn?: string;
 };
 
 export type TransactionStep = {
@@ -45,13 +58,17 @@ export type TransactionStep = {
   stepNumber: number;
   code: string;
   name: string;
+  nameEn?: string;
   objective: string;
+  objectiveEn?: string;
   sapCode?: string;
   dynamicsName?: string;
   odooName?: string;
   fields: TransactionField[];
   validationMessage: string;
+  validationMessageEn?: string;
   errorMessage: string;
+  errorMessageEn?: string;
   points: number;
   erpImpact?: ErpImpact;
 };
@@ -59,28 +76,39 @@ export type TransactionStep = {
 export type ReflectionQuestion = {
   id: string;
   question: string;
+  questionEn?: string;
   hint: string;
+  hintEn?: string;
+  expectedAnswer?: string;
+  expectedAnswerEn?: string;
 };
 
 export type Scenario = {
   id: string;
   code: string;
   title: string;
+  titleEn?: string;
   description: string;
+  descriptionEn?: string;
   difficulty: 'Débutant' | 'Intermédiaire' | 'Avancé';
+  difficultyEn?: 'Beginner' | 'Intermediate' | 'Advanced';
   duration: string;
   steps: TransactionStep[];
   totalPoints: number;
   learningObjective: string;
+  learningObjectiveEn?: string;
   reflectionQuestions?: ReflectionQuestion[];
 };
 
 export type QuizQuestion = {
   id: string;
   question: string;
+  questionEn?: string;
   options: string[];
+  optionsEn?: string[];
   correctIndex: number;
   explanation: string;
+  explanationEn?: string;
 };
 
 export type ERPModule = {
@@ -88,13 +116,16 @@ export type ERPModule = {
   code: string;
   name: string;
   fullName: string;
+  fullNameEn?: string;
   process?: string;
+  processEn?: string;
   duration: string;
   hours: number;
   color: string;
   colorClass: string;
   icon: string;
   description: string;
+  descriptionEn?: string;
   slides: SlideContent[];
   scenarios: Scenario[];
   quiz?: QuizQuestion[];
@@ -751,6 +782,37 @@ const moduleMM: ERPModule = {
         sap: 'SAP FI : vérifier écritures avec FB03, solde compte avec FS10N',
         dynamics: 'Dynamics 365 Finance : Accounts Payable > Transactions > Vendor transactions',
         odoo: 'Odoo Comptabilité : Fournisseurs > Factures > Écritures comptables'
+      }
+    },
+    {
+      id: 'mm-s10',
+      title: '🔑 Le Compte GR/IR — Concept Clé',
+      titleEn: '🔑 The GR/IR Clearing Account — Key Concept',
+      subtitle: 'Le pont entre la réception physique et la facture fournisseur',
+      subtitleEn: 'The bridge between physical receipt and vendor invoice',
+      type: 'concept',
+      content: 'Le compte GR/IR (Goods Receipt / Invoice Receipt) est un compte transitoire qui sert de pont entre le module MM et le module FI. Il garantit que les stocks et la comptabilité restent synchronisés même si la réception et la facture arrivent à des moments différents.',
+      contentEn: 'The GR/IR (Goods Receipt / Invoice Receipt) Clearing Account is a temporary bridge account between MM and FI. It ensures that inventory and accounting remain synchronized even when the physical receipt and the vendor invoice arrive at different times.',
+      keyPoints: [
+        '📦 À la réception (MIGO) : Dr Stocks 2 500 CAD | Cr GR/IR Clearing 2 500 CAD',
+        '🧾 À la facture (MIRO) : Dr GR/IR Clearing 2 500 CAD | Cr Fournisseur AP 2 500 CAD',
+        '💰 Au paiement (F-53) : Dr Fournisseur AP 2 500 CAD | Cr Banque 2 500 CAD',
+        '✅ Résultat net : GR/IR = 0 (soldé) | Stocks + | Banque - | Fournisseur = 0',
+        '⚠️ Si GR/IR n\'est pas soldé en fin de mois → problème : réception sans facture ou facture sans réception',
+        '🔍 SAP : FS10N pour vérifier le solde GR/IR | T-code MR11 pour le rapprochement GR/IR'
+      ],
+      keyPointsEn: [
+        '📦 At receipt (MIGO): Dr Inventory 2,500 CAD | Cr GR/IR Clearing 2,500 CAD',
+        '🧾 At invoice (MIRO): Dr GR/IR Clearing 2,500 CAD | Cr Accounts Payable 2,500 CAD',
+        '💰 At payment (F-53): Dr Accounts Payable 2,500 CAD | Cr Bank 2,500 CAD',
+        '✅ Net result: GR/IR = 0 (cleared) | Inventory + | Bank - | Vendor AP = 0',
+        '⚠️ If GR/IR is not cleared at month-end → problem: receipt without invoice or invoice without receipt',
+        '🔍 SAP: FS10N to check GR/IR balance | T-code MR11 for GR/IR reconciliation'
+      ],
+      systemRef: {
+        sap: 'SAP : Compte GR/IR = 191000 (WRX). Vérifier avec FS10N. Rapprochement avec MR11.',
+        dynamics: 'Dynamics 365 : Accrued Purchases account. Accounts Payable > Periodic tasks > Invoice matching.',
+        odoo: 'Odoo : Compte de réception de stock (Stock Interim Account). Comptabilité > Fournisseurs > Rapprochement.'
       }
     }
   ],

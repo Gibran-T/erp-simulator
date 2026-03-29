@@ -111,3 +111,28 @@
 - [x] Fix shared components (DashboardLayout sidebar/topbar) — already bilingual
 - [x] Validate FR/EN switch end-to-end — all 11 pages PASS
 - [x] Produce Python-style QA checklist + final language report
+
+## Final Pedagogical Completion Sprint (2026-03-28)
+- [ ] Phase 1: Verify FR/EN toggle visible on ALL pages (Login, Simulator, Completion)
+- [ ] Phase 2: Translate erpData.ts — titleEn, descriptionEn, instructionEn, hintEn, erpImpact.noteEn, quizQuestionEn, quizOptionsEn, explanationEn
+- [ ] Phase 2: Update ScenarioPageFull + ModuleDetailPageFull to render EN content dynamically
+- [ ] Phase 3: Add GR-IR micro-learning to MM steps (Goods Receipt + Invoice Verification)
+- [ ] Phase 3: Add FI debit/credit micro-learning with "What increases? What decreases?" logic
+- [ ] Phase 4: Add stepExecutions table to DB schema (attemptId, stepIndex, status, hintsUsed)
+- [ ] Phase 4: Track step OK/ERROR/HINT in ScenarioPageFull and save to DB on completion
+- [ ] Phase 4: Display step-level breakdown in teacher monitoring student detail panel
+- [ ] Phase 5: Add post-scenario summary panel (steps failed, hints used, explanation per step)
+- [ ] Phase 6: Add reflection answer text inputs to completion screen
+- [ ] Phase 6: Save reflection answers to DB (reflectionAnswers table)
+- [ ] Phase 6: Display reflection answers in teacher monitoring student detail panel
+- [ ] Phase 7: Push to GitHub + deliver final QA report
+
+## Validation Sprint Completion (2026-03-28 continued)
+- [x] Fix MonitoringPageFull — stepBreakdown parsing bug fixed (filter on non-array crash)
+- [x] Fix ModulesPageFull — add useErpTranslations hook for scenario/module title EN translation
+- [x] Fix DashboardPage — fix untranslated stats labels, Quick Access, Assessment Structure section
+- [x] Validate simulator page EN mode — all step names translated (Standard Procurement Cycle, etc.)
+- [x] Validate modules page EN mode — all scenario titles translated
+- [x] Validate dashboard EN mode — all stat labels, section titles, quick access links translated
+- [x] Validate cohorts page EN mode — working correctly
+- [x] Validate monitoring page EN mode — working correctly

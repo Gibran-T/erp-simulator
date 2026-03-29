@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'wouter';
 import { Layers, Package, ShoppingCart, DollarSign, Zap, BookOpen, Play, ChevronRight } from 'lucide-react';
 import { useLang } from '@/contexts/LanguageContext';
+import { useErpTranslations } from '@/hooks/useErpTranslations';
+import { useMemo } from 'react';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   'erp-arch': <Layers size={28} />,
@@ -16,7 +18,10 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 export default function ModulesPageFull() {
   const { t } = useLang();
   const { user } = useAuth();
+  const { tModule, tDifficulty } = useErpTranslations();
   void user;
+
+  const translatedModules = useMemo(() => ERP_MODULES.map(m => tModule(m)), [tModule]);
 
   return (
     <DashboardLayout>
@@ -33,7 +38,7 @@ export default function ModulesPageFull() {
         {/* Programme overview */}
         <div className="rounded-xl p-5" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
           <div className="grid sm:grid-cols-5 gap-3">
-            {ERP_MODULES.map((mod, i) => (
+            {translatedModules.map((mod, i) => (
               <div key={mod.id} className="text-center">
                 <div className="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center"
                   style={{ background: `${mod.color}20`, color: mod.color }}>
@@ -41,7 +46,7 @@ export default function ModulesPageFull() {
                 </div>
                 <div className="text-xs font-mono font-bold" style={{ color: mod.color }}>{mod.code}</div>
                 <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>{mod.hours}h</div>
-                {i < ERP_MODULES.length - 1 && (
+                {i < translatedModules.length - 1 && (
                   <div className="hidden sm:block absolute" />
                 )}
               </div>
@@ -62,7 +67,7 @@ export default function ModulesPageFull() {
 
         {/* Module cards */}
         <div className="space-y-4">
-          {ERP_MODULES.map(mod => {
+          {translatedModules.map(mod => {
             const done = mod.scenarios.filter(s => (({} as Record<string,number>))[s.id] !== undefined).length;
             const pct = mod.scenarios.length > 0 ? Math.round((done / mod.scenarios.length) * 100) : 0;
             return (
@@ -122,7 +127,7 @@ export default function ModulesPageFull() {
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs font-semibold truncate" style={{ color: 'oklch(0.80 0.005 255)' }}>{sc.title}</div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{sc.difficulty} · {sc.duration}</span>
+                                    <span className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>{tDifficulty(sc)} · {sc.duration}</span>
                                     {isCompleted && score !== undefined && (
                                       <span className="text-xs font-bold" style={{ color: 'oklch(0.72 0.16 162)' }}>{score}%</span>
                                     )}

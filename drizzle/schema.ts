@@ -131,3 +131,19 @@ export const quizScores = mysqlTable("quiz_scores", {
 
 export type QuizScore = typeof quizScores.$inferSelect;
 export type InsertQuizScore = typeof quizScores.$inferInsert;
+
+// ============================================================
+// ERP Platform — Reflection question answers
+// ============================================================
+export const reflectionAnswers = mysqlTable("reflection_answers", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("studentId").notNull(),
+  scenarioId: varchar("scenarioId", { length: 64 }).notNull(),
+  questionId: varchar("questionId", { length: 64 }).notNull(),
+  answer: text("answer").notNull(),
+  lang: varchar("lang", { length: 4 }).default("fr").notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+});
+
+export type ReflectionAnswer = typeof reflectionAnswers.$inferSelect;
+export type InsertReflectionAnswer = typeof reflectionAnswers.$inferInsert;
