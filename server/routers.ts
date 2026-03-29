@@ -13,6 +13,8 @@ import {
   saveScenarioScore, getScenarioScoresByStudent, getAllScenarioScores,
   saveQuizScore, getQuizScoresByStudent, getAllQuizScores,
   saveScenarioAttempt, getAttemptsByStudent, getAttemptsByScenario, getAllAttempts,
+  saveStepExecutions, getLastAttemptId,
+  saveReflectionAnswer, getReflectionAnswersByStudent, getAllReflectionAnswers,
 } from "./db";
 
 const ERP_JWT_SECRET = new TextEncoder().encode(
@@ -289,6 +291,61 @@ const attemptsRouter = router({
 });
 
 
+const attemptsStepsRouter = router({
+  submitWithSteps: publicProcedure
+    .input(z.object({
+      scenarioId: z.string(),
+      moduleId: z.string(),
+      score: z.number().min(0).max(100),
+      hintsUsed: z.number().default(0),
+      wrongAttempts: z.number().default(0),
+      examMode: z.boolean().default(false),
+      durationSeconds: z.number().default(0),
+      stepBreakdown: z.string().optional(),
+      steps: z.array(z.object({
+        stepId: z.string(),
+        stepNumber: z.number(),
+        result: z.enum(['ok', 'error', 'hint']),
+        wrongAttempts: z.number().default(0),
+        hintUsed: z.boolean().default(false),
+        durationSeconds: z.number().default(0),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const token = ctx.req.cookies?.[ERP_COOKIE];
+      if (!token) throw new TRPCError({ code: 'UNAUTHORIZED' });
+      const payload = await verifyErpToken(token);
+      if (!payload || payload.role !== 'student') throw new TRPCError({ code: 'FORBIDDEN' });
+      await saveScenarioAttempt({
+        studentId: payload.id,
+        scenarioId: input.scenarioId,
+        moduleId: input.moduleId,
+        score: input.score,
+        hintsUsed: input.hintsUsed,
+        wrongAttempts: input.wrongAttempts,
+        examMode: input.examMode,
+        durationSeconds: input.durationSeconds,
+        stepBreakdown: input.stepBreakdown,
+      });
+      await updateStudentById(payload.id, { lastActive: new Date() });
+      const attemptId = await getLastAttemptId(payload.id, input.scenarioId);
+      if (attemptId && input.steps.length > 0) {
+        await saveStepExecutions(input.steps.map(s => ({
+          attemptId,
+          studentId: payload.id,
+          scenarioId: input.scenarioId,
+          stepId: s.stepId,
+          stepNumber: s.stepNumber,
+          result: s.result,
+          wrongAttempts: s.wrongAttempts,
+          hintUsed: s.hintUsed,
+          durationSeconds: s.durationSeconds,
+        })));
+      }
+      return { success: true, attemptId };
+    }),
+});
+
 const reflectionRouter = router({
   submit: publicProcedure
     .input(z.object({
@@ -340,6 +397,7 @@ export const appRouter = router({
   scores: scoresRouter,
   seed: seedRouter,
   attempts: attemptsRouter,
+  attemptsSteps: attemptsStepsRouter,
   reflection: reflectionRouter,
 });
 

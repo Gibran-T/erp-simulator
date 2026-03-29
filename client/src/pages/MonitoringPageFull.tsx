@@ -46,6 +46,26 @@ function classifyLearner(avgScore: number, totalHints: number, totalWrong: numbe
  * ERP-specific terms (T-codes, menu names) rather than misunderstanding the process.
  * A student with high hints + low score likely needs process understanding, not just terminology.
  */
+function getMostFailedStep(attempts: Array<{ stepBreakdown?: string }>): string | null {
+  const failCounts: Record<string, number> = {};
+  for (const a of attempts) {
+    if (!a.stepBreakdown) continue;
+    try {
+      const parsed = JSON.parse(a.stepBreakdown);
+      const breakdown = Array.isArray(parsed) ? parsed : [];
+      for (const b of breakdown) {
+        if (!b.correct && b.stepId) {
+          failCounts[b.stepId] = (failCounts[b.stepId] || 0) + 1;
+        }
+      }
+    } catch {}
+  }
+  const entries = Object.entries(failCounts);
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
+
 function detectConfusionType(avgScore: number, totalHints: number, totalWrong: number, totalAttempts: number, t: (k: string) => string): {
   terminologyConfused: boolean;
   processConfused: boolean;
@@ -100,6 +120,7 @@ type StudentSummary = {
   learnerProfile: { label: string; color: string; icon: string };
   cohortName: string;
   confusionSignal: { terminologyConfused: boolean; processConfused: boolean; label: string; color: string };
+  criticalStep: string | null;
 };
 
 function buildSummaries(
@@ -142,6 +163,7 @@ function buildSummaries(
       learnerProfile: classifyLearner(avgScore, totalHints, totalWrong, t),
       cohortName: cohort?.name || '—',
       confusionSignal: detectConfusionType(avgScore, totalHints, totalWrong, sa.length, t),
+      criticalStep: getMostFailedStep(sa),
     };
   });
 }
@@ -344,7 +366,8 @@ function StudentDetailPanel({ summary, onClose, t }: { summary: StudentSummary; 
 }
 
 export default function MonitoringPageFull() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const isFr = lang === 'fr';
   const { data: attemptsRaw = [] } = trpc.attempts.allHistory.useQuery();
   const { data: studentsRaw = [] } = trpc.students.list.useQuery();
   const { data: cohortsRaw = [] } = trpc.cohorts.list.useQuery();
@@ -506,7 +529,7 @@ export default function MonitoringPageFull() {
             {/* Table */}
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid oklch(1 0 0 / 6%)' }}>
               {/* Table header */}
-              <div className="grid gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 2fr 1.2fr', background: 'oklch(0.14 0.018 255)', color: 'oklch(0.45 0.010 255)' }}>
+              <div className="grid gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 1.4fr 2fr 1.2fr', background: 'oklch(0.14 0.018 255)', color: 'oklch(0.45 0.010 255)' }}>
                 <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('name')}>
                   {t('monitoring.sortName')} {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                 </div>
@@ -516,6 +539,9 @@ export default function MonitoringPageFull() {
                 </div>
                 <div className="cursor-pointer hover:text-white flex items-center gap-1" onClick={() => toggleSort('attempts')}>
                   {t('monitoring.sortAttempts').slice(0, 4)}. {sortKey === 'attempts' && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                </div>
+                <div className="flex items-center gap-1" title={isFr ? 'Étape la plus échouée' : 'Most failed step'}>
+                  <AlertTriangle size={10} /> {isFr ? 'Étape critique' : 'Critical Step'}
                 </div>
                 <div className="flex items-center gap-1"><Brain size={10} /> {t('monitoring.erpDiagnostic')}</div>
                 <div className="cursor-pointer hover:text-white" onClick={() => toggleSort('risk')}>{t('common.status')}</div>
@@ -535,7 +561,7 @@ export default function MonitoringPageFull() {
                     <div key={student.id}
                       className="grid gap-2 px-4 py-3 cursor-pointer transition-all hover:bg-white/5"
                       style={{
-                        gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 2fr 1.2fr',
+                        gridTemplateColumns: '2fr 1.2fr 1.4fr 1.2fr 1.4fr 2fr 1.2fr',
                         background: i % 2 === 0 ? 'oklch(0.11 0.015 255)' : 'oklch(0.12 0.018 255)',
                         borderTop: '1px solid oklch(1 0 0 / 4%)',
                         borderLeft: isAtRisk ? '3px solid oklch(0.65 0.22 25)' : '3px solid transparent',
@@ -570,6 +596,17 @@ export default function MonitoringPageFull() {
                         <span className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>
                           {totalAttempts > 0 ? `${totalAttempts}` : '—'}
                         </span>
+                      </div>
+                      <div className="flex items-center min-w-0">
+                        {summary.criticalStep ? (
+                          <span className="text-xs px-1.5 py-0.5 rounded font-mono truncate"
+                            style={{ background: 'oklch(0.65 0.22 25 / 12%)', color: 'oklch(0.65 0.22 25)', border: '1px solid oklch(0.65 0.22 25 / 25%)', maxWidth: '100%' }}
+                            title={summary.criticalStep}>
+                            {summary.criticalStep.split('-').slice(-1)[0]?.toUpperCase() || summary.criticalStep}
+                          </span>
+                        ) : (
+                          <span className="text-xs" style={{ color: 'oklch(0.35 0.010 255)' }}>—</span>
+                        )}
                       </div>
                       <div className="flex items-center min-w-0">
                         {totalAttempts > 0 ? (

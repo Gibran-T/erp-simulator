@@ -136,3 +136,17 @@
 - [x] Validate dashboard EN mode — all stat labels, section titles, quick access links translated
 - [x] Validate cohorts page EN mode — working correctly
 - [x] Validate monitoring page EN mode — working correctly
+
+## Final System Completion Sprint (2026-03-29)
+- [x] Phase 1: Add erpImpact.note (WHY explanations) to all 27 steps in MM-02/03/04, SD-02/03/04, FI-02/03
+- [x] Phase 2: Add stepExecutions DB table + pnpm db:push migration
+- [x] Phase 2: Add saveStepExecutions/getLastAttemptId helpers to server/db.ts
+- [x] Phase 2: Add attemptsSteps.submitWithSteps tRPC procedure to server/routers.ts
+- [x] Phase 3: Add per-step start-time tracking (stepStartTime, stepDurations state) to ScenarioPageFull
+- [x] Phase 3: Wire finishScenario to use submitWithSteps with per-step payload
+- [x] Phase 4: Add reflection textarea inputs to ResultScreen with save-to-DB via trpc.reflection.submit
+- [x] Phase 5: Add Critical Step column to MonitoringPage student table
+- [x] Phase 5: Fix isFr not defined error in MonitoringPageFull
+- [x] Phase 6: Verify SAP codes bug not present (getSystemCode already correct)
+- [x] Phase 6: Verify stale history fixed (refetchHistory + invalidate in submitWithSteps.onSuccess)
+- [x] Phase 7: Add struggled/improved sections to ResultScreen (What You Mastered / What Needs Work)
