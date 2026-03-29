@@ -184,6 +184,10 @@ function ResultScreen({
   const correctCount = stepStatuses.filter(s => s === 'correct').length;
   const qaFeedback = generateQAFeedback(score, hintsUsed.size, wrongAttempts, mod.id, lang);
   const learnerProfile = classifyLearner(score, hintsUsed.size, wrongAttempts, lang);
+  // Reflection answers state
+  const [reflectionAnswers, setReflectionAnswers] = useState<Record<string, string>>({});
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, boolean>>({});
+  const submitReflection = trpc.reflection.submit.useMutation();
 
   const scoreColor = score >= 80 ? 'oklch(0.72 0.14 162)' : score >= 60 ? 'oklch(0.78 0.14 70)' : 'oklch(0.65 0.22 25)';
   const scoreLabel = score >= 80 ? (isFr ? 'Excellent' : 'Excellent') : score >= 60 ? (isFr ? 'Acceptable' : 'Acceptable') : (isFr ? 'À améliorer' : 'Needs Work');
@@ -255,7 +259,7 @@ function ResultScreen({
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate" style={{ color: 'oklch(0.80 0.008 255)' }}>{step.name}</div>
                   <div className="text-xs" style={{ color: 'oklch(0.45 0.010 255)' }}>
-                    {step.sapCode && `SAP: ${step.sapCode}`}
+                    {getSystemCode(step, selectedSystem) && <span>{getSystemCode(step, selectedSystem)}</span>}
                     {hinted && <span className="ml-2" style={{ color: 'oklch(0.78 0.14 70)' }}>💡 {isFr ? 'Indice utilisé' : 'Hint used'}</span>}
                   </div>
                 </div>
@@ -271,6 +275,53 @@ function ResultScreen({
         </div>
       </div>
 
+      {/* Struggled / Improved sections */}
+      {(() => {
+        const failedSteps = scenario.steps.filter((_, i) => stepStatuses[i] !== 'correct');
+        const masteredSteps = scenario.steps.filter((_, i) => stepStatuses[i] === 'correct' && !hintsUsed.has(i));
+        if (failedSteps.length === 0 && masteredSteps.length === 0) return null;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {masteredSteps.length > 0 && (
+              <div className="rounded-xl p-4" style={{ background: 'oklch(0.72 0.14 162 / 6%)', border: '1px solid oklch(0.72 0.14 162 / 20%)' }}>
+                <h4 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: 'oklch(0.72 0.14 162)' }}>
+                  <CheckCircle2 size={13} />
+                  {isFr ? 'Ce que vous avez maîtrisé' : 'What You Mastered'}
+                </h4>
+                <div className="space-y-1.5">
+                  {masteredSteps.map(s => (
+                    <div key={s.id} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'oklch(0.72 0.14 162)' }} />
+                      <span className="text-xs" style={{ color: 'oklch(0.72 0.010 255)' }}>{s.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {failedSteps.length > 0 && (
+              <div className="rounded-xl p-4" style={{ background: 'oklch(0.65 0.22 25 / 6%)', border: '1px solid oklch(0.65 0.22 25 / 20%)' }}>
+                <h4 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: 'oklch(0.65 0.22 25)' }}>
+                  <AlertCircle size={13} />
+                  {isFr ? 'Ce que vous devez revoir' : 'What Needs Work'}
+                </h4>
+                <div className="space-y-1.5">
+                  {failedSteps.map(s => (
+                    <div key={s.id} className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: 'oklch(0.65 0.22 25)' }} />
+                      <div>
+                        <span className="text-xs" style={{ color: 'oklch(0.72 0.010 255)' }}>{s.name}</span>
+                        {s.erpImpact?.note && (
+                          <p className="text-xs mt-0.5" style={{ color: 'oklch(0.45 0.010 255)' }}>{isFr ? s.erpImpact.note : (s.erpImpact.noteEn || s.erpImpact.note)}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {/* Learner profile */}
       <div className="rounded-xl p-5" style={{ background: 'oklch(0.13 0.018 255)', border: '1px solid oklch(1 0 0 / 6%)' }}>
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'oklch(0.75 0.008 255)' }}>
@@ -372,13 +423,13 @@ function ResultScreen({
               {isFr ? 'Questions de réflexion' : 'Reflection Questions'}
             </span>
             <span className="text-xs ml-auto" style={{ color: 'oklch(0.40 0.010 255)' }}>
-              {isFr ? 'Pas de bonne réponse unique — réfléchissez et discutez' : 'No single right answer — think and discuss'}
+              {isFr ? 'Répondez et sauvegardez' : 'Answer and save'}
             </span>
           </div>
           <div className="divide-y" style={{ borderColor: 'oklch(1 0 0 / 5%)' }}>
             {scenario.reflectionQuestions.map((rq, idx) => (
-              <div key={rq.id} className="px-4 py-3">
-                <div className="flex items-start gap-3">
+              <div key={rq.id} className="px-4 py-4">
+                <div className="flex items-start gap-3 mb-3">
                   <span className="text-xs font-bold mt-0.5 shrink-0" style={{ color: 'oklch(0.60 0.16 255)' }}>{idx + 1}.</span>
                   <div>
                     <p className="text-sm font-medium mb-1" style={{ color: 'oklch(0.85 0.005 255)' }}>{rq.question}</p>
@@ -386,6 +437,45 @@ function ResultScreen({
                       <span style={{ color: 'oklch(0.60 0.16 255)' }}>{isFr ? 'Piste : ' : 'Hint: '}</span>
                       {rq.hint}
                     </p>
+                  </div>
+                </div>
+                <div className="ml-5">
+                  <textarea
+                    value={reflectionAnswers[rq.id] || ''}
+                    onChange={e => setReflectionAnswers(prev => ({ ...prev, [rq.id]: e.target.value }))}
+                    placeholder={isFr ? 'Votre réponse...' : 'Your answer...'}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                    style={{
+                      background: 'oklch(0.11 0.015 255)',
+                      border: '1px solid oklch(1 0 0 / 12%)',
+                      color: 'oklch(0.85 0.005 255)',
+                    }}
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs" style={{ color: 'oklch(0.38 0.010 255)' }}>
+                      {(reflectionAnswers[rq.id] || '').length}/2000
+                    </span>
+                    {savedAnswers[rq.id] ? (
+                      <span className="text-xs flex items-center gap-1" style={{ color: 'oklch(0.72 0.14 162)' }}>
+                        <CheckCircle2 size={12} /> {isFr ? 'Sauvegardé' : 'Saved'}
+                      </span>
+                    ) : (
+                      <button
+                        disabled={!(reflectionAnswers[rq.id] || '').trim() || submitReflection.isPending}
+                        onClick={() => {
+                          const answer = (reflectionAnswers[rq.id] || '').trim();
+                          if (!answer) return;
+                          submitReflection.mutate(
+                            { scenarioId: scenario.code.toLowerCase(), questionId: rq.id, answer, lang },
+                            { onSuccess: () => setSavedAnswers(prev => ({ ...prev, [rq.id]: true })) }
+                          );
+                        }}
+                        className="text-xs px-3 py-1 rounded-lg transition-all disabled:opacity-40"
+                        style={{ background: 'oklch(0.60 0.16 255 / 20%)', color: 'oklch(0.72 0.16 255)' }}>
+                        {isFr ? 'Sauvegarder' : 'Save'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -435,7 +525,9 @@ export default function ScenarioPageFull() {
   })();
 
   const submitAttempt = trpc.attempts.submit.useMutation();
-  const { data: myHistory } = trpc.attempts.myHistory.useQuery();
+  const submitWithSteps = trpc.attemptsSteps.submitWithSteps.useMutation();
+  const utils = trpc.useUtils();
+  const { data: myHistory, refetch: refetchHistory } = trpc.attempts.myHistory.useQuery();
 
   const [hintsUsed, setHintsUsed] = useState<Set<number>>(new Set());
   const [wrongAttempts, setWrongAttempts] = useState(0);
@@ -454,6 +546,8 @@ export default function ScenarioPageFull() {
   const [timerActive, setTimerActive] = useState(false);
   const [stepFeedback, setStepFeedback] = useState<{ correct: boolean; message: string } | null>(null);
   const [stepBreakdown, setStepBreakdown] = useState<Array<{ stepId: string; correct: boolean; hintsUsed: boolean; wrongAttempts: number }>>([]);
+  const [stepStartTime, setStepStartTime] = useState<number>(Date.now());
+  const [stepDurations, setStepDurations] = useState<number[]>([]);
 
   const { tScenario, isEn } = useErpTranslations();
   const mod = result?.module;
@@ -471,6 +565,8 @@ export default function ScenarioPageFull() {
     if (scenario) {
       setStepStatuses(scenario!.steps.map(() => 'pending') as StepStatus[]);
       setStepBreakdown(scenario!.steps.map((s: TransactionStep) => ({ stepId: s.id, correct: false, hintsUsed: false, wrongAttempts: 0 })));
+      setStepStartTime(Date.now());
+      setStepDurations([]);
     }
   }, [scenario]);
 
@@ -533,13 +629,14 @@ export default function ScenarioPageFull() {
       }
       return;
     }
-    // Correct
+    // Correct — record per-step duration
+    const stepDur = Math.round((Date.now() - stepStartTime) / 1000);
+    setStepDurations(prev => { const n = [...prev]; n[currentStep] = stepDur; return n; });
     setStepBreakdown(prev => prev.map((b, i) => i === currentStep ? { ...b, correct: true, hintsUsed: hintsUsed.has(currentStep) } : b));
     const newStatuses = [...stepStatuses];
     newStatuses[currentStep] = 'correct';
     setStepStatuses(newStatuses);
     setStepFeedback({ correct: true, message: step.validationMessage || (isFr ? '✓ Étape validée !' : '✓ Step validated!') });
-
     if (currentStep === totalSteps - 1) {
       // Finish
       setTimeout(() => finishScenario(newStatuses), 800);
@@ -548,6 +645,7 @@ export default function ScenarioPageFull() {
         setCurrentStep(prev => prev + 1);
         setStepFeedback(null);
         setShowHint(false);
+        setStepStartTime(Date.now());
       }, 2000);
     }
   }
@@ -562,8 +660,16 @@ export default function ScenarioPageFull() {
     setScore(finalScore);
     setFinished(true);
 
-    // Submit to backend
-    submitAttempt.mutate({
+    // Submit to backend with per-step tracking
+    const stepsPayload = scenario!.steps.map((s: TransactionStep, i: number) => ({
+      stepId: s.id,
+      stepNumber: i + 1,
+      result: (statuses[i] === 'correct' ? 'ok' : hintsUsed.has(i) ? 'hint' : 'error') as 'ok' | 'error' | 'hint',
+      wrongAttempts: stepBreakdown[i]?.wrongAttempts ?? 0,
+      hintUsed: hintsUsed.has(i),
+      durationSeconds: stepDurations[i] ?? 0,
+    }));
+    submitWithSteps.mutate({
       scenarioId: scenario!.id,
       moduleId: mod!.id,
       score: finalScore,
@@ -572,6 +678,9 @@ export default function ScenarioPageFull() {
       examMode,
       durationSeconds: elapsedTime,
       stepBreakdown: JSON.stringify(stepBreakdown),
+      steps: stepsPayload,
+    }, {
+      onSuccess: () => { refetchHistory(); utils.attempts.myHistory.invalidate(); },
     });
   }
 
@@ -702,9 +811,7 @@ export default function ScenarioPageFull() {
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium" style={{ color: 'oklch(0.78 0.008 255)' }}>{s.name}</div>
                         <div className="text-xs" style={{ color: 'oklch(0.40 0.010 255)' }}>
-                          SAP: {s.sapCode || s.code}
-                          {s.dynamicsName && ` · D365: ${s.dynamicsName}`}
-                          {s.odooName && ` · Odoo: ${s.odooName}`}
+                          {getSystemCode(s, selectedSystem) || s.code}
                         </div>
                       </div>
                     </div>

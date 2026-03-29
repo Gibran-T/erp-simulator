@@ -147,3 +147,24 @@ export const reflectionAnswers = mysqlTable("reflection_answers", {
 
 export type ReflectionAnswer = typeof reflectionAnswers.$inferSelect;
 export type InsertReflectionAnswer = typeof reflectionAnswers.$inferInsert;
+
+// ============================================================
+// ERP Platform — Step-level execution tracking
+// Records every step result (ok/error/hint) per attempt
+// ============================================================
+export const stepExecutions = mysqlTable("step_executions", {
+  id: int("id").autoincrement().primaryKey(),
+  attemptId: int("attemptId").notNull(), // FK → scenario_attempts.id
+  studentId: int("studentId").notNull(),
+  scenarioId: varchar("scenarioId", { length: 64 }).notNull(),
+  stepId: varchar("stepId", { length: 64 }).notNull(),
+  stepNumber: int("stepNumber").notNull(),
+  result: mysqlEnum("result", ["ok", "error", "hint"]).notNull(),
+  wrongAttempts: int("wrongAttempts").notNull().default(0),
+  hintUsed: boolean("hintUsed").notNull().default(false),
+  durationSeconds: int("durationSeconds").notNull().default(0),
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+});
+
+export type StepExecution = typeof stepExecutions.$inferSelect;
+export type InsertStepExecution = typeof stepExecutions.$inferInsert;

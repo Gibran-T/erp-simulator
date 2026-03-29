@@ -9,6 +9,7 @@ import {
   quizScores, InsertQuizScore,
   scenarioAttempts,
   reflectionAnswers,
+  stepExecutions,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -303,4 +304,48 @@ export async function getAllReflectionAnswers() {
   if (!db) return [];
   return db.select().from(reflectionAnswers)
     .orderBy(desc(reflectionAnswers.submittedAt));
+}
+
+// --- Step Executions ---
+export async function saveStepExecutions(data: Array<{
+  attemptId: number;
+  studentId: number;
+  scenarioId: string;
+  stepId: string;
+  stepNumber: number;
+  result: 'ok' | 'error' | 'hint';
+  wrongAttempts: number;
+  hintUsed: boolean;
+  durationSeconds: number;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db || data.length === 0) return;
+  await db.insert(stepExecutions).values(data);
+}
+
+export async function getStepExecutionsByAttempt(attemptId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(stepExecutions)
+    .where(eq(stepExecutions.attemptId, attemptId))
+    .orderBy(stepExecutions.stepNumber);
+}
+
+export async function getStepExecutionsByStudent(studentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(stepExecutions)
+    .where(eq(stepExecutions.studentId, studentId))
+    .orderBy(desc(stepExecutions.executedAt));
+}
+
+export async function getLastAttemptId(studentId: number, scenarioId: string): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({ id: scenarioAttempts.id })
+    .from(scenarioAttempts)
+    .where(eq(scenarioAttempts.studentId, studentId))
+    .orderBy(desc(scenarioAttempts.completedAt))
+    .limit(1);
+  return rows[0]?.id ?? null;
 }

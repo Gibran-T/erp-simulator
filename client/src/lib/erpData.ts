@@ -980,6 +980,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Retard identifié : 15 jours. Risque de rupture de stock détecté. Alerte générée dans le système ERP. Action requise : relance fournisseur.',
           errorMessage: '❌ Vérifiez le nombre de jours de retard (15) et l\'impact (Rupture de stock imminente).',
+          erpImpact: {
+            note: 'A 15-day delay triggers an automatic ERP alert because the system compares the confirmed delivery date against today — this procurement exception management logic is identical in SAP ME2M, D365 Purchase Inquiry, and Odoo Order Tracking.',
+          },
           points: 34
         },
         {
@@ -997,6 +1000,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Relance envoyée. Nouvelle date confirmée. Pénalité contractuelle documentée. Le PO est mis à jour avec la nouvelle date dans l\'ERP.',
           errorMessage: '❌ Confirmez la nouvelle date de livraison et vérifiez les clauses contractuelles de pénalité.',
+          erpImpact: {
+            note: 'Updating the PO with a new confirmed date and logging the penalty creates a complete audit trail — the ERP becomes the single source of truth for all supplier communications.',
+          },
           points: 33
         },
         {
@@ -1014,6 +1020,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Évaluation fournisseur mise à jour. Note livraison : 4/10. Recommandation : diversifier les sources d\'approvisionnement pour réduire le risque.',
           errorMessage: '❌ Un retard de 15 jours mérite une note basse (4/10) et justifie la diversification des fournisseurs.',
+          erpImpact: {
+            note: 'Supplier performance scores stored in the ERP (SAP ME61, D365 Vendor Analytics, Odoo Supplier Report) feed directly into future sourcing decisions — a score of 4/10 automatically flags the supplier for review.',
+          },
           points: 33
         }
       ]
@@ -1044,6 +1053,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Écart détecté : 250,00 CAD (10% au-dessus du PO). Facture bloquée automatiquement par l\'ERP. Rapprochement 3 voies échoué.',
           errorMessage: '❌ L\'écart est de 250,00 CAD (2 750,00 - 2 500,00). La facture doit être bloquée.',
+          erpImpact: {
+            note: 'Three-way matching (PO = GR = Invoice) is the ERP\'s core control: when the invoice amount exceeds the PO by more than the tolerance, the system blocks payment automatically — this prevents overpayment without any manual intervention.',
+          },
           points: 34
         },
         {
@@ -1061,6 +1073,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Note de crédit de 250,00 CAD demandée au fournisseur. Écart documenté dans l\'ERP. Facture reste bloquée jusqu\'à réception de la note de crédit.',
           errorMessage: '❌ La bonne action est de demander une note de crédit de 250,00 CAD au fournisseur pour corriger l\'erreur de prix.',
+          erpImpact: {
+            note: 'Requesting a credit note keeps the blocked invoice in the ERP until the discrepancy is resolved — this creates a legally traceable correction chain that protects both the buyer and the supplier.',
+          },
           points: 33
         },
         {
@@ -1078,6 +1093,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Facture débloquée et validée ! Rapprochement 3 voies réussi : PO = GR = Facture = 2 500,00 CAD. Prêt pour paiement. Cycle P2P repris.',
           errorMessage: '❌ Le montant final doit être 2 500,00 CAD et le rapprochement 3 voies doit être validé.',
+          erpImpact: {
+            note: 'Unblocking the invoice after receiving the credit note completes the three-way match: PO = GR = Corrected Invoice — only then does the ERP allow the payment run to proceed.',
+          },
           points: 33
         }
       ]
@@ -1108,6 +1126,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Analyse complète. Fournisseur classé "Acceptable" : livraison 65%, qualité 88%. Performance insuffisante sur les délais. Action corrective requise.',
           errorMessage: '❌ Avec 65% de livraisons à temps, le fournisseur est classé "Acceptable (60-74%)".',
+          erpImpact: {
+            note: 'ERP vendor scorecards (SAP ME61, D365 Vendor Performance Analytics, Odoo Supplier Report) aggregate delivery and quality data automatically — a 65% on-time rate places the supplier in the "Acceptable" band, triggering a mandatory corrective action review.',
+          },
           points: 34
         },
         {
@@ -1122,6 +1143,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Plan d\'amélioration sur 3 mois établi avec le fournisseur. Objectif : taux de livraison à temps > 85%. Suivi mensuel dans l\'ERP.',
           errorMessage: '❌ La bonne approche est un plan d\'amélioration de 3 mois avant d\'envisager un changement de fournisseur.',
+          erpImpact: {
+            note: 'A 3-month improvement plan is logged as a vendor action item in the ERP — this creates a formal review cycle where the system will automatically re-evaluate the supplier score at the end of the period.',
+          },
           points: 33
         },
         {
@@ -1135,6 +1159,9 @@ const moduleMM: ERPModule = {
           ],
           validationMessage: '✅ Stratégie double sourcing adoptée : 70% chez le fournisseur principal, 30% chez un alternatif. Risque de rupture réduit. Fiche fournisseur mise à jour dans l\'ERP.',
           errorMessage: '❌ Le double sourcing est la meilleure stratégie : maintenir le fournisseur actuel tout en développant une alternative.',
+          erpImpact: {
+            note: 'Double sourcing (70%/30% split) is recorded in the ERP purchasing info records — the system will automatically split future purchase orders between the two suppliers according to the configured quota arrangement.',
+          },
           points: 33
         }
       ]
@@ -1488,6 +1515,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ ATP Check : stock insuffisant ! Disponible : 30 unités. Demandé : 80. Manque : 50 unités. Commande partiellement bloquée. Action requise.',
           errorMessage: '❌ L\'écart est de 50 unités (80 demandées - 30 disponibles).',
+          erpImpact: {
+            note: 'The ATP (Available-to-Promise) check is the ERP\'s real-time stock availability engine — it compares requested quantity against available stock minus existing reservations, and the result directly determines whether the sales order can be fully confirmed.',
+          },
           points: 34
         },
         {
@@ -1501,6 +1531,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Solution optimale : livraison partielle de 30 unités aujourd\'hui + reliquat de 50 unités dans 15 jours. Client informé et accord obtenu.',
           errorMessage: '❌ La meilleure solution est la livraison partielle : satisfaire le client partiellement maintenant et compléter lors du réapprovisionnement.',
+          erpImpact: {
+            note: 'Creating a backorder splits the original sales order into two delivery documents — the ERP tracks both, ensuring the remaining 50 units are automatically reserved and shipped as soon as stock is replenished.',
+          },
           points: 33
         },
         {
@@ -1518,6 +1551,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Demande d\'achat urgente créée pour 50 unités. Fournisseur FOURNISSEUR-MTL contacté. Délai confirmé : 12 jours. Reliquat client sera livré dans les délais.',
           errorMessage: '❌ Créez une demande urgente pour 50 unités avec priorité Urgente.',
+          erpImpact: {
+            note: 'An emergency purchase requisition (SAP ME51N, D365 Emergency PR, Odoo Urgent Purchase) triggers the procurement cycle immediately — the ERP links this new PR to the original sales order backorder, ensuring automatic stock allocation when goods arrive.',
+          },
           points: 33
         }
       ]
@@ -1544,6 +1580,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Retard identifié : +3 jours pour conditions météo (force majeure). Transporteur Purolator a confirmé la nouvelle date. Client à informer.',
           errorMessage: '❌ La cause est les conditions météo (+3 jours). C\'est un cas de force majeure.',
+          erpImpact: {
+            note: 'Logging the delay reason (force majeure) in the ERP protects the company legally — it creates a timestamped record that the delay was beyond the company\'s control, which is critical for contract penalty clauses.',
+          },
           points: 34
         },
         {
@@ -1557,6 +1596,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Client contacté proactivement. Nouvelle date confirmée. Compensation proposée : 5% de remise sur la prochaine commande. Relation client préservée.',
           errorMessage: '❌ La meilleure pratique est de contacter proactivement le client et de proposer une compensation pour maintenir la relation.',
+          erpImpact: {
+            note: 'Proactive customer communication is recorded as a service activity in the ERP CRM module — this interaction history is visible to all customer-facing teams and informs future service level decisions.',
+          },
           points: 33
         },
         {
@@ -1573,6 +1615,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ SO mis à jour : nouvelle date de livraison enregistrée. Note interne documentée. Traçabilité complète dans l\'ERP. Suivi client programmé.',
           errorMessage: '❌ Il faut mettre à jour la date de livraison dans le SO et ajouter une note interne pour la traçabilité.',
+          erpImpact: {
+            note: 'Updating the sales order with the new delivery date and an internal note ensures full traceability — the customer service team, warehouse, and finance all see the same updated information in real time.',
+          },
           points: 33
         }
       ]
@@ -1600,6 +1645,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Contestation fondée ! Prix facturé 48,00 vs prix contractuel 45,00. Écart : 3,00 CAD/unité. Sur 50 unités = 150,00 CAD à rembourser.',
           errorMessage: '❌ L\'écart est de 3,00 CAD/unité (48,00 - 45,00). La contestation est fondée.',
+          erpImpact: {
+            note: 'When the invoiced price does not match the contract price stored in the ERP, the system should have blocked the invoice at creation — this discrepancy reveals a missing contract record in the customer master pricing conditions.',
+          },
           points: 34
         },
         {
@@ -1617,6 +1665,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Note de crédit de 150,00 CAD émise ! Écriture comptable : Débit Ventes 150,00 / Crédit Clients 150,00. Facture corrigée envoyée au client.',
           errorMessage: '❌ La note de crédit doit être de 150,00 CAD (3,00 × 50 unités) pour erreur de prix.',
+          erpImpact: {
+            note: 'A credit note (SAP VF01, D365 Credit Note, Odoo Credit Note) reverses the revenue and accounts receivable entries for the overbilled amount — the ERP generates the correcting accounting entry automatically.',
+          },
           points: 33
         },
         {
@@ -1631,6 +1682,9 @@ const moduleSD: ERPModule = {
           ],
           validationMessage: '✅ Cause identifiée : contrat non enregistré dans l\'ERP. Action : saisir tous les accords de prix dans la liste de prix client. Erreur ne se reproduira plus.',
           errorMessage: '❌ La cause est que le contrat n\'était pas enregistré dans l\'ERP. Solution : enregistrer tous les contrats dans le système.',
+          erpImpact: {
+            note: 'Storing all customer contracts as pricing conditions in the ERP (SAP VK11, D365 Trade Agreements, Odoo Pricelists) enables automatic price validation at order entry — the system prevents billing errors before they reach the customer.',
+          },
           points: 33
         }
       ]
@@ -1938,6 +1992,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Écriture COGS correcte ! Débit COGS 1 250,00 / Crédit Stock 1 250,00. Le coût des ventes est enregistré. Stock réduit de 1 250,00 CAD.',
           errorMessage: '❌ Lors du GI : Débit COGS (coût des ventes) / Crédit Stock (réduction inventaire). Montant : 1 250,00 CAD (coût d\'achat).',
+          erpImpact: {
+            note: 'The Goods Issue (SAP VL02N, D365 COGS Posting, Odoo Delivery Validation) is the SD→FI integration point that simultaneously reduces inventory and records the cost of goods sold — one click in the warehouse triggers two accounting entries automatically.',
+          },
           points: 34
         },
         {
@@ -1956,6 +2013,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Écriture facturation correcte ! Débit Clients 2 250,00 / Crédit Ventes 2 250,00. Revenu reconnu. Marge brute = 2 250,00 - 1 250,00 = 1 000,00 CAD.',
           errorMessage: '❌ Lors de la facturation : Débit Clients (créance) / Crédit Ventes (revenu). Montant : 2 250,00 CAD.',
+          erpImpact: {
+            note: 'Revenue recognition (SAP VF01, D365 Revenue Recognition, Odoo Customer Invoice) is the moment the sale becomes official in the books — the ERP posts Debit AR / Credit Revenue automatically when the invoice is created.',
+          },
           points: 33
         },
         {
@@ -1971,6 +2031,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Analyse financière complète ! CA : 2 250,00 | COGS : 1 250,00 | Marge brute : 1 000,00 CAD (44,4%). Ces données alimentent automatiquement le compte de résultat dans FI.',
           errorMessage: '❌ Marge brute = Ventes (2 250,00) - COGS (1 250,00) = 1 000,00 CAD.',
+          erpImpact: {
+            note: 'The gross margin calculation (Revenue − COGS = 44.4%) is automatically available in the ERP income statement (SAP S_ALR_87012284, D365 P&L Report, Odoo Profit & Loss) — no manual calculation needed, the data flows from every transaction.',
+          },
           points: 33
         }
       ]
@@ -2000,6 +2063,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Rapport de rentabilité T1 2026 par produit généré. Données extraites du module FI/CO. Analyse disponible.',
           errorMessage: '❌ Sélectionnez la période T1 2026 et la dimension par produit.',
+          erpImpact: {
+            note: 'Profitability reports (SAP KE30 CO-PA, D365 Profitability Report, Odoo Profitability) pull data from every posted transaction in the period — the ERP aggregates thousands of entries into a single management view in seconds.',
+          },
           points: 34
         },
         {
@@ -2014,6 +2080,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Analyse correcte ! PROD-001 génère 44,4% de marge brute — excellente performance. Recommandation : augmenter les volumes pour maximiser la rentabilité.',
           errorMessage: '❌ Avec 44,4% de marge brute, PROD-001 est excellent. La bonne décision est d\'augmenter les volumes.',
+          erpImpact: {
+            note: 'A 44.4% gross margin is well above the typical 20-30% target for manufactured goods — the ERP\'s profitability analysis directly informs the production planning module to increase the volume of high-margin products.',
+          },
           points: 33
         },
         {
@@ -2028,6 +2097,9 @@ const moduleFI: ERPModule = {
           ],
           validationMessage: '✅ Rapport de direction préparé ! PROD-001 : marge 44,4%, recommandation croissance. Power BI connecté à Dynamics 365 pour tableaux de bord temps réel. Décision prise sur données ERP.',
           errorMessage: '❌ La conclusion est que PROD-001 est rentable. Power BI connecté à Dynamics 365 est l\'outil de reporting le plus adapté pour la direction.',
+          erpImpact: {
+            note: 'Connecting Power BI to Dynamics 365 (or SAP Analytics Cloud / Odoo Dashboards) creates a live management dashboard — executives see real-time profitability without waiting for month-end reports.',
+          },
           points: 33
         }
       ]
