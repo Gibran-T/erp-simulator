@@ -892,10 +892,10 @@ const moduleMM: ERPModule = {
           fields: [
             { id: 'quantite_recue', label: 'Quantité reçue', type: 'number', placeholder: 'Ex: 100', required: true, correctValue: '100', hint: 'Quantité physiquement reçue et vérifiée' },
             { id: 'numero_bl', label: 'Numéro de bon de livraison', type: 'text', placeholder: 'Ex: BL-FMTL-2026-001', required: true, correctValue: 'BL-FMTL-2026-001', hint: 'Numéro du document de livraison fournisseur' },
-            { id: 'emplacement', label: 'Emplacement de stockage', type: 'select', options: ['ZONE-A1', 'ZONE-B2', 'ZONE-C3', 'ZONE-RECEPTION'], required: true, correctValue: 'ZONE-A1', hint: 'Où les marchandises sont rangées en entrepôt' }
+            { id: 'emplacement', label: 'Emplacement de stockage', type: 'select', options: ['ZONE-A1', 'ZONE-B2', 'ZONE-C3', 'ZONE-RECEPTION'], required: true, correctValue: 'ZONE-A1', hint: 'Zone de stockage standard pour les réceptions de PROD-001 : ZONE-A1' }
           ],
           validationMessage: '✅ Réception GR-2026-001 enregistrée ! Stock mis à jour : +100 unités PROD-001. Écriture comptable générée automatiquement dans FI. SAP : MIGO Mvt 101 exécuté.',
-          errorMessage: '❌ Vérifiez la quantité reçue (100) et le numéro de bon de livraison.',
+          errorMessage: '❌ Vérifiez : quantité reçue (100), numéro de bon de livraison (BL-FMTL-2026-001) et emplacement de stockage (ZONE-A1).',
           points: 20,
           erpImpact: {
             stockChange: '+100 unités PROD-001 → ZONE-A1',
