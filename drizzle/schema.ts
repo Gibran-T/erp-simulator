@@ -168,3 +168,35 @@ export const stepExecutions = mysqlTable("step_executions", {
 
 export type StepExecution = typeof stepExecutions.$inferSelect;
 export type InsertStepExecution = typeof stepExecutions.$inferInsert;
+
+// ============================================================
+// ERP Platform — Invite tokens (teacher → student self-registration)
+// ============================================================
+export const inviteTokens = mysqlTable("invite_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull(),
+  cohortId: int("cohortId"),
+  createdBy: int("createdBy").notNull(), // FK → erp_teachers.id
+  usedAt: timestamp("usedAt"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type InviteToken = typeof inviteTokens.$inferSelect;
+export type InsertInviteToken = typeof inviteTokens.$inferInsert;
+
+// ============================================================
+// ERP Platform — Password reset tokens
+// ============================================================
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull(),
+  usedAt: timestamp("usedAt"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

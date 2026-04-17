@@ -21,6 +21,9 @@ import TeacherGuidePage from "./pages/TeacherGuidePage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from './pages/NotFound';
 import PausePage from './pages/PausePage';
+import AcceptInvitePage from './pages/AcceptInvitePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 function AppRouter() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
@@ -34,7 +37,11 @@ function AppRouter() {
       </div>
     );
   }
-  if (!isAuthenticated && location !== '/login' && location !== '/pause') {
+  const publicPaths = ['/login', '/pause', '/forgot-password'];
+  const isPublicPath = publicPaths.includes(location)
+    || location.startsWith('/invite/')
+    || location.startsWith('/reset-password/');
+  if (!isAuthenticated && !isPublicPath) {
     return <LoginPage />;
   }
   if (!isAuthenticated && location === '/login') {
@@ -57,6 +64,9 @@ function AppRouter() {
       <Route path="/teacher-guide" component={TeacherGuidePage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/pause" component={PausePage} />
+      <Route path="/invite/:token" component={AcceptInvitePage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -15,7 +15,11 @@ import {
   saveScenarioAttempt, getAttemptsByStudent, getAttemptsByScenario, getAllAttempts,
   saveStepExecutions, getLastAttemptId, getStepExecutionsByStudent,
   saveReflectionAnswer, getReflectionAnswersByStudent, getAllReflectionAnswers,
+  createInviteToken, getInviteToken, markInviteTokenUsed,
+  createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenUsed,
 } from "./db";
+import crypto from "crypto";
+import { notifyOwner } from "./_core/notification";
 
 const ERP_JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "erp-simulator-secret-2026"
@@ -178,6 +182,81 @@ const studentsRouter = router({
         created++;
       }
       return { created, skipped };
+    }),
+  generateInviteLink: publicProcedure
+    .input(z.object({ email: z.string().email(), cohortId: z.number().optional(), origin: z.string().url() }))
+    .mutation(async ({ input, ctx }) => {
+      const teacherPayload = await requireTeacher(ctx);
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await createInviteToken({ token, email: input.email.toLowerCase(), cohortId: input.cohortId ?? null, createdBy: teacherPayload.id, expiresAt, usedAt: null });
+      const url = `${input.origin}/invite/${token}`;
+      return { url, token, expiresAt };
+    }),
+  acceptInvite: publicProcedure
+    .input(z.object({ token: z.string(), name: z.string().min(2), password: z.string().min(6) }))
+    .mutation(async ({ input }) => {
+      const invite = await getInviteToken(input.token);
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Lien d'invitation invalide." });
+      if (invite.usedAt) throw new TRPCError({ code: "CONFLICT", message: "Ce lien a déjà été utilisé." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a expiré." });
+      const existing = await getStudentByEmail(invite.email);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Un compte avec cet email existe déjà." });
+      const passwordHash = await bcrypt.hash(input.password, 10);
+      await createStudent({ name: input.name, email: invite.email, passwordHash, cohortId: invite.cohortId ?? null, notes: null, status: "active", lastActive: null });
+      await markInviteTokenUsed(input.token);
+      return { success: true, email: invite.email };
+    }),
+  getInviteInfo: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ input }) => {
+      const invite = await getInviteToken(input.token);
+      if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Lien d'invitation invalide." });
+      if (invite.usedAt) throw new TRPCError({ code: "CONFLICT", message: "Ce lien a déjà été utilisé." });
+      if (new Date() > invite.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a expiré." });
+      return { email: invite.email, cohortId: invite.cohortId, valid: true };
+    }),
+});
+
+const passwordRouter = router({
+  forgotPassword: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await createPasswordResetToken({ token, email: input.email.toLowerCase(), expiresAt });
+      await notifyOwner({ title: "ERP-SIM: Demande de réinitialisation de mot de passe", content: `L'utilisateur ${input.email} a demandé une réinitialisation de mot de passe.` });
+      return { token, expiresAt };
+    }),
+  getResetInfo: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ input }) => {
+      const reset = await getPasswordResetToken(input.token);
+      if (!reset) throw new TRPCError({ code: "NOT_FOUND", message: "Lien de réinitialisation invalide." });
+      if (reset.usedAt) throw new TRPCError({ code: "CONFLICT", message: "Ce lien a déjà été utilisé." });
+      if (new Date() > reset.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a expiré." });
+      return { email: reset.email, valid: true };
+    }),
+  resetPassword: publicProcedure
+    .input(z.object({ token: z.string(), newPassword: z.string().min(6) }))
+    .mutation(async ({ input }) => {
+      const reset = await getPasswordResetToken(input.token);
+      if (!reset) throw new TRPCError({ code: "NOT_FOUND", message: "Lien de réinitialisation invalide." });
+      if (reset.usedAt) throw new TRPCError({ code: "CONFLICT", message: "Ce lien a déjà été utilisé." });
+      if (new Date() > reset.expiresAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Ce lien a expiré." });
+      // Try student first, then teacher
+      const student = await getStudentByEmail(reset.email);
+      if (student) {
+        const hash = await bcrypt.hash(input.newPassword, 10);
+        await updateStudentById(student.id, { passwordHash: hash });
+      } else {
+        const teacher = await getTeacherByEmail(reset.email);
+        if (!teacher) throw new TRPCError({ code: "NOT_FOUND", message: "Aucun compte trouvé pour cet email." });
+        const hash = await bcrypt.hash(input.newPassword, 10);
+        await updateTeacherById(teacher.id, { passwordHash: hash });
+      }
+      await markPasswordResetTokenUsed(input.token);
+      return { success: true };
     }),
 });
 
@@ -405,6 +484,7 @@ export const appRouter = router({
   attempts: attemptsRouter,
   attemptsSteps: attemptsStepsRouter,
   reflection: reflectionRouter,
+  password: passwordRouter,
 });
 
 export type AppRouter = typeof appRouter;

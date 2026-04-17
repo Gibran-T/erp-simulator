@@ -11,11 +11,12 @@ import { toast } from 'sonner';
 import { Layers, BookOpen, GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useLang } from '@/contexts/LanguageContext';
+import { Link } from 'wouter';
 
 type LoginTab = 'student' | 'teacher';
 
 export default function LoginPage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { loginAsStudent, loginAsTeacher } = useAuth();
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<LoginTab>('student');
@@ -185,6 +186,16 @@ export default function LoginPage() {
             >
               {loading ? t('login.connecting') : t('login.submit')}
             </button>
+            {/* Forgot password link */}
+            <div className="text-center mt-2">
+              <Link
+                href="/forgot-password"
+                className="text-xs transition-all"
+                style={{ color: 'oklch(0.50 0.12 255)' }}
+              >
+                {lang === 'fr' ? 'Mot de passe oublié ?' : 'Forgot password?'}
+              </Link>
+            </div>
           </form>
 
           {/* Demo credentials hint */}

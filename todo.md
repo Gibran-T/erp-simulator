@@ -150,3 +150,28 @@
 - [x] Phase 6: Verify SAP codes bug not present (getSystemCode already correct)
 - [x] Phase 6: Verify stale history fixed (refetchHistory + invalidate in submitWithSteps.onSuccess)
 - [x] Phase 7: Add struggled/improved sections to ResultScreen (What You Mastered / What Needs Work)
+
+<<<<<<< Updated upstream
+## System Status Update (2026-04-08)
+- [x] Phase 7: Push to GitHub — all completed phases committed
+- [x] Live URL confirmed: https://erpsimulate-h8ynqfbc.manus.space
+- [x] Auth system operational: studentLogin + teacherLogin via JWT
+- [x] 5 modules implemented: ERP-ARCH, MM, SD, FI, ERP-SIM
+- [x] Teacher monitoring panel operational
+- [x] Bilingual FR/EN interface — all 11 pages validated
+- [x] 90 completed tasks / 15 pending (pedagogical enhancements)
+=======
+## Auth System Sprint (2026-04-16)
+- [x] Phase 1: Add invite_tokens and password_reset_tokens tables to drizzle/schema.ts + pnpm db:push
+- [x] Phase 2: Add DB helpers (createInviteToken, getInviteToken, markInviteTokenUsed, createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenUsed) to server/db.ts
+- [x] Phase 3: Add tRPC procedures (students.generateInviteLink, students.acceptInvite, students.getInviteInfo, password.forgotPassword, password.resetPassword, password.getResetInfo) to server/routers.ts
+- [x] Phase 4: Create AcceptInvitePage.tsx (/invite/:token), ForgotPasswordPage.tsx (/forgot-password), ResetPasswordPage.tsx (/reset-password/:token)
+- [x] Phase 4: Update LoginPage.tsx — add "Mot de passe oublié ?" link below submit button
+- [x] Phase 5: Add "Inviter par lien" button + InviteDialog to CohortsPage.tsx (next to UserPlus Add button)
+- [x] Phase 5: Add invite link translation keys to LanguageContext.tsx
+- [x] Phase 6: Register 3 new routes in App.tsx (/invite/:token, /forgot-password, /reset-password/:token)
+- [x] Phase 6: Update auth guard in App.tsx to allow public access to invite/forgot/reset routes
+- [x] Phase 6: All 16 vitest tests passing
+- [x] Phase 6: Save checkpoint
+- [x] Phase 6: Push to GitHub
+>>>>>>> Stashed changes

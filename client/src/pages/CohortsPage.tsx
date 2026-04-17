@@ -13,7 +13,7 @@ import {
   Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   BookOpen, X, Check, UserPlus, Mail, Search, AlertTriangle,
   GraduationCap, Calendar, ToggleLeft, ToggleRight, Upload, FileText,
-  Loader2, KeyRound
+  Loader2, KeyRound, Link2, Copy, CheckCheck
 } from 'lucide-react';
 
 // ─── Types from DB ────────────────────────────────────────────────────────────
@@ -343,7 +343,7 @@ export default function CohortsPage() {
     onSuccess: () => { utils.students.list.invalidate(); toast.success(t('cohorts.toastStudentDeleted')); setConfirmDel(null); },
     onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
-  const importBulk = trpc.students.importBulk.useMutation({
+   const importBulk = trpc.students.importBulk.useMutation({
     onSuccess: (result) => {
       utils.students.list.invalidate();
       toast.success(`${result.created} ${t('cohorts.toastImported')}${result.skipped > 0 ? `, ${result.skipped} ${t('cohorts.toastSkipped')}` : ''}`);
@@ -351,7 +351,14 @@ export default function CohortsPage() {
     },
     onError: (e) => toast.error(e.message || t('cohorts.toastError')),
   });
-
+  // Invite link mutation
+  const generateInvite = trpc.students.generateInviteLink.useMutation({
+    onSuccess: (data) => {
+      setGeneratedInviteLink(data.url);
+      toast.success(t('cohorts.inviteToastSuccess'));
+    },
+    onError: (e) => toast.error(e.message || t('cohorts.toastError')),
+  });
   // UI state
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
@@ -363,6 +370,12 @@ export default function CohortsPage() {
   const [addToCohort, setAddToCohort] = useState<number | null>(null);
   const [csvPreview, setCsvPreview] = useState<{ rows: Array<{ name: string; email: string; cohortId: number | null; valid: boolean; error?: string }>; fileName: string } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  // Invite dialog state
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteCohortId, setInviteCohortId] = useState<number | null>(null);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // Auto-expand active cohorts when data loads
   const [autoExpanded, setAutoExpanded] = useState(false);
@@ -558,6 +571,11 @@ export default function CohortsPage() {
                         style={{ background: 'oklch(0.60 0.20 255 / 15%)', color: 'oklch(0.72 0.16 255)' }}>
                         <UserPlus size={13} /> {t('common.add')}
                       </button>
+                      <button onClick={() => { setInviteCohortId(cohort.id); setInviteEmail(''); setGeneratedInviteLink(null); setInviteCopied(false); setShowInviteDialog(true); }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ background: 'oklch(0.72 0.16 162 / 15%)', color: 'oklch(0.72 0.14 162)' }}>
+                        <Link2 size={13} /> {t('cohorts.inviteByLink')}
+                      </button>
                       <button onClick={() => { setEditCohort(cohort); setShowCohort(true); }} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.60 0.20 255)' }} title={t('common.edit')}><Pencil size={14} /></button>
                       <button onClick={() => setConfirmDel({ type: 'cohort', id: cohort.id, name: cohort.name })} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.22 25)' }} title={t('common.delete')}><Trash2 size={14} /></button>
                     </div>
@@ -675,6 +693,106 @@ export default function CohortsPage() {
           ? t('cohorts.confirmDeleteStudent').replace('{name}', confirmDel.name)
           : t('cohorts.confirmDeleteCohort').replace('{name}', confirmDel.name)}
         onConfirm={doDelete} onClose={() => setConfirmDel(null)} t={t} />}
+
+      {/* Invite Link Dialog */}
+      {showInviteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'oklch(0 0 0 / 75%)' }}>
+          <div className="w-full max-w-md rounded-2xl p-6 space-y-4" style={{ background: 'oklch(0.14 0.018 255)', border: '1px solid oklch(0.72 0.16 162 / 35%)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link2 size={18} style={{ color: 'oklch(0.72 0.14 162)' }} />
+                <h2 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk', color: 'oklch(0.93 0.005 255)' }}>{t('cohorts.inviteDialogTitle')}</h2>
+              </div>
+              <button onClick={() => setShowInviteDialog(false)} className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'oklch(0.55 0.010 255)' }}><X size={18} /></button>
+            </div>
+
+            {!generatedInviteLink ? (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.inviteEmail')} *</label>
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'oklch(0.45 0.010 255)' }} />
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder={t('cohorts.inviteEmailPlaceholder')}
+                      className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none"
+                      style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.inviteCohort')}</label>
+                  <select
+                    value={inviteCohortId ?? ''}
+                    onChange={e => setInviteCohortId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.88 0.005 255)' }}
+                  >
+                    <option value="">— {t('cohorts.noCohort')} —</option>
+                    {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowInviteDialog(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>{t('common.cancel')}</button>
+                  <button
+                    onClick={() => {
+                      if (!inviteEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+                        toast.error(t('cohorts.emailInvalid'));
+                        return;
+                      }
+                      generateInvite.mutate({ email: inviteEmail.trim(), cohortId: inviteCohortId ?? undefined, origin: window.location.origin });
+                    }}
+                    disabled={generateInvite.isPending}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: 'oklch(0.72 0.16 162)', color: 'white' }}>
+                    {generateInvite.isPending ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+                    {generateInvite.isPending ? t('cohorts.inviteGenerating') : t('cohorts.inviteGenerate')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl p-4 space-y-3" style={{ background: 'oklch(0.72 0.16 162 / 8%)', border: '1px solid oklch(0.72 0.16 162 / 25%)' }}>
+                  <div className="flex items-center gap-2">
+                    <CheckCheck size={16} style={{ color: 'oklch(0.72 0.14 162)' }} />
+                    <span className="text-sm font-semibold" style={{ color: 'oklch(0.72 0.14 162)' }}>{t('cohorts.inviteLinkReady')}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: 'oklch(0.55 0.010 255)' }}>{t('cohorts.inviteLinkHint')}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 rounded-lg text-xs font-mono truncate"
+                      style={{ background: 'oklch(0.11 0.015 255)', border: '1px solid oklch(0.25 0.018 255)', color: 'oklch(0.72 0.14 162)' }}>
+                      {generatedInviteLink}
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedInviteLink);
+                        setInviteCopied(true);
+                        setTimeout(() => setInviteCopied(false), 2000);
+                      }}
+                      className="shrink-0 p-2 rounded-lg flex items-center gap-1 text-xs font-semibold"
+                      style={{ background: inviteCopied ? 'oklch(0.72 0.16 162 / 30%)' : 'oklch(0.72 0.16 162 / 15%)', color: 'oklch(0.72 0.14 162)' }}>
+                      {inviteCopied ? <CheckCheck size={14} /> : <Copy size={14} />}
+                      {inviteCopied ? t('cohorts.inviteCopied') : t('cohorts.inviteCopy')}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => { setGeneratedInviteLink(null); setInviteEmail(''); }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: 'oklch(0.18 0.018 255)', color: 'oklch(0.65 0.010 255)' }}>{t('cohorts.inviteNewLink')}</button>
+                  <button onClick={() => setShowInviteDialog(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold"
+                    style={{ background: 'oklch(0.72 0.16 162)', color: 'white' }}>{t('cohorts.inviteClose')}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

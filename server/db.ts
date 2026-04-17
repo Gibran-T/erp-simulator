@@ -10,6 +10,8 @@ import {
   scenarioAttempts,
   reflectionAnswers,
   stepExecutions,
+  inviteTokens, InsertInviteToken,
+  passwordResetTokens,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -348,4 +350,44 @@ export async function getLastAttemptId(studentId: number, scenarioId: string): P
     .orderBy(desc(scenarioAttempts.completedAt))
     .limit(1);
   return rows[0]?.id ?? null;
+}
+
+// ─── Invite Tokens ────────────────────────────────────────────────────────
+export async function createInviteToken(data: Omit<InsertInviteToken, 'id' | 'createdAt'>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(inviteTokens).values(data);
+}
+
+export async function getInviteToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(inviteTokens).where(eq(inviteTokens.token, token)).limit(1);
+  return result[0];
+}
+
+export async function markInviteTokenUsed(token: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(inviteTokens).set({ usedAt: new Date() }).where(eq(inviteTokens.token, token));
+}
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────
+export async function createPasswordResetToken(data: { token: string; email: string; expiresAt: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(passwordResetTokens).values(data);
+}
+
+export async function getPasswordResetToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
+  return result[0];
+}
+
+export async function markPasswordResetTokenUsed(token: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.token, token));
 }
